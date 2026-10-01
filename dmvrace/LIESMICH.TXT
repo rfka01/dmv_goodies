@@ -1,0 +1,123 @@
+DMVRACE - Prozessor-Rennen fuer die NCR Decision Mate V
+=======================================================
+
+Fuer MS-DOS 3.30 auf der DMV mit Grafikkarte (uPD7220, 640 x 400).
+Vier Wagen, vier Rechenwerke der DMV:
+
+  rot    Z80 auf der Hauptplatine (4 MHz)
+  gruen  8088 bzw. V20 (K230/K231/K235) - wird erkannt und beschriftet
+  gelb   derselbe mit 8087
+  cyan   68008 auf dem K234
+
+Fehlt ein Rechenwerk, bleibt sein Wagen in der Box.
+
+Die Wagen sind 8 x 8 Punkte gross (CARS.INC): Karosserie in der Wagenfarbe,
+vier weisse Reifen, vorne eine Scheibe. Sie drehen sich in 45-Grad-
+Schritten (8 Lagen) mit der Fahrtrichtung: ANG.INC haelt fuer jeden der 512
+Streckenpunkte die Richtung der Mittellinie (die vier Spuren sind
+Parallelkurven, ihre Tangente ist am selben Punkt gleich). Gedreht wird,
+sobald die Richtung die Mitte zwischen zwei Lagen (22,5 Grad) um etwa
+3 Grad ueberschreitet - auf Innen- und Aussenspur am selben Punkt.
+Gezeichnet wird je Ebene ein GDC-Grafikzeichen im XOR-Modus - zweimal
+gezeichnet ist der Wagen wieder weg, Strecke und Ziellinie bleiben heil.
+
+Aufruf
+------
+  DMVRACE            alles, was da ist
+  DMVRACE /Z         ohne Z80          DMVRACE /K   ohne 68008
+  DMVRACE /8         ohne 8087         /M Mono, /C Farbe erzwingen
+
+Ablauf
+------
+  1. Startaufstellung: die Wagen stehen hintereinander an der Ziellinie,
+     darueber weht die karierte Start/Ziel-Flagge (auch nach dem Ziel).
+     Eine Taste startet das Rennen, ESC beendet.
+  2. Runde 1, Abschnitt fuer Abschnitt: erst rechnen alle Prozessoren den
+     Test des Abschnitts (Statuszeile "...: ALLE RECHNEN", die Zeiten
+     erscheinen in der Tabelle). Unten zeigt jeder Prozessor sein eigenes
+     Ergebnis als Bild. Dann fahren die Wagen, bis der Schnellste das Ende
+     des Abschnitts erreicht - die anderen stehen dort, wo sie nach dieser
+     Zeit waeren. Dann der naechste Abschnitt.
+  3. Nach Runde 1 zeigt die Leiste unten alle fuenf Ergebnisbilder
+     nebeneinander (Daten des Schnellsten): Viertelkreis gelb, Sierpinski
+     gruen, Division magenta, Ulam-Spirale cyan, Mandelbrot bunt. Dann
+     Runden 2 und 3 mit den gemessenen Zeiten, ohne Pause.
+  4. Ziel: Sieger in der Statuszeile. J = nochmal (alles neu gemessen),
+     ESC = Ende.
+
+Alles laeuft in Echtzeit: ein Bildwechsel (1/50 s) entspricht 1/50 s
+gemessener Rechenzeit. Waehrend der 68008 rechnet, bricht ESC ab.
+
+Die Strecke
+-----------
+Fuenf Abschnitte, jeder ist ein Test. Jeder Wagen faehrt in jedem Abschnitt
+so schnell, wie er diesen Test gerechnet hat - deshalb wechselt die
+Fuehrung.
+
+  Wurzel-Kurve        Gitterpunkte im Viertelkreis: Summe isqrt(R^2 - x^2),
+                      R = 6000 (32 Bit). Der 8087 nimmt FSQRT, die anderen
+                      ziehen die Wurzel Bit fuer Bit. Ergebnis 28274296
+                      (das ist pi*R^2/4). Bild: der Viertelkreis.
+  Sierpinski-Gerade   Pascal-Dreieck modulo 2: Zeile = Zeile XOR (Zeile<<1),
+                      256 Bit breit, 200 Zeilen, 40 Durchgaenge. Schieben
+                      und XOR - der 68008 schiebt 32 Bit am Stueck.
+                      Bild: die ersten 100 Zeilen (Sierpinski-Dreieck).
+  Divisions-Kehre     Primfaktoren durch Probedivision fuer n = 50000..50399
+                      (30070 Divisionen). DIV beim 8088, DIVU beim V20 (viel
+                      schneller), DIVU.W beim 68008, Software beim Z80.
+                      Bild: Anzahl der Primfaktoren je Zahl als Balken.
+  Eratosthenes-Kurve  Sieb des Eratosthenes wie im BYTE-Benchmark 1981:
+                      8190 Flags, 8 Durchgaenge, 1899 Primzahlen.
+                      Bild: Ulam-Spirale 100 x 100 aus den eigenen Flags -
+                      die Zahlen 1..10000 spiralfoermig von der Mitte aus,
+                      jede Primzahl ein Punkt. Man sieht die Diagonalen.
+  Mandelbrot-Schikane Mandelbrot 40 x 25, Tiefe 50: 8088 und Z80 mit 16 Bit
+                      Festkomma, 8087 mit 80 Bit Gleitkomma, 68008 mit 32 Bit
+                      Festkomma.
+
+Jeder Test (ausser Mandelbrot, dort rechnen die Prozessoren verschieden
+genau) liefert eine Pruefsumme. Stimmt sie nicht, wird der Wagen
+disqualifiziert (FALSCH).
+
+Zeitmessung
+-----------
+PIT-Kanal 0. Das Boot-ROM programmiert ihn als 50-Hz-Zaehler (Modus 5,
+Motor-Auszeit 838 = 16,8 s); danach zaehlt er frei weiter, auch waehrend der
+8088 steht. Aufloesung 1/50 s. Zaehlt er nicht, nimmt DMVRACE die DOS-Uhr
+(dann ohne Z80).
+
+Der Z80
+-------
+Das Boot-ROM (C.07.00, 0580h) legt beim Start eines 16-Bit-Systems bei F10Ch
+OUT (10h),A / OUT (D0h),A / NOP / JP F111h ab und schaltet damit auf den
+8088. Der Z80 steht hinter dem OUT (D0h); schaltet der 8088 zurueck (OUT D0h),
+macht er bei F110h weiter.
+
+DMVRACE sucht in Bank 0 (die ersten 64 KB) einen freien Bereich von 10 KB,
+der das Programm selbst nicht beruehrt, sichert dessen Inhalt, legt den
+Z80-Kern dorthin und passt ihn an (Verschiebetabelle). Bei F10Eh steht dann
+OUT (D0h),A / NOP / JP Kern. Liegt DMVRACE selbst ueber F10Eh, zieht es
+vorher in einen hoeheren DOS-Block um. Waehrend der Z80 rechnet, steht der
+8088 und die Interrupts sind aus (die DOS-Uhr geht danach um die Z80-Zeit
+nach). Danach wird alles zurueckgelegt.
+
+Kommt der Z80 nicht zurueck, steht der Rechner - dann hilft nur ein
+Neustart, und /Z laesst ihn beim naechsten Mal weg.
+
+Der 68008
+---------
+Wie in DMVDEMO (/6): 16 KB DOS-Block, Briefkasten, Code ab P+100h, die
+8088-Vektoren 0/1 werden kurz durch die 68000-Reset-Vektoren ersetzt, OUT D8h
+startet. Je Test ein Start; am Ende haelt er sich mit STOP an.
+
+Bauen
+-----
+  BUILD.BAT baut DMVRACE.COM (MASM 5.10, LINK, EXE2BIN).
+  Quellen: DMVRACE.ASM, GDCTAB.INC, GDCVAR.INC, GDCLIB.INC (GDC-Routinen,
+  gemeinsam mit DMVDEMO), FONT.INC, SINTAB.INC, MONOPAT.INC,
+  TRACK.INC (Strecke), FLAG.INC (Start/Ziel-Flagge), CARS.INC (Wagen),
+  ANG.INC (Fahrtrichtung),
+  Z80.INC und R68.INC (fertig uebersetzte Kerne).
+  Die Kerne selbst: RACEZ80.ASM (z80asm) und RACE68.S (GNU as m68k);
+  zum Bauen von DMVRACE braucht man diese Assembler nicht.
+

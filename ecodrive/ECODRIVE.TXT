@@ -1,0 +1,63 @@
+ECODRIVE 1.5 - RAM-Disk im Rot/Blau-Speicher der NCR Decision Mate V
+======================================================================
+
+Fuer MS-DOS 3.30 auf der DMV mit Farb-Grafikkarte und 8088/V20-Karte.
+
+Die Farbkarte hat 96 KB Bildspeicher in drei Ebenen zu je 32 KB (gruen,
+rot, blau) hinter dem Grafikcontroller uPD7220. Textbetrieb und gruene
+Grafik nutzen nur die gruene Ebene. ECODRIVE legt in Rot und Blau ein
+Laufwerk mit 128 Sektoren ab (FAT12, 62 KB frei). "Eco", weil der
+Bildschirm gruen bleibt.
+
+Auf einer Mono-DMV (nur 32 KB Bildspeicher) startet ECODRIVE nicht.
+
+Aufruf
+------
+  ECODRIVE           laden, naechster freier Laufwerksbuchstabe
+  ECODRIVE /X:NAME   laden, vor dem Start von NAME rueckfragen
+                     (bis zu 8 Namen, NAME* fuer den Anfang eines Namens)
+  ECODRIVE /F        Laufwerk leer neu einrichten
+  ECODRIVE /U        entfernen - die Dateien gehen dabei verloren
+  ECODRIVE /?        Hilfe
+
+ECODRIVE ist ein TSR und braucht keine Zeile in CONFIG.SYS. Fehlt ein
+freier Laufwerksbuchstabe, LASTDRIVE in CONFIG.SYS erhoehen. /F und /U
+fragen vorher mit J/N nach, ausser das Laufwerk ist ohnehin gesperrt.
+Entfernen geht nur, wenn ECODRIVE das letzte Laufwerk und das zuletzt
+geladene residente Programm ist.
+
+Schutz
+------
+Der 8088 kann Zugriffe auf die Grafikports nicht sperren. Ein Programm,
+das in Rot oder Blau zeichnet, ueberschreibt die RAM-Disk. Deshalb:
+
+- Pruefsumme: Fuer jeden Sektor steht eine Pruefsumme im Hauptspeicher.
+  Ein ueberschriebener Sektor ergibt einen DOS-Datenfehler, nie falsche
+  Daten.
+- Rueckfrage: Vor DMVDEMO, DMVRACE, GEM und den /X-Namen fragt ECODRIVE
+  "Trotzdem starten (J/N)?". N bricht den Start ab.
+- Nachpruefung: Nach dem Ende eines solchen Programms prueft ECODRIVE
+  alle Sektoren. Ist einer beschaedigt, meldet es die Zahl und sperrt das
+  Laufwerk: jeder Zugriff ergibt "nicht bereit", bis ECODRIVE /F das
+  Laufwerk neu einrichtet.
+- Kennung: Programme koennen ueber INT 2Fh nachfragen, ob ECODRIVE
+  geladen ist:
+    AX=EC00h  ->  AL=FFh, BX=4543h ('EC'), CX=0150h (Version),
+                  DX=belegte Ebenen (Bit 1 rot, Bit 2 blau)
+    AX=EC01h  ->  AL=Laufwerk (0 = A:)
+
+Hinweise
+--------
+- Programme aus der CP/M-Zeit (z. B. WordStar 3.3) kennen keine Pfade:
+  F:NAME.TXT angeben, nicht F:\NAME.TXT.
+- CHKDSK zeigt "0 Bytes in 1 unsichtbaren Datei(en)": das ist der
+  Datentraegername ECODRIVE, bei DOS 3.30 normal.
+- Nach dem Ausschalten oder einem Neustart ist der Inhalt weg.
+
+Bauen
+-----
+  MASM ECODRIVE;  LINK ECODRIVE;  EXE2BIN ECODRIVE ECODRIVE.COM
+
+Code: Claude (Anthropic), Idee und Prompts: rfka01. MIT-Lizenz.
+Quellen: https://github.com/rfka01/dmv_goodies
+

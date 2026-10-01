@@ -1,0 +1,27 @@
+KITT.PIC - Bildnachweis / Image credit
+======================================
+
+KITT.PIC ist eine bearbeitete Fassung des Fotos
+KITT.PIC is an edited version of the photo
+
+  "K2000 - CC Villabe A6 - 2018-03-03 - IMG 7310.jpg"
+  Foto / photo: Poudou99, eigenes Werk / own work, 3.3.2018
+  Wikimedia Commons:
+  https://commons.wikimedia.org/wiki/File:K2000_-_CC_Villab%C3%A9_A6_-_2018-03-03_-_IMG_7310.jpg
+
+Lizenz / License: CC BY-SA 4.0
+  https://creativecommons.org/licenses/by-sa/4.0/
+
+Bearbeitungen / Changes:
+  freigestellt, auf schwarzen 4:3-Grund gesetzt, auf 640 x 400 skaliert,
+  Unscharfmaske, Licht von oben, Atkinson-Raster schwarz/weiss, Schlitz
+  fuer das Scanner-Lauflicht geschwaerzt, gespeichert als vier
+  DMV-Bildebenen zu je 32000 Bytes.
+  background removed, placed on a black 4:3 canvas, scaled to 640 x 400,
+  unsharp mask, light from above, Atkinson dithering in black and white,
+  scanner slot blacked out, stored as four DMV video planes of 32000
+  bytes each.
+
+KITT.PIC steht ebenfalls unter CC BY-SA 4.0, nicht unter der MIT-Lizenz
+der Programme. / KITT.PIC is likewise licensed under CC BY-SA 4.0, not
+under the MIT License of the programs.

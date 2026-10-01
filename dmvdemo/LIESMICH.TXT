@@ -1,0 +1,119 @@
+DMVDEMO - Grafikdemo fuer die NCR Decision Mate V
+==================================================
+
+Fuer MS-DOS 3.30 auf der DMV mit Farb-Grafikkarte (uPD7220, 640 x 400,
+8 Farben). Laeuft auch auf der Mono-DMV (dann Graustufen als Raster).
+
+Ein Programm; ein Schalter legt fest, wer den blauen Mandelbrot-Tentakel
+(Bild 11) hoechstens rechnen darf, bevor der 8088/V20 einspringt:
+
+  /6   68008 auf dem K234 (32-Bit-Festkomma 4.28, experimentell)
+       -> antwortet er nicht: 8087 -> ohne 8087: 8088/V20
+  /7   8087 (80-Bit-Gleitkomma), wenn einer steckt -> sonst 8088/V20
+       (Voreinstellung, gilt auch ohne Schalter)
+  /8   nur 8088/V20 (16-Bit-Festkomma 3.13), zum Zeitvergleich
+
+Steckt ein 8087 (und kein /8), rechnet er auch Bild 9 (Mandelbrot) und
+Bild 10 (Plasma, dort mit normalverteiltem Zufall).
+
+Die 8087-Erkennung nutzt nur FNINIT/FNSTSW/FNSTCW (ohne WAIT): ohne
+Koprozessor bleibt das Pruefmuster 5A5Ah stehen, mit 8087 stehen
+Statuswort 0 und Steuerwort 03FFh da. Beim Start steht auf dem
+Bildschirm, was gewaehlt und gefunden wurde.
+
+Bei den Bildern 9, 10 und 11 steht oben links schon waehrend der
+Rechnung, wer rechnet; am Ende kommt die Rechenzeit dazu (Sekunden mit
+Hundertsteln). Die Zeit kommt
+von der DOS-Uhr (Fn 2Ch). Laeuft die Uhr nicht, steht dort "?" (beim
+68008 werden dann Bildwechsel gezaehlt, 50 je Sekunde).
+
+Aufruf
+------
+  DMVDEMO            alle 13 Bilder als Endlosschau
+  DMVDEMO 7          nur Bild 7 (bleibt stehen bis Tastendruck)
+  DMVDEMO /M         Mono erzwingen,  /C Farbe erzwingen
+  DMVDEMO /6         Bild 11 zuerst auf dem 68008 (K234) rechnen
+  DMVDEMO /8         Bild 11 nur auf dem 8088/V20 (Zeitvergleich)
+  DMVDEMO 11 /6      Schalter und Bildnummer lassen sich kombinieren
+  Taste = naechstes Bild, ESC = Ende (zurueck zu DOS, Strg-Z loescht
+  den Textbildschirm).
+
+Farbe oder Mono wird erkannt, indem ein Wort in die rote Ebene (4000h)
+geschrieben und mit RDAT zurueckgelesen wird. MAME meldet immer "Farbe",
+auch in der Mono-Konfiguration - dort bitte /M angeben.
+
+Die 13 Bilder
+-------------
+ 1  Titel: "NCR" 12fach mit dem Zeichenzoom des GDC, 3D-Schichten,
+    weisser XOR-Glanzstreifen laeuft dreimal nach rechts und zurueck
+ 2  Remake des NCR-Planungscharts aus DEMO5/DEMO7 (1983), in Farbe
+ 3  Linien-Moire: Hunderte GDC-Linien im XOR-Modus
+ 4  Kreis-Interferenz: konzentrische XOR-Kreise
+ 5  Mystify: springende Linienzuege mit Schweif
+ 6  Dithering: 36 Mischfarben aus 8, danach ein Sonnenuntergang
+ 7  Hardware-Scrolling: Rundlauf ueber zwei Partitionen, Spiegel, Erdbeben
+ 8  Hardware-Lupe: Anzeige-Zoom 2/4/8fach mit Schwenk
+ 9  Mandelbrot 160 x 100 (8088 mit 16 Bit Festkomma 4.12, oder 8087)
+10  Plasma wie FRACTINT: grobe Bloecke, dann die feine Fassung mit
+    4x4-Bayer-Raster ueber einen Farbring (einmal gerechnet). Der 8088
+    verschiebt die Mittelpunkte gleichverteilt zufaellig, der 8087
+    normalverteilt (Polarmethode nach Marsaglia: FYL2X fuer ln, FSQRT) -
+    das Plasma wird weicher. Gemessen wird die Unterteilung.
+11  Der blaue Tentakel: Spirale bei -0,7759 + 0,1362i, 160 x 100 Zellen,
+    Tiefe 100, Farbring schwarz-blau-cyan-weiss - 8088, 8087 oder 68008
+12  KITT: freigestelltes Foto (KITT.PIC, 640 x 400) als Low-Key-Bild
+    (Licht von oben, Atkinson-Raster schwarz/weiss) mit rotem Scanner-
+    Lauflicht im Kuehlergrill - das Lauflicht laeuft gleichzeitig auf den
+    8 LEDs vorne an der DMV mit
+13  Finale (immer zuletzt): Anaglyphen-Wuerfel mit Stern ueber einer
+    Laufschrift, die echter Textmodus in einer eigenen Partition ist -
+    Regenbogenfarben in voller Helligkeit
+
+Der 68008 (Schalter /6)
+-----------------------
+Mit /6 holt sich das Programm beim Start 20 KB von DOS. In Bild 11 kommen dort
+ein Briefkasten (Parameter im 68000-Format) und der 68000-Code
+(MANDEL68.S, 244 Bytes, als Bytes in M68.INC) hinein. Die 8 Bytes ab
+Adresse 0 (8088-Vektoren 0/1) werden gesichert, durch die 68000-Reset-
+Vektoren ersetzt, dann startet OUT D8h den 68008. Sobald er "laeuft"
+meldet, kommen die 8088-Vektoren zurueck. Der 8088 zeichnet fertige
+Zeilen, am Ende haelt sich der 68008 mit STOP an. Eine Taste bittet ihn
+aufzuhoeren (nach der laufenden Zeile). In MAME laufen V20 und 68008
+gleichzeitig; ob das auf der echten DMV (ein Bus) auch so geht, ist
+offen - im schlimmsten Fall hilft nur ein Neustart.
+
+Der 8087
+--------
+Mandelbrot (Bild 9 und 11): gerechnet wird im 8087-Stapel (zr, zi, cr, ci), der Vergleich mit 4 per
+FCOMP und FSTSW in den Speicher (der 8087 kennt kein FSTSW AX). In MAME
+steckt kein 8087 - dort laeuft automatisch die 8088-Rechnung.
+
+Warum DEMO5 nur Mono war
+------------------------
+DEMO5.EXE ist kompiliertes GW-BASIC mit der NCR-Bibliothek NCRGRAPH.
+GCOLOR waehlt dort nur eine Ebene (gruen, rot, blau), und DEMO5 ruft es
+kein einziges Mal auf. Die Farbfassung ist DEMO7 auf der CP/M-86-
+Diskette (PL/I ueber GSX, W. Felkel, NCR Augsburg, 11.11.1983).
+
+Auf der echten Maschine bitte besonders pruefen
+-----------------------------------------------
+- Bild 7: zwei Grafikpartitionen, Erdbeben (Startadresse um 1 Wort)
+- Bild 8: Anzeige-Zoom (MAME zoomt nur senkrecht). Der ZOOM-Parameter
+  geht wie im Boot-ROM C.07.00 ueber Port A2h: der GDC sieht ihn als
+  Parameter, Grafikkarten ab Change Level 36 zoomen damit auch waagrecht.
+- Bild 12: Front-LEDs (Port 00h, LED 1 = Bit 7, aktiv low)
+- Bild 13: Textpartition im Mischmodus
+- Farb/Mono-Erkennung auf der Mono-DMV, Rueckkehr zu DOS
+- Rechenzeiten in Bild 9, 10, 11: 8088 (/8), 8087 (/7), 68008 (/6, nur 11)
+
+Bauen
+-----
+  BUILD.BAT baut DMVDEMO.COM (MASM 5.10, LINK, EXE2BIN; "no stack
+  segment" ist normal).
+  Dateien: DMVDEMO.ASM, GDCTAB.INC, GDCVAR.INC, GDCLIB.INC (GDC-Routinen,
+  gemeinsam mit DMVRACE), FONT.INC, SINTAB.INC, MONOPAT.INC, M68.INC.
+  Zum Bauen braucht man keinen 68000-Assembler (MANDEL68.S liegt nur als
+  Quelle bei, M68.INC enthaelt den Code als Bytes). KITT.PIC muss beim
+  Start im aktuellen Verzeichnis liegen.
+  8x8-Zeichensatz: font8x8 von Daniel Hepper, Public Domain.
+

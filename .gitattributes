@@ -1,0 +1,9 @@
+# DOS files are kept byte for byte (CRLF, Ctrl-Z, DMV character codes)
+*.ASM -text
+*.INC -text
+*.S -text
+*.BAT -text
+*.TXT -text
+*.PIC binary
+*.IMG binary
+*.COM binary
