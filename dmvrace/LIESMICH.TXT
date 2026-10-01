@@ -1,7 +1,8 @@
 DMVRACE - Prozessor-Rennen fuer die NCR Decision Mate V
 =======================================================
 
-Fuer MS-DOS 3.30 auf der DMV mit Grafikkarte (uPD7220, 640 x 400).
+Fuer MS-DOS ab 2.0 (getestet mit 3.30) auf der DMV mit Grafikkarte
+(uPD7220, 640 x 400).
 Vier Wagen, vier Rechenwerke der DMV:
 
   rot    Z80 auf der Hauptplatine (4 MHz)

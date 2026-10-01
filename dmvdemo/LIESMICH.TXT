@@ -1,8 +1,9 @@
 DMVDEMO - Grafikdemo fuer die NCR Decision Mate V
 ==================================================
 
-Fuer MS-DOS 3.30 auf der DMV mit Farb-Grafikkarte (uPD7220, 640 x 400,
-8 Farben). Laeuft auch auf der Mono-DMV (dann Graustufen als Raster).
+Fuer MS-DOS ab 2.0 (getestet mit 3.30) auf der DMV mit Farb-Grafikkarte
+(uPD7220, 640 x 400, 8 Farben). Laeuft auch auf der Mono-DMV (dann
+Graustufen als Raster).
 
 Ein Programm; ein Schalter legt fest, wer den blauen Mandelbrot-Tentakel
 (Bild 11) hoechstens rechnen darf, bevor der 8088/V20 einspringt:
@@ -84,8 +85,9 @@ offen - im schlimmsten Fall hilft nur ein Neustart.
 
 Der 8087
 --------
-Mandelbrot (Bild 9 und 11): gerechnet wird im 8087-Stapel (zr, zi, cr, ci), der Vergleich mit 4 per
-FCOMP und FSTSW in den Speicher (der 8087 kennt kein FSTSW AX). In MAME
+Mandelbrot (Bild 9 und 11): gerechnet wird im 8087-Stapel (zr, zi, cr,
+ci), der Vergleich mit 4 per FCOMP und FSTSW in den Speicher (der 8087
+kennt kein FSTSW AX). In MAME
 steckt kein 8087 - dort laeuft automatisch die 8088-Rechnung.
 
 Warum DEMO5 nur Mono war

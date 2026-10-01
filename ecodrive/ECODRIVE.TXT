@@ -1,7 +1,7 @@
 ECODRIVE 1.5 - RAM-Disk im Rot/Blau-Speicher der NCR Decision Mate V
 ======================================================================
 
-Fuer MS-DOS 3.30 auf der DMV mit Farb-Grafikkarte und 8088/V20-Karte.
+Fuer MS-DOS 3.1 bis 3.3 auf der DMV mit Farb-Grafikkarte und 8088/V20-Karte.
 
 Die Farbkarte hat 96 KB Bildspeicher in drei Ebenen zu je 32 KB (gruen,
 rot, blau) hinter dem Grafikcontroller uPD7220. Textbetrieb und gruene

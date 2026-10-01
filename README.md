@@ -1,6 +1,6 @@
 # DMV Goodies
 
-Programs for the **NCR Decision Mate V** (DMV) under MS-DOS 3.3 · Programme für die **NCR Decision Mate V** unter MS-DOS 3.3
+Programs for the **NCR Decision Mate V** (DMV) under MS-DOS · Programme für die **NCR Decision Mate V** unter MS-DOS
 
 | | |
 |---|---|
@@ -29,7 +29,7 @@ The directories hold the sources, the disk image holds the ready-to-run files. �
 
 ## Requirements · Voraussetzungen
 
-NCR Decision Mate V with 8088/V20 card (K230/K231/K235), MS-DOS 3.3; colour graphics board for ECODRIVE and the colour screens. Tested in MAME (driver `dmv`, fork [rfka01/mame](https://github.com/rfka01/mame)).
+NCR Decision Mate V with 8088/V20 card (K230/K231/K235). DMVDEMO and DMVRACE run under MS-DOS 2.0 or later (tested with 3.30), ECODRIVE needs MS-DOS 3.1–3.3. Colour graphics board for ECODRIVE and the colour screens. · DMVDEMO und DMVRACE laufen ab MS-DOS 2.0 (getestet mit 3.30), ECODRIVE braucht MS-DOS 3.1–3.3. Tested in MAME (driver `dmv`, fork [rfka01/mame](https://github.com/rfka01/mame)).
 
 ## License · Lizenz
 

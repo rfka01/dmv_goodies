@@ -26,7 +26,7 @@ LINK ECODRIVE;
 EXE2BIN ECODRIVE ECODRIVE.COM
 ```
 
-`test/ecotest.py` is the test harness used during development: an 8086 emulator (Unicorn), a model of the µPD7220 and the DOS 3.3 tables ECODRIVE touches (`pip install unicorn`, then `python3 ecotest.py ECODRIVE.COM`).
+`test/ecotest.py` is the test harness used during development: an 8086 emulator (Unicorn), a model of the µPD7220 and the DOS 3.x tables ECODRIVE touches (`pip install unicorn`, then `python3 ecotest.py ECODRIVE.COM`).
 
 ## Deutsch
 

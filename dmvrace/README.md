@@ -4,7 +4,7 @@
 
 ## English
 
-A processor race for the **NCR Decision Mate V** under MS-DOS 3.3. Four cars stand for the four processors a DMV can hold:
+A processor race for the **NCR Decision Mate V** under MS-DOS (2.0 or later, tested with 3.30). Four cars stand for the four processors a DMV can hold:
 
 | Car | Processor |
 |---|---|
@@ -31,7 +31,7 @@ Lap one is measured section by section: first all processors compute the test, t
 
 ## Deutsch
 
-Ein Prozessor-Rennen für die **NCR Decision Mate V** unter MS-DOS 3.3. Vier Wagen stehen für die vier Prozessoren, die in einer DMV stecken können:
+Ein Prozessor-Rennen für die **NCR Decision Mate V** unter MS-DOS (ab 2.0, getestet mit 3.30). Vier Wagen stehen für die vier Prozessoren, die in einer DMV stecken können:
 
 | Wagen | Prozessor |
 |---|---|
