@@ -1,0 +1,79 @@
+MOUSETST - Maustest fuer den K806 der NCR Decision Mate V
+==========================================================
+
+Fuer MS-DOS ab 2.0 auf der DMV mit 8088/V20-Karte (K230/K231/K235) und
+Maus-Adapter K806. Laeuft mit Farb- und Monografikkarte (nur die gruene
+Ebene wird benutzt).
+
+MOUSETST zeichnet ein Koordinatenkreuz mit dem Nullpunkt in der
+Bildmitte und verfolgt die absolute Position des K806 als Spur. Nach
+rechts und nach oben werden die Werte positiv, wie in der NCR-
+Diagnose. Oben stehen X, Y, die gedrueckten Tasten (L, M, R), der
+Massstab und die Begrenzung, unten die Tastenhilfe und die Adresse des
+K806.
+
+Aufruf
+------
+  MOUSETST        K806 auf allen IFSEL-Adressen suchen
+                  (zuerst 30h = IFSEL 2A, dann 38h, 60h, 68h, 70h, 78h,
+                  B0h, B8h, C0h, C8h)
+  MOUSETST 38     nur Adresse 38h (hexadezimal) benutzen
+
+Als K806 gilt eine Karte, die Befehl 02 annimmt und auf Befehl 00 genau
+fuenf Bytes liefert. Bei der Suche erhaelt jede gepruefte Adresse ein
+Befehlsbyte; wer das bei anderen Karten vermeiden will, gibt die Adresse
+an. Beim Beenden meldet MOUSETST "K806 gefunden an Adresse 30h
+(IFSEL 2A)".
+
+Tasten
+------
+  ESC       Ende
+  0         Nullpunkt hierher setzen, die Spur bleibt stehen
+  C         Spur loeschen und Nullpunkt setzen
+  1 2 4 8   Massstab: Zaehlschritte pro Bildpunkt (Start: 2)
+  B         Begrenzung umschalten:
+            Bild  - der Zeiger bleibt am Bildrand stehen, wie bei einem
+                    Maustreiber (Start)
+            frei  - Zaehler von -32768 bis +32767, zum Messen langer
+                    Strecken
+
+Skalenstriche alle 100 Zaehlschritte, lange Striche alle 500.
+
+Die Spur wird gespeichert (bis 7000 Positionen) und beim Wechsel des
+Massstabs neu gezeichnet.
+
+Aufloesung der Maeuse
+---------------------
+Die NCR-Diagnose (Test 9, Phase 6) erwartet fuer 5 Zoll nach rechts und
+5 Zoll nach oben:
+
+  Alps, Mouse Systems Quad        400 - 600
+  Hawley Mark II, Logitech LM-P5  900 - 1100
+  Depraz Souris P4, Logitech P4   1700 - 2000
+
+Mit "B" auf "frei" und Massstab 2 sind 1000 Zaehlschritte genau zwei
+lange Skalenstriche.
+
+Begrenzung
+----------
+Der K806 haelt seine Zaehler selbst an den Grenzen XMIN/XMAX und
+YMIN/YMAX fest (Befehle 0Ah und 05h), aber nur, wenn ein Zaehler die
+Grenze genau erreicht. Liegt die Position beim Umschalten schon
+ausserhalb, setzt MOUSETST sie vorher an den Rand (Befehl 04h).
+
+Hinweis zu MAME
+---------------
+MOUSETST setzt Bildpunkte mit WDAT im Modus "setzen" (23h). Der
+uPD7220 in MAME beachtet beim Modus "ersetzen" (20h) die Maske nicht
+und loescht die uebrigen Punkte des Wortes. Die Bewegung der Windows-
+Maus haengt von deren Aufloesung ab; in MAME laesst sie sich ueber die
+Empfindlichkeit (Analog Input Adjustments) anpassen.
+
+Bauen
+-----
+  MASM MOUSETST;  LINK MOUSETST;  EXE2BIN MOUSETST MOUSETST.COM
+
+Code: Claude (Anthropic), Idee und Prompts: rfka01. MIT-Lizenz.
+Zeichensatz: font8x8 von D. Hepper, Public Domain.
+Quellen: https://github.com/rfka01/dmv_goodies
+

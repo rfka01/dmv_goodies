@@ -8,5 +8,6 @@
 | `KITT.PIC`, `KITT.TXT` | photo for screen 12 (CC BY-SA 4.0) · Foto für Bild 12 |
 | `DMVRACE.COM`, `DMVRACE.TXT` | processor race · Prozessor-Rennen |
 | `ECODRIVE.COM`, `ECODRIVE.TXT` | RAM disk in the red/blue video memory · RAM-Disk im Rot/Blau-Bildspeicher |
+| `MOUSETST.COM`, `MOUSETST.TXT` | test for the K806 mouse adapter · Test für den Maus-Adapter K806 |
 
 The `.TXT` files are the German descriptions (DOS text, CRLF). · Die `.TXT`-Dateien sind die deutschen Beschreibungen.
