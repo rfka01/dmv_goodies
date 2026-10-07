@@ -18,4 +18,14 @@ CARSPR  LABEL   BYTE
         db      000h,041h,041h,000h,000h,041h,041h,000h   ; 6 T
         db      002h,00Fh,016h,03Ah,07Ch,078h,070h,000h   ; 7 B
         db      008h,010h,000h,041h,082h,000h,008h,010h   ; 7 T
+SNAIL   LABEL   BYTE
+        db      000h,00Fh,030h,04Eh,051h,04Dh,031h,0FFh   ; SNAIL links B
+        db      000h,000h,000h,000h,000h,000h,000h,000h   ; SNAIL links T
+        db      000h,005h,0C5h,027h,02Fh,02Eh,07Ch,0F8h   ; SNAIL rechts B
+        db      00Ah,000h,000h,000h,000h,000h,000h,000h   ; SNAIL rechts T
+HUND    LABEL   BYTE
+        db      000h,000h,000h,0BFh,07Fh,028h,045h,082h   ; HUND links B
+        db      000h,000h,000h,000h,000h,000h,000h,000h   ; HUND links T
+        db      000h,018h,03Bh,0F0h,0E0h,0A0h,010h,008h   ; HUND rechts B
+        db      000h,000h,004h,000h,000h,000h,000h,000h   ; HUND rechts T
 

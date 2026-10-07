@@ -27,6 +27,12 @@ Lap one is measured section by section: first all processors compute the test, t
 
 `DMVRACE /Z` without Z80, `/K` without 68008, `/8` without 8087, `/M` and `/C` force monochrome or colour.
 
+### Drag race (second page)
+
+Two snails and a greyhound on the division straight: the 8741 keyboard controller, the Z80 and the 8088/V20 factorise 50000…50399. The page is only offered if the keyboard controller runs the firmware with the race engine (`dmv_mb_8741_32678_synth.bin`, CRC32 `bcb29bec`: keyclick, synthesizer and race engine). DMVRACE probes for it at start-up (synthesizer command 05h, data pair 1Ah/01h, status 50h = race engine present) and aborts the probe at once; with any other firmware nothing is sent, or the synthesizer is only switched on and off.
+
+After the Grand Prix, `D` starts the drag race. The 8741 really computes the test itself (a little over 23 s) and reports its progress, so its snail runs live; the Z80 snail and the greyhound run with their division times from lap one. While the 8741 computes, it does not scan the keyboard. At the end: the 8741's result (1388 = correct), the ranking and how many times faster the greyhound is than the keyboard.
+
 `LIESMICH.TXT` is the full description (German), `BUILD.BAT` builds `DMVRACE.COM` with MASM 5.10. The Z80 and 68008 kernels are included as sources (`RACEZ80.ASM`, `RACE68.S`) and as assembled bytes (`Z80.INC`, `R68.INC`), so no Z80 or 68000 assembler is needed.
 
 ## Deutsch
@@ -53,6 +59,12 @@ Fehlt ein Prozessor, bleibt sein Wagen in der Box. Jeder Abschnitt der nierenfö
 Die erste Runde wird abschnittsweise gemessen: Erst rechnen alle Prozessoren den Test, dann fahren die Wagen, bis der Schnellste das Abschnittsende erreicht. Runde zwei und drei folgen ohne Pause. Alles läuft in Echtzeit (ein Bildwechsel = 1/50 s gemessene Rechenzeit). Eine falsche Prüfsumme disqualifiziert den Wagen.
 
 `DMVRACE /Z` ohne Z80, `/K` ohne 68008, `/8` ohne 8087, `/M` und `/C` erzwingen Mono oder Farbe.
+
+### Drag-Race (zweite Seite)
+
+Zwei Schnecken und ein Windhund auf der Divisions-Geraden: der 8741 der Tastatur, der Z80 und der 8088/V20 zerlegen 50000…50399 in Primfaktoren. Die Seite gibt es nur, wenn der Tastatur-Controller die Firmware mit Rennwerk hat (`dmv_mb_8741_32678_synth.bin`, CRC32 `bcb29bec`: Keyclick, Synthesizer und Rennwerk). DMVRACE fragt beim Start nach (Synthesizer-Befehl 05h, Datenpaar 1Ah/01h, Status 50h = Rennwerk da) und bricht den Probelauf sofort ab; mit jeder anderen Firmware wird nichts gesendet bzw. nur der Synthesizer kurz ein- und ausgeschaltet.
+
+Nach dem Grand Prix startet `D` das Drag-Race. Der 8741 rechnet den Test wirklich selbst (gut 23 s) und meldet seinen Fortschritt, seine Schnecke fährt also live; die Z80-Schnecke und der Windhund fahren mit ihren Divisionszeiten aus Runde 1. Solange der 8741 rechnet, fragt er die Tastatur nicht ab. Am Ende: Ergebnis des 8741 (1388 = richtig), Rangfolge und wievielmal schneller der Windhund als die Tastatur ist.
 
 `LIESMICH.TXT` ist die ausführliche Beschreibung, `BUILD.BAT` baut `DMVRACE.COM` mit MASM 5.10. Die Kerne für Z80 und 68008 liegen als Quelle (`RACEZ80.ASM`, `RACE68.S`) und fertig übersetzt (`Z80.INC`, `R68.INC`) bei; einen Z80- oder 68000-Assembler braucht man nicht.
 

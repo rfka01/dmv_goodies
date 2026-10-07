@@ -31,6 +31,8 @@
 ;*  jeder Prozessor sein Ergebnis zum aktuellen Abschnitt als Bild.    *
 ;*  Vor dem Start stehen die Wagen in der Startaufstellung, eine Taste *
 ;*  startet. Nach dem Ziel: J = nochmal (neu messen), ESC = Ende.      *
+;*  Mit der Tastatur-Firmware mit Rennwerk (8741, CRC32 bcb29bec) gibt *
+;*  es danach D = Drag-Race: 8741 gegen Z80 gegen 8088/V20 (Division). *
 ;*                                                                     *
 ;*  Zeitmessung: PIT-Kanal 0, den das Boot-ROM als 50-Hz-Zaehler       *
 ;*  programmiert (Modus 5, 838 = 16,8 s Motor-Auszeit). Er zaehlt frei *
@@ -191,6 +193,43 @@ T_QUAL  db      'QUALIFYING',0
 T_ZWAIT db      'Z80 RECHNET - DER 8088 WARTET',0
 T_START db      'TASTE = START, ESC = ENDE',0
 T_AGAIN db      'J = NOCHMAL, ESC = ENDE',0
+T_AGAIND db     'J = NOCHMAL, D = DRAG-RACE, ESC = ENDE',0
+; --- Drag-Race ---
+T_DTIT  db      'DMV DRAG-RACE',0
+T_DSUB  db      'DIVISIONS-GERADE: PRIMFAKTOREN VON 50000 BIS 50399',0
+T_DL0   db      'SCHNECKE: 8741 (TASTATUR-CONTROLLER)',0
+T_DL1   db      'SCHNECKE: Z80',0
+T_DHAS  db      'WINDHUND: ',0
+T_DOFF  db      ' - NICHT DABEI',0
+T_DSTART db     'TASTE = START, ESC = ENDE',0
+T_DRUN  db      'DER 8741 RECHNET - DIE TASTATUR SCHLAEFT SO LANGE',0
+T_DNOK  db      'DER 8741 ANTWORTET NICHT',0
+T_DLOST db      'DER 8741 MELDET SICH NICHT MEHR - ABGEBROCHEN',0
+T_DAGAIN db     'J = GRAND PRIX, D = DRAG-RACE, ESC = ENDE',0
+T_DRES  db      'ERGEBNIS DER TASTATUR: ',0
+T_DOK   db      ' - RICHTIG',0
+T_DBAD  db      ' - FALSCH',0
+T_DOUT  db      'AUSGEFALLEN',0
+T_DS    db      ' S',0
+T_DDOT  db      '. ',0
+T_DR1   db      'DER WINDHUND IST ',0
+T_DR2   db      '-MAL SO SCHNELL WIE DIE TASTATUR',0
+TD0     db      '8741',0
+DNAM    dw      offset TD0,offset TN0,offset TN1
+DLANEY  dw      128,192,256             ; Spurmitte
+DLABY   dw      106,170,234             ; Beschriftung je Spur
+DCOL    db      MAGENTA,ROT,GRUEN
+DKIND   db      0,0,1                   ; 0 Schnecke, 1 Windhund
+DTIM      dw      3 dup (0)               ; Zielzeit (1/50 s), 0FFFFh = nicht dabei
+DOLD    dw      3 dup (0)               ; gezeichnete Mitte, 0FFFFh = keine
+DFIN    db      3 dup (0)               ; Zeit angeschrieben
+DORD    db      3 dup (0)               ; Rangfolge
+DBUF    db      80 dup (0)              ; Textpuffer
+v_kbr   db      0                       ; 1 = Tastatur-Firmware mit Rennwerk
+v_kst   db      0                       ; 8741: 0 rechnet, 1 lo da, 2 fertig, 3 aus
+v_kprog db      0                       ; letzter Fortschritt (0..200)
+v_klast dw      0                       ; Bild der letzten Meldung
+v_kres  dw      0                       ; Ergebnis
 T_RACEN db      'RENNEN',0
 T_QSEC  db      ': ALLE RECHNEN',0
 T_RACE  db      'RENNEN UEBER 3 RUNDEN',0
@@ -226,6 +265,7 @@ E_DRAW  db      4 dup (0)
 E_DIR   db      4 dup (0)               ; gezeichnete Lage 0..7 (45 Grad)
 v_spcol db      0                       ; csprite: Farbe
 v_spp   dw      0                       ; csprite: Muster
+v_spz   db      0                       ; csprite: 1 = doppelt gross (GDC-Zoom)
 v_noz   db      0
 v_nok   db      0
 v_pitok db      0
@@ -2140,6 +2180,708 @@ osl9:   pop     bx
         ret
 oslit   ENDP
 
+;=======================================================================
+;  Drag-Race: zwei Schnecken (8741, Z80) gegen einen Windhund (8088/V20),
+;  nur Division. Der 8741 rechnet mit der Rennwerk-Firmware (Synthesizer-
+;  Befehl 05h, Paar 1Ah/01h) wirklich selbst und meldet seinen Fortschritt;
+;  Z80 und Windhund fahren mit ihren in Runde 1 gemessenen Zeiten.
+;=======================================================================
+P_KDAT  EQU     40h                     ; 8741 Daten
+P_KSTA  EQU     41h                     ; 8741 Status / Befehl
+DRX0    EQU     40                      ; Startlinie
+DRX1    EQU     600                     ; Ziellinie
+DRLEN   EQU     DRX1-DRX0-32            ; Weg, bis die Nase im Ziel ist (Tier 32 breit)
+DRYT    EQU     96                      ; Streckenrand oben
+DRYB    EQU     288                     ; unten
+DSTY    EQU     300                     ; Statuszeile
+DRES    EQU     322                     ; erste Ergebniszeile
+
+; warten, bis der 8741 sein Eingangsregister genommen hat (CF = Zeitgrenze)
+kbwait  PROC    NEAR
+        push    ax
+        push    cx
+        mov     cx,0
+kbw1:   in      al,P_KSTA
+        test    al,2
+        jz      kbw2
+        loop    kbw1
+        stc
+        jmp     short kbw9
+kbw2:   clc
+kbw9:   pop     cx
+        pop     ax
+        ret
+kbwait  ENDP
+
+; Befehl AL an den 8741 (sicher: erst IBF frei, danach wieder frei)
+kbcmd   PROC    NEAR
+        call    kbwait
+        jc      kbc9
+        out     P_KSTA,al
+        call    kbwait
+kbc9:   ret
+kbcmd   ENDP
+
+; Datenbyte AL an den 8741
+kbdat   PROC    NEAR
+        call    kbwait
+        jc      kbd9
+        out     P_KDAT,al
+kbd9:   ret
+kbdat   ENDP
+
+; Rennwerk starten (CLI!). CF = 1: keine Rennwerk-Firmware / keine Antwort
+kbstart PROC    NEAR
+        push    ax
+        push    cx
+        in      al,P_KSTA
+        mov     ah,al
+        and     al,0C4h
+        cmp     al,0C0h                 ; Synthesizer-Firmware in Ruhe?
+        jne     kbs8                    ; nein: gar nichts senden
+        test    ah,1
+        jz      kbs0
+        in      al,P_KDAT               ; liegengebliebenes Byte weg
+kbs0:   mov     al,05h                  ; Synthesizer
+        call    kbcmd
+        jc      kbs7
+        mov     al,1Ah                  ; Paar 1Ah/01h: Divisionsrennen
+        call    kbdat
+        jc      kbs7
+        mov     al,01h
+        call    kbdat
+        jc      kbs7
+        mov     cx,10                   ; bis 0,2 s auf Status 50h warten
+kbs1:   call    vsync
+        in      al,P_KSTA
+        and     al,0F4h
+        cmp     al,50h
+        je      kbs9
+        loop    kbs1
+kbs7:   mov     al,05h                  ; nur Synthesizer: wieder beenden
+        call    kbcmd
+kbs8:   stc
+        jmp     short kbs99
+kbs9:   clc
+kbs99:  pop     cx
+        pop     ax
+        ret
+kbstart ENDP
+
+; beim Programmstart: Rennwerk vorhanden? (startet es und bricht gleich ab)
+kbdetect PROC   NEAR
+        push    ax
+        mov     v_kbr,0
+        cli
+        call    kbstart
+        jc      kbe9
+        mov     al,05h                  ; Befehl bricht das Rennen ab
+        call    kbcmd
+        mov     v_kbr,1
+        call    vsync
+        call    vsync
+        in      al,P_KSTA
+        test    al,1
+        jz      kbe9
+        in      al,P_KDAT               ; evtl. erste Fortschrittsmeldung weg
+kbe9:   sti
+        pop     ax
+        ret
+kbdetect ENDP
+
+; je Bild: Meldungen des 8741 abholen
+dkpoll  PROC    NEAR
+        push    ax
+        cmp     v_kst,2
+        jae     dkp9
+        in      al,P_KSTA
+        test    al,1                    ; OBF: Byte da?
+        jz      dkp9
+        cmp     v_kst,1
+        jne     dkp1
+        in      al,P_KDAT               ; Ergebnis hi (Status kann schon C0h sein)
+        mov     byte ptr v_kres+1,al
+        mov     v_kst,2
+        jmp     short dkp8
+dkp1:   and     al,0F0h
+        cmp     al,60h
+        jne     dkp2
+        in      al,P_KDAT               ; Ergebnis lo: der 8741 ist im Ziel
+        mov     byte ptr v_kres,al
+        mov     v_kst,1
+        mov     ax,v_t                  ; Zeit
+        cmp     v_pitok,0
+        je      dkp1a
+        call    tstop
+dkp1a:  mov     DTIM,ax
+        jmp     short dkp8
+dkp2:   cmp     al,50h
+        jne     dkp9
+        in      al,P_KDAT               ; Fortschritt k/2
+        cmp     al,200
+        jbe     dkp3
+        mov     al,200
+dkp3:   mov     v_kprog,al
+dkp8:   mov     ax,v_t
+        mov     v_klast,ax
+dkp9:   pop     ax
+        ret
+dkpoll  ENDP
+
+; Tier BX (Spur 0..2) mit Mitte CX zeichnen bzw. loeschen (XOR)
+danim   PROC    NEAR
+        push    ax
+        push    bx
+        push    cx
+        push    dx
+        push    si
+        mov     al,DCOL[bx]
+        mov     v_spcol,al
+        mov     si,offset SNAIL
+        cmp     DKIND[bx],0
+        je      dan1
+        mov     si,offset HUND
+dan1:   shl     bx,1
+        mov     dx,DLANEY[bx]
+        mov     v_spp,si
+        mov     v_spz,1                 ; doppelt gross: 32 x 16 Punkte
+        sub     cx,8
+        call    cspat                   ; linke Haelfte
+        add     si,16
+        mov     v_spp,si
+        add     cx,16
+        call    cspat                   ; rechte Haelfte
+        mov     v_spz,0
+        pop     si
+        pop     dx
+        pop     cx
+        pop     bx
+        pop     ax
+        ret
+danim   ENDP
+
+; Tier BX auf Weg AX (0..DRLEN) setzen
+dput    PROC    NEAR
+        push    ax
+        push    cx
+        push    si
+        add     ax,DRX0+16              ; Mitte (Schwanz an der Startlinie)
+        mov     cx,ax
+        mov     si,bx
+        shl     si,1
+        cmp     cx,DOLD[si]
+        je      dpu9
+        push    cx
+        mov     cx,DOLD[si]
+        cmp     cx,0FFFFh
+        je      dpu1
+        call    danim                   ; alte Lage weg
+dpu1:   pop     cx
+        mov     DOLD[si],cx
+        call    danim
+dpu9:   pop     si
+        pop     cx
+        pop     ax
+        ret
+dput    ENDP
+
+; Weg nach v_t Bildern bei Zielzeit AX -> AX (0..DRLEN)
+dpos    PROC    NEAR
+        push    cx
+        push    dx
+        mov     cx,ax
+        mov     ax,DRLEN
+        cmp     v_t,cx
+        jae     dps9
+        mov     ax,v_t
+        mov     dx,DRLEN
+        mul     dx
+        div     cx
+dps9:   pop     dx
+        pop     cx
+        ret
+dpos    ENDP
+
+; Zeit von Spur BX rechts ueber die Spur schreiben
+dtime   PROC    NEAR
+        push    ax
+        push    bx
+        push    si
+        mov     DFIN[bx],1
+        mov     al,DCOL[bx]
+        mov     v_col,al
+        shl     bx,1
+        mov     ax,DLABY[bx]
+        mov     v_ty,ax
+        mov     ax,DTIM[bx]
+        call    fmtime
+        mov     si,offset T_NUM
+        mov     ax,520
+        mov     bx,72
+        call    cellt
+        mov     si,offset T_DS
+        mov     v_tx,568
+        mov     v_tz,1
+        call    text
+        pop     si
+        pop     bx
+        pop     ax
+        ret
+dtime   ENDP
+
+; Textpuffer: SI anhaengen an [DI] (ES = DS)
+sapp    PROC    NEAR
+        push    ax
+sap1:   lodsb
+        or      al,al
+        jz      sap2
+        stosb
+        jmp     short sap1
+sap2:   mov     byte ptr [di],0
+        pop     ax
+        ret
+sapp    ENDP
+
+; Zahl AX dezimal an [DI] anhaengen
+sdec    PROC    NEAR
+        push    ax
+        push    bx
+        push    cx
+        push    dx
+        mov     bx,10
+        mov     cx,0
+sdc1:   xor     dx,dx
+        div     bx
+        push    dx
+        inc     cx
+        or      ax,ax
+        jnz     sdc1
+sdc2:   pop     ax
+        add     al,'0'
+        stosb
+        loop    sdc2
+        mov     byte ptr [di],0
+        pop     dx
+        pop     cx
+        pop     bx
+        pop     ax
+        ret
+sdec    ENDP
+
+; Statuszeile der Drag-Seite: Text SI, Farbe AL
+dstat   PROC    NEAR
+        push    ax
+        mov     v_col,al
+        push    ax
+        mov     v_x0,0
+        mov     v_y0,DSTY
+        mov     v_w,640
+        mov     v_h,8
+        mov     al,SCHWARZ
+        call    fillc
+        pop     ax
+        mov     v_ty,DSTY
+        mov     v_tz,1
+        call    ctext
+        pop     ax
+        ret
+dstat   ENDP
+
+; Zeile Y = AX zentriert aus DBUF in Farbe v_col
+dline   PROC    NEAR
+        push    si
+        mov     v_ty,ax
+        mov     v_tz,1
+        mov     si,offset DBUF
+        call    ctext
+        pop     si
+        ret
+dline   ENDP
+
+; Seite aufbauen
+dscene  PROC    NEAR
+        push    ax
+        push    bx
+        push    cx
+        push    dx
+        push    si
+        push    di
+        call    sreset
+        mov     v_tz,2
+        mov     v_ty,4
+        mov     v_col,WEISS
+        mov     v_shc,ROT
+        mov     v_sho,1
+        mov     si,offset T_DTIT
+        call    ctext_s
+        mov     v_tz,1
+        mov     v_ty,60                 ; unter der Flagge (Zeilen 4..43)
+        mov     v_col,GELB
+        mov     si,offset T_DSUB
+        call    ctext
+        mov     v_dmode,0
+        mov     v_lpat,0FFFFh
+        mov     v_col,WEISS             ; Raender, Startlinie
+        mov     v_x0,0
+        mov     v_x1,639
+        mov     v_y0,DRYT
+        mov     v_y1,DRYT
+        call    line
+        mov     v_y0,DRYB
+        mov     v_y1,DRYB
+        call    line
+        mov     v_x0,DRX0
+        mov     v_x1,DRX0
+        mov     v_y0,DRYT
+        mov     v_y1,DRYB
+        call    line
+        mov     v_col,BLAU              ; Spurgrenzen gestrichelt
+        mov     v_lpat,0F0F0h
+        mov     v_x0,0
+        mov     v_x1,639
+        mov     v_y0,160
+        mov     v_y1,160
+        call    line
+        mov     v_y0,224
+        mov     v_y1,224
+        call    line
+        mov     v_lpat,0FFFFh
+        mov     dx,DRYT+1               ; Ziel: Schachbrett 2 x 4 Punkte breit
+dsc1:   mov     ax,dx
+        shr     ax,1
+        shr     ax,1
+        and     al,1
+        mov     v_x0,DRX1
+        mov     v_y0,dx
+        mov     v_w,4
+        mov     v_h,4
+        mov     bl,al
+        mov     al,WEISS
+        or      bl,bl
+        jz      dsc2
+        mov     al,SCHWARZ
+dsc2:   call    fillc
+        mov     v_x0,DRX1+4
+        mov     al,SCHWARZ
+        or      bl,bl
+        jz      dsc3
+        mov     al,WEISS
+dsc3:   call    fillc
+        add     dx,4
+        cmp     dx,DRYB-3
+        jb      dsc1
+        ; Beschriftung der Spuren
+        mov     bx,0
+dsc4:   push    es
+        mov     ax,ds
+        mov     es,ax
+        cld
+        mov     di,offset DBUF
+        mov     si,offset T_DL0
+        cmp     bx,0
+        je      dsc5
+        mov     si,offset T_DL1
+        cmp     bx,1
+        je      dsc5
+        mov     si,offset T_DHAS
+        call    sapp
+        mov     si,offset TN1
+dsc5:   call    sapp
+        mov     si,bx
+        shl     si,1
+        cmp     DTIM[si],0FFFFh
+        jne     dsc6
+        mov     si,offset T_DOFF
+        call    sapp
+dsc6:   pop     es
+        mov     al,DCOL[bx]
+        mov     v_col,al
+        mov     si,bx
+        shl     si,1
+        mov     ax,DLABY[si]
+        mov     v_ty,ax
+        mov     v_tx,DRX0+8
+        mov     v_tz,1
+        mov     si,offset DBUF
+        call    text
+        inc     bx
+        cmp     bx,3
+        jb      dsc4
+        pop     di
+        pop     si
+        pop     dx
+        pop     cx
+        pop     bx
+        pop     ax
+        ret
+dscene  ENDP
+
+; Ergebnis: Rechenergebnis des 8741, Rangfolge, Verhaeltnis Windhund/Tastatur
+dresult PROC    NEAR
+        push    ax
+        push    bx
+        push    cx
+        push    dx
+        push    si
+        push    di
+        push    es
+        mov     ax,ds
+        mov     es,ax
+        cld
+        ; Zeile 1: Ergebnis der Tastatur
+        mov     di,offset DBUF
+        mov     si,offset T_DRES
+        call    sapp
+        mov     v_col,WEISS
+        cmp     v_kst,2
+        je      drs1
+        mov     si,offset T_DOUT
+        call    sapp
+        mov     v_col,ROT
+        jmp     short drs2
+drs1:   mov     ax,v_kres
+        call    sdec
+        mov     si,offset T_DOK
+        cmp     v_kres,1388
+        je      drs1a
+        mov     si,offset T_DBAD
+        mov     v_col,ROT
+        mov     DTIM,0FFFFh               ; falsch gerechnet: keine Wertung
+drs1a:  call    sapp
+drs2:   mov     ax,DRES
+        call    dline
+        ; Rangfolge (3 Eintraege, nach Zeit)
+        mov     DORD,0
+        mov     DORD+1,1
+        mov     DORD+2,2
+        mov     cx,2
+drs3:   push    cx
+        mov     si,0
+drs4:   mov     bl,DORD[si]
+        mov     bh,0
+        shl     bx,1
+        mov     ax,DTIM[bx]
+        mov     bl,DORD[si+1]
+        mov     bh,0
+        shl     bx,1
+        cmp     ax,DTIM[bx]
+        jbe     drs5
+        mov     al,DORD[si]
+        xchg    al,DORD[si+1]
+        mov     DORD[si],al
+drs5:   inc     si
+        cmp     si,2
+        jb      drs4
+        pop     cx
+        loop    drs3
+        mov     si,0
+drs6:   mov     bl,DORD[si]
+        mov     bh,0
+        push    si
+        shl     bx,1
+        cmp     DTIM[bx],0FFFFh
+        je      drs7
+        mov     di,offset DBUF
+        mov     ax,si
+        inc     ax
+        call    sdec
+        push    si
+        mov     si,offset T_DDOT
+        call    sapp
+        mov     si,DNAM[bx]
+        call    sapp
+        mov     al,' '
+        stosb
+        mov     ax,DTIM[bx]
+        call    fmtime
+        mov     si,offset T_NUM
+        call    sapp
+        mov     si,offset T_DS
+        call    sapp
+        pop     si
+        shr     bx,1
+        mov     al,DCOL[bx]
+        mov     v_col,al
+        mov     ax,si
+        mov     cl,10
+        mul     cl
+        add     ax,DRES+16
+        call    dline
+drs7:   pop     si
+        inc     si
+        cmp     si,3
+        jb      drs6
+        ; Windhund gegen Tastatur
+        mov     cx,DTIM+4
+        cmp     cx,0FFFFh
+        je      drs9
+        mov     ax,DTIM
+        cmp     ax,0FFFFh
+        je      drs9
+        mov     dx,10
+        mul     dx
+        div     cx                      ; Zehntel
+        mov     di,offset DBUF
+        mov     si,offset T_DR1
+        call    sapp
+        xor     dx,dx
+        mov     bx,10
+        div     bx
+        call    sdec
+        mov     al,','
+        stosb
+        mov     al,dl
+        add     al,'0'
+        stosb
+        mov     byte ptr [di],0
+        mov     si,offset T_DR2
+        call    sapp
+        mov     v_col,GELB
+        mov     ax,DRES+54
+        call    dline
+drs9:   pop     es
+        pop     di
+        pop     si
+        pop     dx
+        pop     cx
+        pop     bx
+        pop     ax
+        ret
+dresult ENDP
+
+; die Seite: -> AL = 1Bh, wenn am Start ESC gedrueckt wurde
+drag    PROC    NEAR
+        mov     DTIM,0                    ; 8741: Zeit kommt live
+        mov     ax,0FFFFh
+        cmp     E_OK,0
+        je      drg1
+        mov     ax,E_T+(0*NSEC+2)*2     ; Z80, Abschnitt Division
+drg1:   mov     DTIM+2,ax
+        mov     ax,0FFFFh
+        cmp     E_OK+1,0
+        je      drg2
+        mov     ax,E_T+(1*NSEC+2)*2     ; 8088/V20
+drg2:   mov     DTIM+4,ax
+        mov     ax,0FFFFh
+        mov     DOLD,ax
+        mov     DOLD+2,ax
+        mov     DOLD+4,ax
+        mov     DFIN,0
+        mov     DFIN+1,0
+        mov     DFIN+2,0
+        mov     v_kst,0
+        mov     v_kprog,0
+        call    dscene
+        mov     bx,0                    ; Aufstellung
+drg3:   mov     si,bx
+        shl     si,1
+        cmp     DTIM[si],0FFFFh
+        je      drg4
+        xor     ax,ax
+        call    dput
+drg4:   inc     bx
+        cmp     bx,3
+        jb      drg3
+        mov     al,WEISS
+        mov     si,offset T_DSTART
+        call    dstat
+        call    waitkey
+        cmp     al,1Bh
+        jne     drg5
+        ret
+drg5:   mov     al,GELB
+        mov     si,offset T_DRUN
+        call    dstat
+        cli                             ; nichts darf jetzt Port 40h lesen
+        call    kbstart
+        jnc     drg6
+        sti
+        mov     al,ROT
+        mov     si,offset T_DNOK
+        call    dstat
+        jmp     drg_e
+drg6:   call    tstart
+        mov     v_t,0
+        mov     v_klast,0
+drg7:   call    vsync
+        inc     v_t                     ; Rennzeit: Bilder ...
+        cmp     v_pitok,0
+        je      drg7a
+        call    tstop                   ; ... oder genauer der PIT (falls ein
+        mov     v_t,ax                  ; Durchlauf laenger als ein Bild dauert)
+drg7a:  call    dkpoll
+        ; Schnecke 1: der 8741 (live)
+        mov     ax,DRLEN
+        cmp     v_kst,1
+        jae     drg8
+        mov     al,v_kprog
+        mov     ah,0
+        mov     cx,DRLEN
+        mul     cx
+        mov     cx,200
+        div     cx
+drg8:   mov     bx,0
+        call    dput
+        cmp     v_kst,1
+        jb      drg9
+        cmp     DFIN,0
+        jne     drg9
+        call    dtime
+drg9:   ; Z80 und Windhund (gemessene Zeiten)
+        mov     bx,1
+drg10:  mov     si,bx
+        shl     si,1
+        mov     ax,DTIM[si]
+        cmp     ax,0FFFFh
+        je      drg11
+        call    dpos
+        call    dput
+        cmp     ax,DRLEN
+        jb      drg11
+        cmp     DFIN[bx],0
+        jne     drg11
+        call    dtime
+drg11:  inc     bx
+        cmp     bx,3
+        jb      drg10
+        ; schweigt der 8741 zu lange (5 s)?
+        cmp     v_kst,2
+        jae     drg12
+        mov     ax,v_t
+        sub     ax,v_klast
+        cmp     ax,250
+        jae     drg7b
+        jmp     drg7
+drg7b:  mov     al,05h                  ; Rennen abbrechen
+        call    kbcmd
+        mov     v_kst,3
+        mov     DTIM,0FFFFh
+        sti
+        mov     al,ROT
+        mov     si,offset T_DLOST
+        call    dstat
+        jmp     short drg13
+drg12:  ; alle im Ziel?
+        mov     bx,1
+drg12a: mov     si,bx
+        shl     si,1
+        cmp     DTIM[si],0FFFFh
+        je      drg12b
+        cmp     DFIN[bx],0
+        jne     drg12b
+        jmp     drg7
+drg12b: inc     bx
+        cmp     bx,3
+        jb      drg12a
+        sti
+drg13:  call    dresult
+drg_e:  mov     al,WEISS
+        mov     si,offset T_DAGAIN
+        call    dstat
+        mov     al,0
+        ret
+drag    ENDP
+
 ; PLG/PLR/PLB als Zeile THY+v_y schreiben
 writerow PROC   NEAR
         mov     ax,v_y
@@ -2848,10 +3590,16 @@ csprite PROC    NEAR
         add     ax,offset CARSPR
         mov     v_spp,ax
         pop     cx
+cspr0:  cmp     v_spz,0
+        jne     csz
         add     cx,3                    ; rechter Rand (Feld x-4 .. x+3)
         sub     dx,4                    ; oberste Zeile (y-4 .. y+3)
         mov     al,0
-        call    setgz
+        jmp     short csz1
+csz:    add     cx,7                    ; doppelt gross: Feld x-8 .. x+7
+        sub     dx,8
+        mov     al,1
+csz1:   call    setgz
         call    xyaddr
         mov     v_fdot,bl
         mov     v_faddr,di
@@ -2923,6 +3671,17 @@ cs99:   pop     di
         pop     ax
         ret
 csprite ENDP
+
+; wie csprite, aber Muster v_spp und Farbe v_spcol vom Aufrufer
+cspat   PROC    NEAR
+        push    ax
+        push    bx
+        push    cx
+        push    dx
+        push    si
+        push    di
+        jmp     cspr0
+cspat   ENDP
 
 ; fahren bis Rennzeit AX (ESC: v_abort = 1)
 anim    PROC    NEAR
@@ -3322,7 +4081,8 @@ ma7:    ; 68008-Block (16 KB)
 ma7a:   mov     dx,offset T_MEM
         mov     ah,09h
         int     21h
-ma8:    call    pitchk
+ma8:    call    kbdetect                ; Tastatur-Firmware mit Rennwerk?
+        call    pitchk
         cmp     v_pitok,0
         jne     ma9
         mov     dx,offset T_PITNO
@@ -3349,7 +4109,10 @@ ma12:   call    scene
         mov     v_ty,TY_LAP+12          ; Nochmal?
         mov     v_col,WEISS
         mov     si,offset T_AGAIN
-        mov     ax,TBX
+        cmp     v_kbr,0
+        je      ma12a
+        mov     si,offset T_AGAIND
+ma12a:  mov     ax,TBX
         mov     bx,TCX+4*60-TBX
         call    cellt
 ma13:   call    waitkey
@@ -3358,7 +4121,21 @@ ma13:   call    waitkey
         cmp     al,1Bh
         je      ma15
         cmp     al,'N'
+        je      ma15
+        cmp     al,'D'
         jne     ma13
+        cmp     v_kbr,0
+        je      ma13
+ma16:   call    drag                    ; Drag-Race
+        cmp     al,1Bh
+        je      ma15
+ma17:   call    waitkey
+        cmp     al,'J'
+        je      ma12
+        cmp     al,'D'
+        je      ma16
+        cmp     al,1Bh
+        jne     ma17
 ma15:
         call    gr_off
         cmp     v_s68run,0

@@ -44,10 +44,28 @@ Ablauf
      gruen, Division magenta, Ulam-Spirale cyan, Mandelbrot bunt. Dann
      Runden 2 und 3 mit den gemessenen Zeiten, ohne Pause.
   4. Ziel: Sieger in der Statuszeile. J = nochmal (alles neu gemessen),
-     ESC = Ende.
+     D = Drag-Race (nur mit Rennwerk-Firmware, siehe unten), ESC = Ende.
 
 Alles laeuft in Echtzeit: ein Bildwechsel (1/50 s) entspricht 1/50 s
 gemessener Rechenzeit. Waehrend der 68008 rechnet, bricht ESC ab.
+
+Drag-Race (zweite Seite)
+------------------------
+Zwei Schnecken und ein Windhund auf der Divisions-Geraden: der 8741 der
+Tastatur, der Z80 und der 8088/V20 zerlegen die Zahlen 50000 bis 50399 in
+Primfaktoren. Die Seite gibt es nur mit der Tastatur-Firmware mit Rennwerk
+(dmv_mb_8741_32678_synth.bin, CRC32 bcb29bec): DMVRACE fragt beim Start
+nach (Synthesizer-Befehl 05h, Paar 1Ah/01h, Status 50h = Rennwerk da) und
+bricht diesen Probelauf sofort wieder ab. Ohne diese Firmware wird nichts
+gesendet bzw. nur der Synthesizer kurz ein- und ausgeschaltet.
+
+Nach dem Grand Prix: D = Drag-Race. Der 8741 rechnet dann wirklich selbst
+(gut 23 s) und meldet seinen Fortschritt; seine Schnecke faehrt live mit.
+Z80 und Windhund fahren mit ihren Zeiten aus Runde 1. Solange der 8741
+rechnet, fragt er die Tastatur nicht ab - Tasten gehen erst danach wieder.
+Am Ende: Rechenergebnis des 8741 (1388 = richtig), Rangfolge und wie viel
+schneller der Windhund als die Tastatur ist. J = Grand Prix, D = Drag-Race
+nochmal, ESC = Ende.
 
 Die Strecke
 -----------
