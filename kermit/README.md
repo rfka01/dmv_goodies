@@ -1,0 +1,47 @@
+# KERMIT
+
+*Deutsch weiter unten.*
+
+## English
+
+**MS-DOS Kermit 3.16** for the **NCR Decision Mate V**: VT102/VT220/VT320 terminal and Kermit file transfer over the serial modules **K211/K212/K213** (Signetics 2651) and **K801** (2661). Based on the Columbia University sources as collected in [hackerb9/mskermit](https://github.com/hackerb9/mskermit).
+
+- Runs under the DMV ports of MS-DOS 3.30 and NCR MS-DOS 2.11 with at least 256 KB; under DR-DOS 3.41 it currently needs more than 256 KB (about 6 KB are missing at 256 KB). With 256 KB under DOS 3.30 about 4 KB remain free: no screen rollback, no PUSH/RUN.
+- Finds the serial modules by itself (IFSEL halves 1A, 1B, 0A, 0B, 2A, 2B, 3A, 3B; first = PORT 1, second = PORT 2). With a K235 it finds the module's interrupt by enabling the transmitter once and receives by interrupt; without an interrupt controller (K230/K231) it polls; the 2651 holds only two characters, so without an interrupt receive at 2400 Baud at most (sending works at 9600).
+- The DMV's 8259 is edge triggered and the 2651 drives one line for RxRDY and TxRDY, so the transmitter is enabled only while a character is handed over, and every receive path re-checks the status before it lets go.
+- Screen output goes through the DOS console using only what all three DOS versions understand (ESC = row col, ESC T, 1Ah, ESC G 0/2/4, ESC ) / ESC (, LF on the bottom line). Kermit's screen is a buffer behind a private video BIOS (Int E5h); only cells that differ are sent.
+- The keyboard is read from the 8741 directly (Int E6h stand-in for the IBM keyboard BIOS). **CTRL-CLR** is the escape key in CONNECT mode (then `C` to return, `?` for help).
+- Files are stored as they arrive: the DMV has no code pages.
+- Removed to fit into 256 KB: networks, Tektronix graphics, the Heath-19, PT200, DG D217/D463/D470, Wyse-50 and Honeywell emulations, file character-set translation, 132 columns, the long help pages (they are appended to `KERMIT.TXT`). SERVER mode is included.
+
+`KERMIBM.EXE` on the disk is MS-Kermit 3.16 for IBM-compatible PCs built from the same sources without networks (packed with UPX), for the other side of the cable.
+
+Files: `src/` the Kermit sources (`MSXDMV.ASM`, `MSXDMVS.INC`, `MSXDMVT.INC` are new, the other changes are marked `[DMV]` / `ifdef dmv`), `tools/build.sh` builds both programs with JWasm/JWlink under Linux, `tools/mkdisk.py` writes `../Images/KERMIT.IMG`, `tools/mktab.py` generates `MSXDMVT.INC` (character and keyboard tables), `tools/hilfetext.py` extracts the long help pages. `KERMIT.TXT` is the description (German, with the help pages in English), `MSKERMIT.INI` the start-up settings.
+
+Tested in an emulator test bench of the DMV under MS-DOS 3.30 (K211 with K235 at 9600 Baud and without interrupt at 2400 Baud, 256 and 512 KB, file transfer both ways against C-Kermit). Not yet tried under NCR MS-DOS 2.11, DR-DOS 3.41, with the K801, in MAME or on real hardware.
+
+## Deutsch
+
+**MS-DOS Kermit 3.16** für die **NCR Decision Mate V**: Terminal (VT102/VT220/VT320) und Dateiübertragung nach dem Kermit-Protokoll über die seriellen Module **K211/K212/K213** (Signetics 2651) und **K801** (2661). Grundlage sind die Quellen der Columbia University in der Sammlung [hackerb9/mskermit](https://github.com/hackerb9/mskermit).
+
+- Läuft unter den DMV-Ports von MS-DOS 3.30 und NCR MS-DOS 2.11 ab 256 KB; unter DR-DOS 3.41 braucht es derzeit mehr als 256 KB (bei 256 KB fehlen rund 6 KB). Mit 256 KB unter DOS 3.30 bleiben rund 4 KB frei: kein Rückblickspeicher, kein PUSH/RUN.
+- Findet die seriellen Module selbst (IFSEL-Hälften 1A, 1B, 0A, 0B, 2A, 2B, 3A, 3B; das erste ist PORT 1, das zweite PORT 2). Mit K235 ermittelt es den Interrupt des Moduls, indem es den Sender einmal einschaltet, und empfängt per Interrupt; ohne Interruptcontroller (K230/K231) fragt es ab; der 2651 hält nur zwei Zeichen, ohne Interrupt daher beim Empfangen höchstens 2400 Baud (Senden geht mit 9600).
+- Der 8259 der DMV ist flankengesteuert, und der 2651 legt RxRDY und TxRDY auf dieselbe Leitung. Darum ist der Sender nur eingeschaltet, solange ein Zeichen übergeben wird, und jeder Empfangsweg prüft den Status noch einmal, bevor er aufhört.
+- Die Bildschirmausgabe läuft über die DOS-Konsole und benutzt nur, was alle drei DOS-Fassungen verstehen (ESC = Zeile Spalte, ESC T, 1Ah, ESC G 0/2/4, ESC ) / ESC (, LF in der untersten Zeile). Kermits Bildschirm ist ein Puffer hinter einem eigenen Video-BIOS (Int E5h); gesendet werden nur geänderte Zellen.
+- Die Tastatur wird direkt am 8741 gelesen (Int E6h als Ersatz für das IBM-Tastatur-BIOS). **CTRL-CLR** ist die Fluchttaste im Terminalbetrieb (danach `C` zurück, `?` Hilfe).
+- Dateien werden gespeichert, wie sie ankommen: Die DMV kennt keine Codepages.
+- Damit alles in 256 KB passt, fehlen: Netzwerke, Tektronix-Grafik, die Emulationen Heath-19, PT200, DG D217/D463/D470, Wyse-50 und Honeywell, die Zeichensatzumsetzung für Dateien, 132 Spalten und die langen Hilfeseiten (sie stehen am Ende von `KERMIT.TXT`). Der Servermodus ist enthalten.
+
+`KERMIBM.EXE` auf der Diskette ist MS-Kermit 3.16 für IBM-kompatible PCs aus denselben Quellen, ohne Netzwerk (mit UPX gepackt), für die Gegenseite.
+
+Dateien: `src/` die Kermit-Quellen (`MSXDMV.ASM`, `MSXDMVS.INC` und `MSXDMVT.INC` sind neu, die übrigen Änderungen sind mit `[DMV]` bzw. `ifdef dmv` gekennzeichnet), `tools/build.sh` baut beide Programme mit JWasm/JWlink unter Linux, `tools/mkdisk.py` schreibt `../Images/KERMIT.IMG`, `tools/mktab.py` erzeugt `MSXDMVT.INC` (Zeichen- und Tastaturtabellen), `tools/hilfetext.py` holt die langen Hilfeseiten heraus. `KERMIT.TXT` ist die Beschreibung, `MSKERMIT.INI` die Starteinstellungen.
+
+Getestet in einem Emulator-Prüfstand der DMV unter MS-DOS 3.30 (K211 mit K235 bei 9600 Baud und ohne Interrupt bei 2400 Baud, 256 und 512 KB, Dateiübertragung in beide Richtungen gegen C-Kermit). Unter NCR MS-DOS 2.11, DR-DOS 3.41, mit der K801, in MAME und auf echter Hardware noch nicht erprobt.
+
+## License · Lizenz
+
+Kermit: Revised 3-Clause BSD License of Columbia University; source collection: BSD 2-Clause (hackerb9); DMV additions (`MSXDMV*`, the `[DMV]` changes, `tools/`): MIT like the rest of this repository. Full texts in [KERMIT.LIC](KERMIT.LIC).
+
+---
+
+Code: Claude (Anthropic) · Idee und Prompts / idea and prompts: rfka01

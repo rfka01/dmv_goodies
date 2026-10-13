@@ -11,3 +11,13 @@
 | `MOUSETST.COM`, `MOUSETST.TXT` | test for the K806 mouse adapter · Test für den Maus-Adapter K806 |
 
 The `.TXT` files are the German descriptions (DOS text, CRLF). · Die `.TXT`-Dateien sind die deutschen Beschreibungen.
+
+`KERMIT.IMG` – 360 KB disk image with MS-DOS Kermit 3.16 for the DMV · 360-KB-Diskettenabbild mit MS-DOS Kermit 3.16 für die DMV:
+
+| File | |
+|---|---|
+| `KERMIT.EXE` | Kermit for the DMV · Kermit für die DMV |
+| `KERMIBM.EXE` | MS-Kermit 3.16 for IBM-compatible PCs (UPX) · für IBM-kompatible PCs |
+| `MSKERMIT.INI` | start-up settings · Starteinstellungen |
+| `KERMIT.TXT` | description (German) with the long help pages · Beschreibung mit den langen Hilfeseiten |
+| `KERMIT.LIC` | licenses · Lizenzen |
