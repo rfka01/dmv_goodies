@@ -88,6 +88,8 @@ oldvid	dd	0		; previous contents of our three vectors
 oldkbd	dd	0
 oldmsc	dd	0
 hooked	db	0
+old29	dd	0		; previous Int 29h (fast console output)
+c29st	db	0		; con29: escape sequence state
 dmvif	db	4 dup (0)	; serial modules found: base port, 0 = end
 dmvifk	db	4 dup (0)	;  and kind: 1 = 2651, 2 = 2661
 dmvifn	db	0		; number found
@@ -218,6 +220,12 @@ hook	proc	near
 	int	dos
 	mov	word ptr oldmsc,bx
 	mov	word ptr oldmsc+2,es
+	mov	ax,3529h
+	int	dos
+	mov	word ptr old29,bx
+	mov	word ptr old29+2,es
+	mov	word ptr cs:c29old,bx	; the watcher jumps on through CS
+	mov	word ptr cs:c29old+2,es
 	mov	ax,cs
 	mov	ds,ax
 	mov	dx,offset dvid
@@ -228,6 +236,9 @@ hook	proc	near
 	int	dos
 	mov	dx,offset dmsc
 	mov	ax,2500h+DMVMSC
+	int	dos
+	mov	dx,offset con29
+	mov	ax,2529h
 	int	dos
 	pop	ds
 	pop	es
@@ -249,6 +260,11 @@ unhook	proc	near
 	push	ds
 	lds	dx,oldmsc
 	mov	ax,2500h+DMVMSC
+	int	dos
+	pop	ds
+	push	ds
+	lds	dx,old29
+	mov	ax,2529h
 	int	dos
 	pop	ds
 	mov	hooked,0
@@ -327,7 +343,13 @@ dv_spos:mov	curpos,dx		; set cursor position
 	call	movecur
 	jmp	dv_ret
 
-dv_gpos:mov	dx,curpos		; get cursor position and type
+dv_gpos:cmp	dmvemu,0		; command mode: where the console
+	jne	dv_gpo1			;  cursor really is (DOS wrote and
+	cmp	conpos,0FFFFh		;  scrolled behind Kermit's back)
+	je	dv_gpo1
+	mov	dx,conpos
+	mov	curpos,dx
+dv_gpo1:mov	dx,curpos		; get cursor position and type
 	mov	cx,curtyp
 	jmp	dv_ret
 
@@ -778,7 +800,9 @@ dmvclr	proc	far
 	call	setatt
 	mov	al,1Ah
 	call	cputc
-	mov	conpos,0FFFFh		; home on some consoles, unknown on others
+	mov	conpos,0FFFFh		; home on some consoles, unknown on others:
+	xor	ax,ax			;  put the cursor there, then we know
+	call	conmove
 	mov	es,dseg
 	xor	di,di
 	mov	cx,SCRWDS
@@ -1052,12 +1076,8 @@ emit4:	push	ax
 	mov	bx,offset dmvglyph
 	xlat
 	pop	bx
-	call	cputc
+	call	cputc			; (con29 follows the cursor)
 	pop	ax
-	inc	byte ptr conpos		; console cursor moved one right
-	cmp	byte ptr conpos,COLS
-	jb	emit5
-	mov	conpos,0FFFFh		; end of line: depends on the console
 emit5:	push	ds
 	mov	ds,dseg
 	mov	ds:[si],ax		; record it
@@ -1188,6 +1208,99 @@ movecur	proc	near
 movecu9:pop	ax
 	ret
 movecur	endp
+
+;
+; Int 29h watcher. DOS writes the console through Int 29h (fast console
+; output), and so do we. Follow the bytes to know where the console cursor
+; is (conpos), then pass them on. The consoles of all three DOS versions
+; scroll on a LF in row botrow; after column 79 the position is unknown
+; (some consoles wrap, some do not). ESC = row col
+; positions, 1Ah clears; ESC G takes one more byte, other escapes none.
+con29	proc	far
+	push	ax
+	push	bx
+	push	ds
+	mov	bx,seg data
+	mov	ds,bx
+	mov	bx,conpos		; BH row, BL column
+	cmp	c29st,0
+	je	c29n
+	cmp	c29st,1			; byte after ESC
+	jne	c29e2
+	mov	c29st,0
+	cmp	al,'='
+	jne	c29e1
+	mov	c29st,2
+	jmp	c29x
+c29e1:	cmp	al,'G'
+	jne	c29x
+	mov	c29st,4
+	jmp	short c29x
+c29e2:	cmp	c29st,2			; row
+	jne	c29e3
+	sub	al,' '
+	mov	bh,al
+	mov	c29st,3
+	jmp	short c29s
+c29e3:	cmp	c29st,3			; column
+	jne	c29e4
+	sub	al,' '
+	mov	bl,al
+c29e4:	mov	c29st,0			; (4: the attribute byte of ESC G)
+	jmp	short c29s
+c29n:	cmp	al,escape
+	jne	c29n1
+	mov	c29st,1
+	jmp	short c29x
+c29n1:	cmp	bx,0FFFFh		; position unknown: only a clear or
+	jne	c29n2			;  ESC = tells us
+	cmp	al,1Ah
+	jne	c29x
+c29n2:	cmp	al,1Ah			; clear screen
+	jne	c29n3
+	xor	bx,bx
+	jmp	short c29s
+c29n3:	cmp	al,cr
+	jne	c29n4
+	xor	bl,bl
+	jmp	short c29s
+c29n4:	cmp	al,lf
+	jne	c29n5
+	call	c29lf
+	jmp	short c29s
+c29n5:	cmp	al,bs
+	jne	c29n6
+	or	bl,bl
+	jz	c29x
+	dec	bl
+	jmp	short c29s
+c29n6:	cmp	al,tab
+	jne	c29n7
+	add	bl,8
+	and	bl,not 7
+	jmp	short c29n8
+c29n7:	cmp	al,' '			; other controls do not move
+	jb	c29x
+	inc	bl
+c29n8:	cmp	bl,COLS
+	jb	c29s
+	mov	bx,0FFFFh		; past the end of the line: wraps on some
+c29s:	mov	conpos,bx
+c29x:	pop	ds
+	pop	bx
+	pop	ax
+	jmp	dword ptr cs:[c29old]
+c29old	dd	0			; copy of old29, reachable through CS
+con29	endp
+
+c29lf	proc	near			; row down, the console scrolls at botrow
+	cmp	bh,botrow
+	je	c29lf1
+	cmp	bh,ROWS-1
+	jae	c29lf1
+	inc	bh
+c29lf1:	ret
+c29lf	endp
 
 ; One byte to the console, through DOS's fast console output.
 cputc	proc	near
