@@ -20,9 +20,10 @@ Voraussetzungen
 ---------------
   - DMV mit 8088/V20-Karte (K230, K231 oder K235)
   - MS-DOS 3.30 (DMV-Port), NCR MS-DOS 2.11 oder DR-DOS 3.41 (DMV-Port)
-  - mindestens 256 KB Speicher. Unter DOS 3.30 mit 256 KB bleiben nur
-    rund 4 KB frei: es gibt dann keinen Rueckblickspeicher fuer den
-    Bildschirm, und PUSH/RUN (DOS aus Kermit heraus) gehen nicht.
+  - mindestens 256 KB Speicher. Mit 256 KB bleiben unter DOS 3.30 rund
+    14 KB frei, unter DR-DOS 3.41 rund 1,5 KB: es gibt dann keinen
+    Rueckblickspeicher fuer den Bildschirm, und PUSH/RUN (DOS aus Kermit
+    heraus) gehen nicht.
   - ein serielles Modul: K211 (Modem), K212 (Drucker), K213 (Plotter)
     mit 2651 oder K801 mit 2661
 
@@ -103,8 +104,12 @@ Was gegenueber MS-Kermit 3.16 fehlt
 Damit Kermit in 256 KB passt, enthaelt die DMV-Fassung nicht:
 TCP/IP und andere Netze, Tektronix-Grafik, die Terminals Heath-19,
 Prime PT200, Data General D217/D463/D470, Wyse-50 und Honeywell
-VIP7809, Codepages und Zeichensatzumsetzung fuer Dateien, 132 Spalten
-und die langen Hilfeseiten (sie stehen unten in dieser Datei).
+VIP7809, Codepages und Zeichensatzumsetzung fuer Dateien, seltene
+Terminal-Zeichensaetze (Hebraeisch, Kyrillisch, Japanisch, HP-Roman8,
+Latin-2; sie erscheinen als ASCII), 132 Spalten, die Skriptfunktionen
+\f...(), die Berichte DECRQSS, DECRQTSR und DECRQPSR, APC-Makros,
+Rueckblick in EMS/XMS und die langen Hilfeseiten (sie stehen unten in
+dieser Datei).
 Der Servermodus (SERVER) ist enthalten.
 
 Kurz auf Englisch
@@ -118,15 +123,17 @@ The escape key in CONNECT mode is CTRL-CLR (then C to return, ? for
 help). Files are stored as they arrive; the DMV has no code pages.
 Not included: networks, Tektronix graphics,
 Heath-19, PT200, DG, Wyse and Honeywell emulations, file character-set
-translation, 132 columns and the long help pages (appended below).
+translation, rare terminal character sets, 132 columns, the \f...()
+script functions, DECRQSS/DECRQTSR/DECRQPSR reports, APC macros,
+EMS/XMS rollback and the long help pages (appended below).
 KERMIBM.EXE is MS-Kermit 3.16 for IBM-compatible PCs (without networks,
 rebuilt with JWasm).
 
 Stand: getestet in einem Emulator-Pruefstand der DMV unter MS-DOS 3.30
 (K211 mit K235 bei 9600 Baud, ohne Interrupt bei 2400 Baud; 256 und
-512 KB; Dateiuebertragung in beide Richtungen gegen C-Kermit). Unter
-NCR MS-DOS 2.11, DR-DOS 3.41, mit der K801, in MAME und auf echter
-Hardware noch nicht erprobt.
+512 KB) und unter DR-DOS 3.41 (256 KB), jeweils mit Dateiuebertragung
+in beide Richtungen gegen C-Kermit. Unter NCR MS-DOS 2.11, mit der
+K801, in MAME und auf echter Hardware noch nicht erprobt.
 
 Copyright (C) 1982-2000 Trustees of Columbia University in the City of
 New York; Lizenz siehe KERMIT.LIC. DMV-Anpassung: Code von Claude

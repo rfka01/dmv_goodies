@@ -269,6 +269,9 @@ endif	; no_tcp
 	mkeyw	'version)',V_version
 
 
+ifdef	dmv			; [DMV] no \f functions (memory)
+evaltab	db	0
+else
 evaltab	db	32			; \fverb(args)
 	mkeyw	'basename(',F_basename
 	mkeyw	'character(',F_char
@@ -304,6 +307,7 @@ evaltab	db	32			; \fverb(args)
 	mkeyw	'upper(',F_upper
 ; not implemented in MS-DOS Kermit
 ;	mkeyw	'execute(',F_exec
+endif	; dmv
 
 envtab	db	1			     	; \$(..) Environment table
 	mkeyw	'An Environment variable)',0	; reserve 0 in valtab
@@ -360,6 +364,7 @@ data	ends
 data1	segment
 	db	0			; so error msg has non-zero offset
 cmin00  db      ' Press ENTER to execute command$'
+ifndef	dmv		; [DMV] \f help
 f1hlp	db	' number$'
 f2hlp	db	' char$'
 f3hlp	db	' variable or macro name$'
@@ -374,6 +379,7 @@ f22hlp	db	' filename$'
 f24hlp	db	' source, pattern, replacement$'
 f25hlp	db	' arithmetic expression$'
 f30hlp	db	' string$'
+endif	; dmv
 n1hlp	db	' digits of a number whose value fits into one byte$'
 data1	ends
 
@@ -1433,10 +1439,15 @@ subst13d:cmp	subtype,'f'		; doing \fname(...)?
 	add	bx,[bx]			; add length of keyword text (CNT)
 	add	bx,2			; point at value field
 	mov	bx,[bx]			; get value
-subst13e:mov	evaltype,bx		; remember kind of operation
+subst13e:
+ifdef	dmv
+	jmp	subst12a		; [DMV] no \f functions
+else
+mov	evaltype,bx		; remember kind of operation
 	call	evaltoa			; do \fname argument evaluation
 	jc	subst12a		; error, reparse
 	jmp	subst17
+endif	; dmv
 
 subst13f:mov	ax,valtmp		; where word started
 	sub	ax,3			; backup to "\v(" or "\$("
@@ -2272,6 +2283,7 @@ fvaltoa	endp
 ; Use incoming DX as trailing space suppression flag, if null.
 ; BX has keyword value (table envtab)
 ; If these fail they consume their text quietly.
+ifndef	dmv		; [DMV] not used on the DMV
 evaltoa	proc	near
 	push	dx			; save trailing space flag
 	push	si
@@ -3236,6 +3248,7 @@ evalt99:pop	temp
 	clc				; success or fail, consume source
 	ret
 evaltoa	endp
+endif	; dmv
 
 ; Worker for evaltoa. 
 ; Given start of string in DS:SI and string length in CMSIZ.
@@ -3245,6 +3258,7 @@ evaltoa	endp
 ; Bare commas separate arguments, curly braces and parentheses protect commas,
 ; curly braces protect strings, starting with a curly brace is considered to 
 ; mean use material within braces. A closing curly brace closes parens.
+ifndef	dmv		; [DMV] not used on the DMV
 evarg	proc	near
 	push	ax
 	push	bx
@@ -3427,11 +3441,13 @@ evarg7:	pop	temp
 	clc
 	ret
 evarg	endp
+endif	; dmv
 
 ; Reallocates more memory than provided in the default takopen 128 byte buffer.
 ; Enter with desired byte quantity in CX and a Take structure already
 ; present at takadr. Returns with new buffer length in CX, ES:DI pointing
 ; at buffer+2 ([bx].takbuf:[bx].takptr)
+ifndef	dmv		; [DMV] not used on the DMV
 evmem	proc	near
 	push	ax
 	push	bx
@@ -3494,8 +3510,10 @@ evmem3:	pop	cx			; return original values
 	pop	ax
 	ret
 evmem	endp
+endif	; dmv
 
 ; Worker for evaltoa. Sets cmhlp to help string matching evaltype
+ifndef	dmv		; [DMV] not used on the DMV
 fcmdhlp	proc	near
 	mov	ax,evaltype		; kind of \f command
 	mov	bx,offset f1hlp		; number
@@ -3555,10 +3573,12 @@ fcmdhlp	proc	near
 fcmdh1:	mov	cmhlp,bx		; set help text pointer
 	ret
 fcmdhlp	endp
+endif	; dmv
 
 ; Obtain file date/time or size.
 ; Incoming match pattern is in argptr (not ASCIIZ), length of arglen.
 ; Write results to ds:di, not es:di.
+ifndef	dmv		; [DMV] not used on the DMV
 filedate proc	near
 	mov	bx,argptr		; filename
 	mov	dx,bx			; for file open
@@ -3597,6 +3617,7 @@ filed5:	call	filetdate		; do the work
 	clc
 	ret
 filedate endp
+endif	; dmv
 
 ; Write file date and timestamp to ds:di, given DTA in ds:bx.
 filetdate proc	far

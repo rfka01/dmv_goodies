@@ -2549,6 +2549,7 @@ vsbuff1:add	bx,7			; round up (cancel common times twos)
 	mov	ppl,bx			; paragraphs/line
 
 
+ifndef	dmv			; [DMV] no EMS, no XMS: conventional memory only
 vsbuff11:				; expanded memory
 	test	useexp,1		; use expanded memory?
 	jz	vsbuff10		; z = no, try XMS
@@ -2689,6 +2690,7 @@ vsbuff10e:shl	al,1			; convert KB to paragraphs
 	jmp	vsbuff9			; end XMS
 
 					; no ems, so use regular memory
+endif	; dmv
 vsbuff5:mov	useexp,0		; say no ems
 	mov	bx,0ffffh		; ask for all of memory, to get size
 	mov	ah,alloc		; allocate all of memory (must fail)
@@ -6296,6 +6298,7 @@ putcir1:inc	bx
 	jb	putcir2			; b = no
 	sub	bx,linee		; backup to start of buffer
 putcir2:mov	ax,bx			; line index
+ifndef	dmv			; [DMV] no EMS/XMS
 	cmp	emsrbhandle,0		; EMS in use?
 	jg	putcir3			; g = yes
 	cmp	xmsrhandle,0		; XMS rollback in use?
@@ -6303,6 +6306,9 @@ putcir2:mov	ax,bx			; line index
 	call	putxms			; do the put via xms
 	jmp	short putcir4
 putcir3:call	emsfixup		; do expanded memory conversion work
+else
+putcir3:
+endif	; dmv
 	mul	ppl			; times paragraphs per line
 	add	ax,iniseg		; plus initial seg of buffer
 	mov	es,ax			; now we have the segment pointer
@@ -6331,6 +6337,7 @@ putcir4:loop	putcir1			; go back for more
 putcirc	endp
 
 ; Put CX lines into XMS based rollback buffer
+ifndef	dmv		; [DMV] not used on the DMV
 putxms	proc	near
 	mul	ppl			; line number times paragraphs/line
 	push	cx
@@ -6361,6 +6368,7 @@ putxms1:shl	al,1
 	add	si,vswidth*2		; inc to next vscreen line
 	ret
 putxms	endp
+endif	; dmv
 
 ; Get CX lines from the circular buffer, non destructively, starting at
 ; line index linec (counted from zero, modulo linee) and put them at
@@ -6392,6 +6400,7 @@ getcir1:inc	bx
 	sub	bx,linee		; backup to start of buffer
 getcir2:mov	ax,bx			; line index
 
+ifndef	dmv			; [DMV] no EMS/XMS
 	cmp	emsrbhandle,0		; EMS in use?
 	jg	getcir3			; g = yes
 	cmp	xmsrhandle,0		; XMS rollback in use?
@@ -6399,6 +6408,9 @@ getcir2:mov	ax,bx			; line index
 	call	getxms			; get from XMS
 	jmp	short getcir4
 getcir3:call	emsfixup		; do expanded memory conversion work
+else
+getcir3:
+endif	; dmv
 	mul	ppl			; times paragraphs per line
 	add	ax,iniseg		; plus initial seg of buffer
 	xor	si,si			; initial offset is always 0
@@ -6426,6 +6438,7 @@ getcir4:
 	ret
 getcirc	endp
 
+ifndef	dmv		; [DMV] not used on the DMV
 getxms	proc	near
 	mul	ppl			; line number times paragraphs/line
 	push	cx
@@ -6455,9 +6468,11 @@ getxms1:shl	al,1
 	add	di,vswidth*2			; next vscreen line
 	ret
 getxms	endp
+endif	; dmv
 
 ; Convert rollback line number in AX to line number in ems page, and invoke 
 ; that page. Destroys dx, returns ax as line number in page.
+ifndef	dmv		; [DMV] not used on the DMV
 emsfixup proc	near
 	cmp	emsrbhandle,0		; EMS in use?
 	jg	emsfix1			; g = yes (-1 is not in use)
@@ -6479,6 +6494,7 @@ emsfix1:xor	dx,dx
 emsfix2:pop	bx
 	ret
 emsfixup endp
+endif	; dmv
 
 ; Repaint screen from the vscreen buffer
 repaint	proc	near

@@ -1979,6 +1979,7 @@ atdcsnul:mov	dcsstrf,0		; simulate a null (dummy) Final char
 ; Process Application Process Control string (APC or ESC _ lead-in chars,
 ; already read). Mallocs 1KB buffer, passes buffer to apcmacro for execution
 ; as a Take file. Curly braces protect comma command separators.
+ifndef	dmv			; [DMV] no APC macros
 atapc:	cmp	ninter,0		; any intermediates?
 	je	atapc0			; e = no, else not this item
 	jmp	atnorm			; reset state to normal
@@ -2071,6 +2072,11 @@ atapc7:	mov	apcstring,0		; clear buffer
 
 
 ; User Definable Key processor of DCS strings.
+else
+atapc:	mov	ninter,0		; consume the string until ST
+	mov	ttstate,offset atdcsnul
+	ret
+endif	; dmv
 atudk:	cmp	dinter,0		; no intermediates?
 	je	atudk1			; e = correct
 	mov	ninter,0		; setup atdcsnul for proper form
@@ -5235,6 +5241,7 @@ atcrq0:	mov	ninter,0		; set up atdcsnul for proper form
 	mov	ttstate,offset atdcsnul	; not understood, consume til ST
 	ret
 
+ifndef	dmv			; [DMV] no DECRQSS reports
 atcrq1:	cmp	inter,'$'		; correct intermediate?
 	jne	atcrq0			; ne = no
 	cmp	nparam,0		; and no parameters?
@@ -5432,6 +5439,9 @@ atcrqxx:mov	ttyact,0		; group output for networks
 	jmp	atcrqend		; do epilogue
 
 					; DCS P1; P2; P3 <char> Sixel command
+else
+atcrq1:	jmp	atcrq0			; consume the string
+endif	; dmv
 atcrqq:	cmp	dcsstrf,'q'		; final char of 'q'? Sixel draw
 	je	atcrqq1			; e = yes
 	cmp	dcsstrf,'p'		; 'p', restore palette?
@@ -5729,6 +5739,7 @@ tekrpt2:call	prtbout			; send it
 	ret
 endif	; no_graphics
 
+ifndef	dmv			; [DMV] no DECRQTSR/DECRQPSR reports
 atrqtsr:cmp	flags.vtflg,ttheath	; Heath-19? ESC [ u
 	jne	atrqts1			; ne = no
 	cmp	nparam,0		; ought to have no parameters
@@ -6135,6 +6146,10 @@ atrpw5c:mov	bx,offset G3set
 ; margins be just the status line and force on Origin mode. Save the regular
 ; margins and origin mode for restoration when regular display is re-selected.
 ; Also CSI Pn; Pn; Pn; Pn ~ invokes Lotus macro PRODUCT
+else
+atrqtsr	equ	atign
+atrqpsr	equ	atign
+endif	; dmv
 atsasd	proc	near
 	cmp	inter,'$'		; correct intermediate?
 	jne	atsasd1			; ne = no
