@@ -50,6 +50,7 @@ dmvirq	db	0FFh		; IRQ of the current port, FF = poll
 dmvirqt	db	4 dup (0FEh)	; IRQ per module, FE = not looked for yet
 dmvhit	db	0		; IRQ test: first IRQ seen
 dmvhit2	db	0		;  IRQ2 seen
+dmvlb	db	0		; IRQ test in local loopback
 dmvsavvec dd	0		; vector before we took it
 dmvoldmask db	0		; 8259 mask bit of our IRQ before (1 = masked)
 dmvindrain db	0		; nonzero while draining the receiver
@@ -180,13 +181,13 @@ dmvfi2:	mov	bl,dmvtirq[si]
 	and	al,not 10111100b
 	out	PIC1,al
 	sti
-	call	dmvfione		; AL = IRQ or FF
-	mov	cl,al
-	call	dmvfione
-	cmp	al,cl
-	je	dmvfi3
-	mov	al,0FFh			; disagree: poll
-dmvfi3:	mov	cl,al
+	mov	dmvlb,0			; first TxRDY (K211/K212 as built,
+	call	dmvfi5			;  K801)
+	cmp	al,0FFh
+	jne	dmvfi3
+	mov	dmvlb,1			; then RxRDY in local loopback (K211/
+	call	dmvfi5			;  K212 changed after NCR's handbook,
+dmvfi3:	mov	cl,al			;  section 3.2: TxRDY cut off, INT/)
 	cli
 	pop	ax
 	out	PIC1,al			; mask as it was
@@ -219,17 +220,54 @@ dmvfi9:	pop	es
 	ret
 dmvfindirq endp
 
-; One try: TxEN on, wait up to 50 ms for a hit. AL = IRQ or FF.
+dmvfi5	proc	near			; two tries, they must agree
+	push	cx
+	call	dmvfione		; AL = IRQ or FF
+	mov	cl,al
+	call	dmvfione
+	cmp	al,cl
+	je	dmvfi6
+	mov	al,0FFh			; disagree: poll
+dmvfi6:	pop	cx
+	ret
+dmvfi5	endp
+
+; One try, wait up to 50 ms for a hit. AL = IRQ or FF.
+; dmvlb = 0: TxEN only, TxRDY rises.
+; dmvlb = 1: local loopback (command 87h: loopback, RxEN, DTR, TxEN), one
+;  character sent to ourselves at 9600 Baud, RxRDY rises. In loopback the
+;  2651 keeps TxD at mark and DTR/RTS off, the line is not disturbed.
 dmvfione proc	near
 	push	cx
 	push	dx
 	mov	dmvhit,0FFh
 	mov	dmvhit2,0FFh
 	mov	dx,modem.mddat
+	cmp	dmvlb,0
+	je	dmvfo0
+	add	dx,dmvCR		; MR pointer to MR1
+	in	al,dx
+	add	dx,dmvMRW-dmvCR
+	mov	al,4Eh			; async 16x, 8 bits, 1 stop bit
+	out	dx,al
+	mov	al,3Eh			; internal clocks, 9600 Baud
+	out	dx,al
+	mov	dx,modem.mddat
+	in	al,dx			; empty the receiver
+	in	al,dx
 	add	dx,dmvCRW
+	mov	al,87h
+	out	dx,al
+	sub	dx,dmvCRW-dmvTHR
+	mov	al,55h
+	out	dx,al
+	sub	dx,dmvTHR
+	add	dx,dmvCRW
+	jmp	short dmvfo0a
+dmvfo0:	add	dx,dmvCRW
 	mov	al,01h			; TxEN only: TxRDY rises
 	out	dx,al
-	mov	cx,50
+dmvfo0a:mov	cx,50
 dmvfo1:	cmp	dmvhit,0FFh
 	jne	dmvfo2
 	mov	ax,1
@@ -239,6 +277,9 @@ dmvfo2:	mov	ax,2			; let a late IRQ2 arrive too
 	call	pcwait
 	xor	al,al			; transmitter off again
 	out	dx,al
+	sub	dx,dmvCRW		; and the receiver empty
+	in	al,dx
+	in	al,dx
 	mov	al,dmvhit
 	cmp	al,0FFh
 	jne	dmvfo9
@@ -276,10 +317,10 @@ dmvtis9:push	dx
 	mov	dx,seg data
 	mov	ds,dx
 	mov	ah,al
-	mov	dx,modem.mddat		; our module: TxRDY up?
+	mov	dx,modem.mddat		; our module: TxRDY or RxRDY up?
 	inc	dx
 	in	al,dx
-	test	al,01h
+	test	al,03h
 	jz	dmvtis8			; z = not ours
 	cmp	ah,2
 	jne	dmvtis7
@@ -290,7 +331,9 @@ dmvtis9:push	dx
 dmvtis7:cmp	dmvhit,0FFh
 	jne	dmvtis8
 	mov	dmvhit,ah		; first slot IRQ seen
-	add	dx,dmvCRW-dmvSR		; quiet the line: transmitter off
+	dec	dx			; quiet the line: receiver empty,
+	in	al,dx			;  transmitter off
+	add	dx,dmvCRW
 	xor	al,al
 	out	dx,al
 dmvtis8:mov	al,20h			; non-specific EOI

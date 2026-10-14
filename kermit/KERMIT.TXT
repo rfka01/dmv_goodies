@@ -36,8 +36,14 @@ das zweite PORT 2 (COM2). SHOW COMMUNICATIONS bzw. SHOW MODEM zeigen
 Modul, Adresse und Interrupt.
 
 Mit der K235 (8088 mit Interruptcontroller) findet Kermit den Interrupt
-des Moduls selbst (die DIP-Schalter der K235 legen ihn fest) und
-empfaengt per Interrupt. Ohne Interruptcontroller (K230/K231) oder wenn
+des Moduls selbst und empfaengt per Interrupt. Ab Werk legen K211/K212
+und K801 RxRDY oder TxRDY auf die IRQ-Leitung des Steckplatzes; die
+K235 macht daraus je nach Steckplatz und DIP-Schaltern IRQ3, 4, 5
+oder 7. Eine K211/K212, die nach Abschnitt 3.2 des NCR-Handbuchs
+"Schnittstellen-Beschreibung (RS 232-C)" geaendert ist (TxRDY
+aufgetrennt, INT/ auf c31), meldet nur noch empfangene Zeichen, und
+c31 ergibt IRQ2; auch das findet Kermit (mit einem Zeichen, das der
+2651 im lokalen Loopback an sich selbst schickt). Ohne Interruptcontroller (K230/K231) oder wenn
 kein Interrupt ankommt, fragt Kermit das Modul ab (Polling). Der 2651
 haelt nur zwei Zeichen; waehrend DOS auf den Bildschirm oder die
 Diskette schreibt, kann Kermit nicht nachsehen. Ohne Interrupt daher
