@@ -1,0 +1,235 @@
+DMVKERM - Kermit und Terminal fuer die NCR Decision Mate V
+===========================================================
+
+DMVKERM ist ein kleines Kermit fuer die seriellen Module K211, K212,
+K213 (Signetics 2651) und K801 (2661). Es bietet ein Terminal mit einer
+VT102-Teilmenge sowie Dateiuebertragung mit Kermit (auch als Server)
+und mit XMODEM. DMVKERM.COM ist rund 20 KB gross und belegt beim Lauf
+rund 36 KB Speicher.
+
+Es laeuft unter NCR MS-DOS 2.11, dem DMV-Port von MS-DOS 3.30 und dem
+DMV-Port von DR-DOS 3.41, mit 8088/V20-Karte K230, K231 oder K235.
+
+Befehle werden englisch eingegeben (wie bei jedem Kermit) und duerfen
+abgekuerzt werden. Die Meldungen sind deutsch.
+
+
+Aufruf
+------
+  DMVKERM
+
+Beim Start sucht DMVKERM die seriellen Module (IFSEL 1A, 1B, 0A, 0B,
+2A, 2B, 3A, 3B; das erste gefundene ist PORT 1) und stellt PORT 1 ein.
+Mit K235 ermittelt es den Interrupt des Moduls und empfaengt per
+Interrupt, sonst fragt es ab. Danach liest es DMVKERM.INI aus dem
+aktuellen Verzeichnis, wenn es diese Datei gibt.
+
+
+Terminal
+--------
+  CONNECT              Terminalbetrieb (Abkuerzung C)
+
+Empfangene Zeichen gehen an den Bildschirm, Tasten an die Leitung. Die
+unterste Zeile ist die Statuszeile. Die Fluchttaste ist CTRL-CLR (in
+MAME liegt CLR auf Entf). Danach zeigt die Statuszeile die Auswahl:
+
+  C                    zurueck zu DMVKERM>
+  B                    Break senden
+  H                    auflegen (DTR eine Sekunde weg)
+  CTRL-CLR             sendet CTRL-] an die Gegenseite
+  jede andere Taste    weiter im Terminal
+
+Cursortasten senden ESC [ A bis D (im Anwendungsmodus ESC O A bis D),
+die Pos1-Taste ESC [ H, F1 bis F4 die VT-Tasten PF1 bis PF4.
+
+Die VT102-Teilmenge versteht: Cursor setzen und bewegen, Zeile und
+Bildschirm loeschen, Zeilen und Zeichen einfuegen und loeschen,
+Rollbereich (DECSTBM), Rollen vorwaerts und rueckwaerts, Cursor sichern
+und wiederherstellen, Attribute (invers, halbhell fuer fett und
+unterstrichen, blinkend), den DEC-Grafikzeichensatz (Linien als +, -, |),
+Anwendungsmodus der Cursortasten sowie die Abfragen Geraeteattribute
+und Cursorposition. Die Gegenseite stellt man auf VT100 oder VT102.
+
+Nach dem Verlassen mit CTRL-CLR C bleibt der Terminalbildschirm im
+Speicher und erscheint beim naechsten CONNECT wieder.
+
+
+Einwahl ueber ein Modem
+-----------------------
+Hayes-kompatible Modems bedient man im Terminal von Hand, zum Beispiel:
+
+  DMVKERM>set speed 2400
+  DMVKERM>connect
+  AT                    (Modem antwortet OK)
+  ATDT 0123456789       (waehlen; nach CONNECT ist man verbunden)
+
+Aufgelegt wird mit CTRL-CLR H oder dem Befehl HANGUP. Das Modemkabel
+muss DTR durchreichen.
+
+
+Einstellungen
+-------------
+  SET PORT n           serielles Modul n (1, 2, ...)
+  SET SPEED n          Baudrate: 50 75 110 134 150 300 600 1200 1800
+                       2000 2400 3600 4800 7200 9600 19200
+  SET PARITY p         NONE, EVEN, ODD, MARK, SPACE (Vorgabe NONE, 8 Bit)
+  SET FLOW f           NONE oder XON/XOFF (Vorgabe XON/XOFF)
+  SET XMODEM 1K|128    Blockgroesse beim Senden mit XMODEM (Vorgabe 1K)
+  SHOW                 Module, Interrupt, Einstellungen, Leitungen DSR
+                       und DCD, verlorene Zeichen, Mitschnitt
+  HANGUP               auflegen
+
+Ohne Interrupt (K230/K231 oder Modul ohne IRQ-Leitung) haelt der 2651
+nur zwei Zeichen; beim Empfangen geht das bis etwa 2400 Baud sicher.
+Mit Interrupt sind 9600 Baud kein Problem.
+
+
+Dateiuebertragung mit Kermit
+----------------------------
+  SEND datei           Datei(en) senden; * und ? sind erlaubt, auch mit
+                       Laufwerk und Pfad (SEND B:\TEXTE\*.TXT)
+  RECEIVE              Dateien empfangen (die Gegenseite schickt mit SEND)
+  GET datei            Datei(en) von einem Kermit-Server holen; der Name
+                       geht unveraendert (Gross-/Kleinschreibung) hinaus
+  SERVER               DMVKERM als Kermit-Server: die Gegenseite schickt
+                       mit SEND, holt mit GET und beendet mit FINISH oder
+                       BYE, fragt mit REMOTE DIR, CD, DELETE, TYPE,
+                       SPACE, HELP; ESC beendet den Server hier
+  FINISH               Server der Gegenseite beenden
+  BYE                  Server der Gegenseite beenden und abmelden
+
+Waehrend der Uebertragung zeigt DMVKERM eine Maske wie MS-Kermit:
+Dateiname (beim Empfang auch der Name, unter dem die Datei gespeichert
+wird), uebertragene Bytes, Prozent (wenn die Gegenseite die Groesse
+mitteilt), Zustand, Pakete, Paketlaenge, Wiederholungen, letzter Fehler
+und letzte Meldung. Tasten waehrend der Uebertragung:
+
+  CTRL-X               diese Datei abbrechen, mit der naechsten weiter
+  CTRL-Z               alle restlichen Dateien abbrechen
+  CTRL-E, CTRL-C, ESC  Uebertragung beenden (die Gegenseite erfaehrt es)
+  Return               das letzte Paket sofort wiederholen
+
+Eine halb empfangene Datei wird geloescht.
+
+DMVKERM handelt mit der Gegenseite aus: lange Pakete bis 1000 Byte,
+Pruefart 3 (CRC-16), Wiederholungskompression, Attributpaket mit der
+Dateigroesse. Bei eingestellter Paritaet wird das 8. Bit mit Praefix
+uebertragen. Schiebefenster gibt es nicht.
+
+Dateien werden immer binaer, also unveraendert, uebertragen. Fuer
+Textdateien zwischen DOS-Rechnern ist das richtig. Unter Unix (C-Kermit)
+ist bei Textdateien SET FILE TYPE TEXT auf der Unix-Seite noetig, damit
+die Zeilenenden umgesetzt werden.
+
+Empfangene Namen werden fuer DOS zurechtgeschnitten (8.3, grosse
+Buchstaben, ungueltige Zeichen entfallen). Gibt es die Datei schon,
+ersetzt DMVKERM die letzte Stelle des Namens durch 1 bis 9
+(BRIEF.TXT -> BRIE1.TXT).
+
+
+Befehle an einen Kermit-Server
+------------------------------
+  REMOTE DIR [muster]    Verzeichnis des Servers zeigen
+  REMOTE CD [pfad]       Verzeichnis des Servers wechseln
+  REMOTE DELETE datei    Datei auf dem Server loeschen
+  REMOTE TYPE datei      Datei des Servers auf dem Bildschirm zeigen
+  REMOTE SPACE           freien Platz des Servers zeigen
+  REMOTE HELP            Hilfe des Servers zeigen
+  REMOTE HOST befehl     Befehl auf dem Server ausfuehren (wenn der
+                         Server das erlaubt)
+
+Die Antwort des Servers erscheint im Befehlsfenster. Als Server bedient
+DMVKERM selbst REMOTE DIR, CD, DELETE, TYPE, SPACE und HELP; REMOTE HOST
+lehnt es ab.
+
+
+Dateiuebertragung mit XMODEM
+----------------------------
+  XSEND datei          eine Datei mit XMODEM senden
+  XRECEIVE datei       eine Datei mit XMODEM empfangen
+
+Die Empfangsseite waehlt das Verfahren: DMVKERM bietet beim Empfangen
+zuerst CRC an und faellt nach einigen Versuchen auf die Pruefsumme
+zurueck. Es nimmt Bloecke zu 128 und 1024 Byte (XMODEM-1K) an. Beim
+Senden benutzt es 1-KB-Bloecke, wenn die Gegenseite CRC verlangt und
+SET XMODEM 1K gilt; den Rest am Dateiende schickt es in 128-Byte-
+Bloecken. Mit SET XMODEM 128 sendet es nur 128-Byte-Bloecke, das
+verstehen auch alte XMODEM-Programme.
+
+XMODEM kennt weder Dateinamen noch Dateilaengen: der Name wird auf
+beiden Seiten angegeben, und der letzte Block wird mit CTRL-Z (1Ah)
+aufgefuellt. XMODEM braucht SET PARITY NONE; XON/XOFF wird waehrend der
+Uebertragung abgeschaltet.
+
+
+Weitere Befehle
+---------------
+  TRANSMIT datei       Textdatei so senden, als wuerde sie getippt
+                       (CR am Zeilenende, nach jeder Zeile auf das Echo
+                       warten, hoechstens 1 Sekunde); ESC bricht ab
+  LOG SESSION [datei]  alles Empfangene in CONNECT und TRANSMIT
+                       mitschreiben (Vorgabe SESSION.LOG; eine
+                       vorhandene Datei wird verlaengert)
+  CLOSE                Mitschnitt schliessen
+  DIR [muster]         Verzeichnis zeigen
+  CD [pfad]            Verzeichnis wechseln bzw. zeigen
+  DEL datei            Datei loeschen
+  TAKE datei           Befehle aus einer Datei ausfuehren
+  HELP oder ?          Befehlsuebersicht
+  EXIT oder QUIT       beenden
+
+
+DMVKERM.INI
+-----------
+Beim Start fuehrt DMVKERM die Befehle aus DMVKERM.INI im aktuellen
+Verzeichnis aus. Zeilen, die mit ; beginnen, sind Kommentare. Beispiel:
+
+  ; DMVKERM.INI
+  set speed 9600
+  set flow xon/xoff
+
+
+Die Gegenseite
+--------------
+Auf einem IBM-kompatiblen PC laeuft MS-DOS Kermit (KERMIBM.EXE auf der
+Diskette DMVKERM.IMG ist MS-Kermit 3.14 der Columbia University; auf
+den PC kopieren, gern unter dem Namen KERMIT.EXE). Unter Linux oder Windows dienen
+C-Kermit bzw. Kermit 95, fuer XMODEM auch Tera Term oder lrzsz (sx, rx).
+
+Beispiel mit einem PC als Gegenseite (Nullmodemkabel, 9600 Baud):
+
+  PC:   KERMIT
+        set port com1
+        set speed 9600
+        server
+  DMV:  DMVKERM
+        set speed 9600
+        send *.txt
+        get brief.doc
+        finish
+
+
+Technisches
+-----------
+- Die Bildschirmausgabe laeuft ueber die DOS-Konsole (Int 29h) mit
+  dem, was alle drei DOS-Fassungen verstehen. Unter NCR MS-DOS 2.11
+  rollen 24 Zeilen, und die 25. dient als Statuszeile; unter 3.30 und
+  DR-DOS rollen 25 Zeilen, und DMVKERM zeichnet die Statuszeile nach.
+- Die Tastatur wird direkt am 8741 gelesen, damit Cursor- und
+  Funktionstasten ankommen.
+- Der 8259 der K235 ist flankengesteuert, und der 2651 legt RxRDY und
+  TxRDY auf dieselbe Leitung. Darum ist der Sender nur eingeschaltet,
+  solange ein Zeichen uebergeben wird. Ab Werk melden K211/K212 und
+  K801 auf der IRQ-Leitung des Steckplatzes (K235: IRQ 3, 4, 5 oder 7);
+  eine nach Abschnitt 3.2 des NCR-RS-232-Handbuchs geaenderte Karte
+  meldet nur RxRDY auf IRQ 2. DMVKERM findet beides selbst.
+
+In MAME getestet: DMV mit K211 und K235 unter MS-DOS 3.30, 9600 Baud,
+gegen einen IBM XT mit MS-Kermit 2.32 (SEND und GET). Dazu in einem
+Emulator-Pruefstand gegen C-Kermit und lrzsz.
+
+
+Lizenz
+------
+DMVKERM: MIT-Lizenz (C) 2026 rfka01. MS-Kermit 3.14 (KERMIBM.EXE):
+Revised 3-Clause BSD License der Columbia University, siehe KERMIT.LIC.

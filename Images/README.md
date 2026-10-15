@@ -9,15 +9,16 @@
 | `DMVRACE.COM`, `DMVRACE.TXT` | processor race · Prozessor-Rennen |
 | `ECODRIVE.COM`, `ECODRIVE.TXT` | RAM disk in the red/blue video memory · RAM-Disk im Rot/Blau-Bildspeicher |
 | `MOUSETST.COM`, `MOUSETST.TXT` | test for the K806 mouse adapter · Test für den Maus-Adapter K806 |
+| `DMVKERM.COM`, `DMVKERM.TXT` | Kermit and terminal · Kermit und Terminal |
 
 The `.TXT` files are the German descriptions (DOS text, CRLF). · Die `.TXT`-Dateien sind die deutschen Beschreibungen.
 
-`KERMIT.IMG` – 360 KB disk image with MS-DOS Kermit 3.16 for the DMV · 360-KB-Diskettenabbild mit MS-DOS Kermit 3.16 für die DMV:
+`DMVKERM.IMG` – 360 KB disk image with DMVKERM for the DMV · 360-KB-Diskettenabbild mit DMVKERM für die DMV:
 
 | File | |
 |---|---|
-| `KERMIT.EXE` | Kermit for the DMV · Kermit für die DMV |
-| `KERMIBM.EXE` | MS-Kermit 3.16 for IBM-compatible PCs (UPX) · für IBM-kompatible PCs |
-| `MSKERMIT.INI` | start-up settings · Starteinstellungen |
-| `KERMIT.TXT` | description (German) with the long help pages · Beschreibung mit den langen Hilfeseiten |
+| `DMVKERM.COM` | Kermit and terminal for the DMV · Kermit und Terminal für die DMV |
+| `DMVKERM.TXT` | description (German) · Beschreibung |
+| `DMVKERM.INI` | sample start-up settings · Beispiel-Starteinstellungen |
+| `KERMIBM.EXE` | original MS-Kermit 3.14 (Columbia University) for IBM-compatible PCs · für IBM-kompatible PCs |
 | `KERMIT.LIC` | licenses · Lizenzen |
