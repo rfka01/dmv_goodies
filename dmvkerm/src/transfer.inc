@@ -176,6 +176,7 @@ zeigez	endp
 
 ; Fehlerpaket der Gegenseite zeigen
 zeigefehler proc	near
+	mov	erfolg,0
 	push	bx
 	cmp	vollbild,0
 	jne	zf1

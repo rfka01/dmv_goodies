@@ -61,6 +61,30 @@ bef_tab	db	7,'CONNECT'
 	dw	b_log
 	db	5,'CLOSE'
 	dw	b_close
+	db	6,'OUTPUT'
+	dw	b_output
+	db	5,'INPUT'
+	dw	b_input
+	db	2,'IF'
+	dw	b_if
+	db	5,'PAUSE'
+	dw	b_pause
+	db	4,'GOTO'
+	dw	b_goto
+	db	4,'ECHO'
+	dw	b_echo
+	db	5,'CLEAR'
+	dw	b_clear
+	db	10,'STATISTICS'
+	dw	b_stat
+	db	4,'STOP'
+	dw	b_stop
+	db	4,'PUSH'
+	dw	b_push
+	db	3,'RUN'
+	dw	b_run
+	db	4,'TYPE'
+	dw	b_type
 	db	4,'EXIT'
 	dw	b_exit
 	db	4,'QUIT'
@@ -120,6 +144,8 @@ bs1:	mov	dx,offset prompt
 	call	crlf
 	cmp	zpuf+2,';'		; Kommentar
 	je	bs1
+	cmp	zpuf+2,':'		; Marke fuer GOTO
+	je	bs1
 	jmp	short bs1z
 bs1k:	mov	dx,offset zpuf
 	mov	ah,0Ah
@@ -147,19 +173,29 @@ bs2:	mov	al,[si]
 bs2a:	inc	si
 	jmp	short bs2
 bs3:	mov	zpos,offset zpuf+2
+	mov	al,erfolg		; Ergebnis des vorigen Befehls fuer IF
+	mov	erfalt,al
+	mov	erfolg,1
+	call	ausfuehren
+	cmp	fertig,0
+	jne	bs9
+	jmp	bs1
+bs9:	ret
+befehlsschleife endp
+
+; Naechstes Wort als Befehl ausfuehren (auch fuer IF)
+ausfuehren proc	near
 	call	naechstes
-	jc	bs1			; leere Zeile
+	jc	af9			; leere Zeile
 	mov	si,offset bef_tab
 	call	suche
-	jc	bs8
-	call	ax
-	cmp	fertig,0
-	je	bs1
-	ret
-bs8:	mov	dx,offset m_unbek
+	jc	af8
+	jmp	ax
+af8:	mov	erfolg,0
+	mov	dx,offset m_unbek
 	call	textd
-	jmp	bs1
-befehlsschleife endp
+af9:	ret
+ausfuehren endp
 
 ; Naechstes Wort: wanf/wlen. Carry, wenn keins mehr da ist.
 naechstes proc	near
@@ -542,31 +578,41 @@ mn1:	call	textd
 modname	endp
 
 hilfe	db	'Befehle (abkuerzbar):',cr,lf
-	db	'  CONNECT            Terminal; Ctrl-CLR dann ? fuer Hilfe',cr,lf
+	db	'  CONNECT            Terminal (Ctrl-CLR: Befehl, C zurueck)',cr,lf
 	db	'  SET PORT n         serielles Modul n (1, 2, ...)',cr,lf
 	db	'  SET SPEED n        Baudrate (300 ... 19200)',cr,lf
 	db	'  SET PARITY p       NONE, EVEN, ODD, MARK, SPACE',cr,lf
 	db	'  SET FLOW f         NONE, XON/XOFF',cr,lf
-	db	'  SHOW               Module und Einstellungen',cr,lf
-	db	'  HANGUP             auflegen (DTR eine Sekunde weg)',cr,lf
+	db	'  SET XMODEM 1K|128  Blockgroesse beim Senden mit XMODEM',cr,lf
+	db	'  SHOW, HANGUP       Einstellungen zeigen, auflegen',cr,lf
 	db	'  SEND datei         Datei(en) senden, * und ? erlaubt',cr,lf
 	db	'  RECEIVE            Dateien empfangen',cr,lf
 	db	'  GET datei          Datei(en) von einem Kermit-Server holen',cr,lf
 	db	'  SERVER             als Kermit-Server bedienen',cr,lf
-	db	'  FINISH, BYE        Server beenden / Server beenden und abmelden',cr,lf
-	db	'  REMOTE DIR [muster], CD [pfad], DELETE datei, TYPE datei, SPACE,',cr,lf
-	db	'         HELP, HOST befehl   Befehle an einen Kermit-Server',cr,lf
-	db	'  XSEND datei        eine Datei mit XMODEM senden',cr,lf
-	db	'  XRECEIVE datei     eine Datei mit XMODEM empfangen',cr,lf
-	db	'  SET XMODEM 1K|128  Blockgroesse beim Senden (1K nur mit CRC)',cr,lf
+	db	'  FINISH, BYE        Server beenden / beenden und abmelden',cr,lf
+	db	'  REMOTE DIR, CD, DELETE, TYPE, SPACE, HELP, HOST  an den Server',cr,lf
+	db	'  XSEND, XRECEIVE datei  mit XMODEM senden, empfangen',cr,lf
+	db	'  STATISTICS         Werte der letzten Uebertragung',cr,lf
+	db	'  EXIT               beenden',cr,lf
+	db	'-- weiter mit einer Taste --$'
+hilfe2	db	30 dup (' '),cr
 	db	'  TRANSMIT datei     Textdatei wie getippt senden',cr,lf
-	db	'  LOG SESSION [datei] Terminal mitschreiben (SESSION.LOG), CLOSE beendet',cr,lf
-	db	'  DIR [muster], CD [pfad], DEL datei',cr,lf
+	db	'  LOG SESSION [datei] Terminal mitschreiben, CLOSE beendet',cr,lf
+	db	'  DIR [muster], CD [pfad], DEL datei, TYPE datei',cr,lf
+	db	'  PUSH, RUN befehl   DOS aufrufen (EXIT kehrt zurueck)',cr,lf
 	db	'  TAKE datei         Befehle aus einer Datei (DMVKERM.INI beim Start)',cr,lf
-	db	'  EXIT               beenden',cr,lf,'$'
+	db	'Skripte (vor allem in TAKE-Dateien):',cr,lf
+	db	'  OUTPUT text        senden (\13 = CR, \nnn dezimal)',cr,lf
+	db	'  INPUT n text       bis n Sekunden auf text warten',cr,lf
+	db	'  PAUSE [n], CLEAR, ECHO text, STOP',cr,lf
+	db	'  IF SUCCESS|FAILURE befehl, GOTO marke (Zeile :marke)',cr,lf,'$'
 
 b_help	proc	near
 	mov	dx,offset hilfe
 	call	textd
-	ret
+	call	kbwarte
+	mov	al,cr			; Hinweis ueberschreiben
+	call	zeichen
+	mov	dx,offset hilfe2
+	jmp	textd
 b_help	endp

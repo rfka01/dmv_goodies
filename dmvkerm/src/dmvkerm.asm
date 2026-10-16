@@ -20,6 +20,7 @@
 ;   kbef.inc      die Befehle dazu
 ;   xmodem.inc    XSEND, XRECEIVE
 ;   extras.inc    LOG, TRANSMIT, DIR, CD, DEL, TAKE
+;   skript.inc    OUTPUT, INPUT, IF, GOTO ..., PUSH, RUN, TYPE, STATISTICS
 ;
 ; Bau: tools/build.sh (JWasm). Befehle englisch, Meldungen deutsch.
 ;
@@ -57,6 +58,7 @@ start:	jmp	anfang
 	include	kbef.inc
 	include	xmodem.inc
 	include	extras.inc
+	include	skript.inc
 
 ; ---------------------------------------------------------------------------
 titel	db	'DMVKERM 0.1 - Kermit fuer die NCR Decision Mate V',cr,lf
@@ -64,6 +66,12 @@ titel	db	'DMVKERM 0.1 - Kermit fuer die NCR Decision Mate V',cr,lf
 
 anfang:	cld
 	mov	sp,offset stapel_ende
+	mov	bx,offset stapel_ende	; Speicher auf das Noetige verkleinern
+	add	bx,15			;  (fuer PUSH und RUN)
+	mov	cl,4
+	shr	bx,cl
+	mov	ah,4Ah
+	int	21h
 	mov	ah,30h			; DOS-Version
 	int	21h
 	mov	dosver,al

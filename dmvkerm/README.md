@@ -4,13 +4,14 @@
 
 ## English
 
-**DMVKERM** is a small Kermit for the **NCR Decision Mate V**: a terminal with a VT102 subset, and file transfer with Kermit (client and server) and XMODEM. It works with the serial modules **K211/K212/K213** (Signetics 2651) and **K801** (2661). It is written from scratch in assembler: one `.COM` file of about 20 KB that needs about 36 KB of memory when it runs. Commands are English, as in every Kermit. Messages are German.
+**DMVKERM** is a small Kermit for the **NCR Decision Mate V**: a terminal with a VT102 subset, and file transfer with Kermit (client and server) and XMODEM. It works with the serial modules **K211/K212/K213** (Signetics 2651) and **K801** (2661). It is written from scratch in assembler: one `.COM` file of about 22 KB that needs about 38 KB of memory when it runs. Commands are English, as in every Kermit. Messages are German.
 
 - Runs under NCR MS-DOS 2.11 and under the DMV ports of MS-DOS 3.30 and DR-DOS 3.41, with an 8088/V20 card (K230, K231, K235).
 - **Terminal**: `CONNECT`. Supports cursor movement, erase, insert/delete line and character, scrolling region, save/restore cursor, attributes (inverse, half intensity for bold/underline, blink), DEC line graphics (shown as `+ - |`), application cursor keys, and the DA/DSR reports. **CTRL-CLR** is the escape key: then `C` returns, `B` sends a break, `H` hangs up. To dial a Hayes modem, type `ATDT…` in CONNECT.
 - **Kermit**: `SEND` (wildcards), `RECEIVE`, `GET`, `SERVER`, `FINISH`, `BYE`, and `REMOTE DIR/CD/DELETE/TYPE/SPACE/HELP/HOST` (also served by DMVKERM's own server, except HOST). A full-screen transfer display like MS-Kermit's; ^X/^Z cancel a file or the batch. Long packets up to 1000 bytes, CRC-16, repeat compression, the attribute packet with the file size, and 8th-bit prefixing when parity is set. Files are always transferred binary.
 - **XMODEM**: `XSEND`, `XRECEIVE`. Checksum or CRC, 128- and 1024-byte blocks (`SET XMODEM 1K|128`).
-- `SET PORT/SPEED/PARITY/FLOW`, `SHOW`, `HANGUP`, `LOG SESSION`/`CLOSE`, `TRANSMIT`, `DIR`, `CD`, `DEL`, `TAKE`, and `DMVKERM.INI` at start-up.
+- `SET PORT/SPEED/PARITY/FLOW`, `SHOW`, `HANGUP`, `STATISTICS`, `LOG SESSION`/`CLOSE`, `TRANSMIT`, `DIR`, `CD`, `DEL`, `TYPE`, `PUSH`, `RUN`, `TAKE`, and `DMVKERM.INI` at start-up.
+- **Scripts** for dialling a mailbox: `OUTPUT`, `INPUT`, `PAUSE`, `CLEAR`, `ECHO`, `IF SUCCESS|FAILURE`, `GOTO`, `STOP`.
 - Finds the serial modules and their interrupt by itself, like the large Kermit port did: the module's slot IRQ on the K235, or IRQ2 on a K211/K212 modified after NCR's handbook. Without an interrupt it polls.
 - Screen output goes through the DOS console with only what all three DOS versions understand. The keyboard is read from the 8741 directly.
 
@@ -22,13 +23,14 @@ Tested in MAME: DMV with K211 and K235 under MS-DOS 3.30 at 9600 baud against an
 
 ## Deutsch
 
-**DMVKERM** ist ein kleines Kermit für die **NCR Decision Mate V**: ein Terminal mit einer VT102-Teilmenge und Dateiübertragung mit Kermit (Client und Server) und XMODEM. Es arbeitet mit den seriellen Modulen **K211/K212/K213** (Signetics 2651) und **K801** (2661). Es ist von Grund auf neu in Assembler geschrieben: eine `.COM`-Datei mit rund 20 KB, die beim Lauf rund 36 KB Speicher braucht. Die Befehle sind englisch, wie bei jedem Kermit. Die Meldungen sind deutsch.
+**DMVKERM** ist ein kleines Kermit für die **NCR Decision Mate V**: ein Terminal mit einer VT102-Teilmenge und Dateiübertragung mit Kermit (Client und Server) und XMODEM. Es arbeitet mit den seriellen Modulen **K211/K212/K213** (Signetics 2651) und **K801** (2661). Es ist von Grund auf neu in Assembler geschrieben: eine `.COM`-Datei mit rund 22 KB, die beim Lauf rund 38 KB Speicher braucht. Die Befehle sind englisch, wie bei jedem Kermit. Die Meldungen sind deutsch.
 
 - Läuft unter NCR MS-DOS 2.11 und unter den DMV-Ports von MS-DOS 3.30 und DR-DOS 3.41, mit 8088/V20-Karte (K230, K231, K235).
 - **Terminal**: `CONNECT`. Versteht Cursorbewegung, Löschen, Zeilen und Zeichen einfügen/löschen, Rollbereich, Cursor sichern und wiederherstellen, Attribute (invers, halbhell für fett/unterstrichen, blinkend), DEC-Liniengrafik (als `+ - |`), Anwendungsmodus der Cursortasten sowie die Abfragen DA/DSR. **CTRL-CLR** ist die Fluchttaste: danach `C` zurück, `B` Break, `H` auflegen. Ein Hayes-Modem wählt man in CONNECT mit `ATDT…`.
 - **Kermit**: `SEND` (mit Platzhaltern), `RECEIVE`, `GET`, `SERVER`, `FINISH`, `BYE` sowie `REMOTE DIR/CD/DELETE/TYPE/SPACE/HELP/HOST` (DMVKERMs eigener Server bedient sie auch, außer HOST). Übertragungsmaske wie bei MS-Kermit; ^X/^Z bricht eine Datei bzw. alle ab. Lange Pakete bis 1000 Byte, CRC-16, Wiederholungskompression, Attributpaket mit der Dateigröße und Präfix für das 8. Bit bei eingestellter Parität. Dateien werden immer binär übertragen.
 - **XMODEM**: `XSEND`, `XRECEIVE`. Prüfsumme oder CRC, Blöcke zu 128 und 1024 Byte (`SET XMODEM 1K|128`).
-- `SET PORT/SPEED/PARITY/FLOW`, `SHOW`, `HANGUP`, `LOG SESSION`/`CLOSE`, `TRANSMIT`, `DIR`, `CD`, `DEL`, `TAKE` und `DMVKERM.INI` beim Start.
+- `SET PORT/SPEED/PARITY/FLOW`, `SHOW`, `HANGUP`, `STATISTICS`, `LOG SESSION`/`CLOSE`, `TRANSMIT`, `DIR`, `CD`, `DEL`, `TYPE`, `PUSH`, `RUN`, `TAKE` und `DMVKERM.INI` beim Start.
+- **Skripte** für die Einwahl in eine Mailbox: `OUTPUT`, `INPUT`, `PAUSE`, `CLEAR`, `ECHO`, `IF SUCCESS|FAILURE`, `GOTO`, `STOP`.
 - Findet die seriellen Module und ihren Interrupt selbst, wie schon der große Kermit-Port: den IRQ des Steckplatzes an der K235 oder IRQ2 bei einer K211/K212, die nach dem NCR-Handbuch geändert ist. Ohne Interrupt fragt es ab.
 - Die Bildschirmausgabe läuft über die DOS-Konsole und benutzt nur, was alle drei DOS-Fassungen verstehen. Die Tastatur wird direkt am 8741 gelesen.
 

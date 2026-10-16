@@ -4,8 +4,8 @@ DMVKERM - Kermit und Terminal fuer die NCR Decision Mate V
 DMVKERM ist ein kleines Kermit fuer die seriellen Module K211, K212,
 K213 (Signetics 2651) und K801 (2661). Es bietet ein Terminal mit einer
 VT102-Teilmenge sowie Dateiuebertragung mit Kermit (auch als Server)
-und mit XMODEM. DMVKERM.COM ist rund 20 KB gross und belegt beim Lauf
-rund 36 KB Speicher.
+und mit XMODEM, dazu Skripte fuer die Einwahl. DMVKERM.COM ist rund
+22 KB gross und belegt beim Lauf rund 38 KB Speicher.
 
 Es laeuft unter NCR MS-DOS 2.11, dem DMV-Port von MS-DOS 3.30 und dem
 DMV-Port von DR-DOS 3.41, mit 8088/V20-Karte K230, K231 oder K235.
@@ -174,9 +174,52 @@ Weitere Befehle
   DIR [muster]         Verzeichnis zeigen
   CD [pfad]            Verzeichnis wechseln bzw. zeigen
   DEL datei            Datei loeschen
+  TYPE datei           Datei auf dem Bildschirm zeigen (ESC bricht ab)
+  STATISTICS           Werte der letzten Uebertragung: Datei, Bytes,
+                       Pakete, Wiederholungen, Dauer, Bytes je Sekunde
+  PUSH                 DOS-Befehlsprozessor starten; EXIT kehrt zu
+                       DMVKERM zurueck, die Verbindung bleibt bestehen
+  RUN befehl           einen DOS-Befehl oder ein Programm ausfuehren
   TAKE datei           Befehle aus einer Datei ausfuehren
-  HELP oder ?          Befehlsuebersicht
+  HELP oder ?          Befehlsuebersicht (zwei Seiten)
   EXIT oder QUIT       beenden
+
+
+Skripte
+-------
+In TAKE-Dateien (und auch von Hand) lassen sich Ablaeufe wie die
+Einwahl in eine Mailbox beschreiben:
+
+  OUTPUT text          Text senden; \13 ist CR, \nnn ein Zeichen mit
+                       dem dezimalen Code nnn, \\ ein Backslash
+  INPUT n text         bis n Sekunden auf den Text warten (Gross- und
+                       Kleinschreibung egal); Empfangenes erscheint
+                       auf dem Bildschirm, ESC bricht ab
+  PAUSE [n]            n Sekunden warten (Vorgabe 1)
+  CLEAR                Empfangspuffer leeren
+  ECHO text            Text auf den Bildschirm
+  IF SUCCESS befehl    Befehl ausfuehren, wenn der vorige Befehl
+  IF FAILURE befehl    geklappt bzw. nicht geklappt hat (INPUT gefunden,
+                       Uebertragung fertig, ...)
+  GOTO marke           in der TAKE-Datei bei der Zeile :marke weiter
+  STOP                 TAKE-Datei beenden
+
+Zeilen, die mit ; beginnen, sind Kommentare; Zeilen mit : am Anfang
+sind Marken. Beispiel MAILBOX.TXT (Aufruf: TAKE MAILBOX.TXT):
+
+  ; Einwahl in eine Mailbox
+  set speed 2400
+  clear
+  output ATDT0123456789\13
+  input 60 CONNECT
+  if failure goto fehler
+  input 20 login:
+  output gast\13
+  connect
+  stop
+  :fehler
+  echo Keine Verbindung.
+  hangup
 
 
 DMVKERM.INI

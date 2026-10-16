@@ -48,6 +48,7 @@ bildan	proc	near
 	push	ax
 	push	si
 	mov	b_titel,si
+	call	zeitan
 	mov	vollbild,1
 	mov	kgross,0
 	mov	kgross+2,0
@@ -86,6 +87,7 @@ bildan	endp
 
 ; Maske verlassen: Fusszeile weg, Cursor unter die Maske
 bildaus	proc	near
+	call	zeitaus
 	cmp	vollbild,0
 	je	bdx9
 	push	ax
@@ -248,7 +250,10 @@ prozent	endp
 
 ; Meldung DX ($-Text): ohne Maske ausgeben, mit Maske in ihr Feld
 meldung	proc	near
-	cmp	vollbild,0
+	cmp	dx,offset a_ok		; jeder Fehler gilt fuer IF FAILURE
+	je	mld0
+	mov	erfolg,0
+mld0:	cmp	vollbild,0
 	jne	mld1
 	jmp	textd
 mld1:	push	ax
