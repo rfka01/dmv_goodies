@@ -144,7 +144,7 @@ a_gegen	db	cr,lf,'Gegenseite meldet: $'
 a_zeit	db	cr,lf,'Keine Antwort von der Gegenseite.',cr,lf,'$'
 a_nicht	db	'?Datei nicht gefunden.',cr,lf,'$'
 a_dfehl	db	cr,lf,'?Dateifehler (Diskette voll oder schreibgeschuetzt).',cr,lf,'$'
-a_warte	db	'Warte auf die Gegenseite (Abbruch mit ESC) ...',cr,lf,'$'
+a_warte	db	'Warte auf SEND der Gegenseite (bei einem Server: GET)',cr,lf,'$'
 a_rich	dw	0		; a_sende oder a_empf
 
 zeigez	proc	near

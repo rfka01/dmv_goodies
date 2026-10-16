@@ -437,6 +437,8 @@ rpack	endp
 
 ; Ein Zeichen von der Leitung, bis zur Frist rzeit. Carry bei Ablauf oder
 ; Abbruch (ESC, Ctrl-C, Ctrl-CLR).
+h_x	db	'Datei wird abgebrochen ...$'
+h_z	db	'Alle Dateien werden abgebrochen ...$'
 rzeich	proc	near
 	push	bx
 	push	dx
@@ -456,11 +458,19 @@ rz1:	call	sget
 	je	rz_a
 	cmp	al,18h			; ^X: diese Datei abbrechen
 	jne	rz1x
+	cmp	fhand,0			; noch keine Datei offen: ganz abbrechen
+	je	rz_a
 	mov	kfx,1
+	mov	dx,offset h_x
+	call	hinweis
 	jmp	short rz2
 rz1x:	cmp	al,1Ah			; ^Z: alle abbrechen
 	jne	rz1y
+	cmp	fhand,0
+	je	rz_a
 	mov	kfx,2
+	mov	dx,offset h_z
+	call	hinweis
 	jmp	short rz2
 rz1y:	cmp	al,cr			; Return: sofort wiederholen
 	je	rz_t

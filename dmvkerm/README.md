@@ -15,9 +15,9 @@
 - Finds the serial modules and their interrupt by itself, like the large Kermit port did: the module's slot IRQ on the K235, or IRQ2 on a K211/K212 modified after NCR's handbook. Without an interrupt it polls.
 - Screen output goes through the DOS console with only what all three DOS versions understand. The keyboard is read from the 8741 directly.
 
-The disk `../Images/DMVKERM.IMG` also holds the original **MS-Kermit 3.14** from Columbia University for IBM-compatible PCs (`KERMIBM.EXE`), for the other end of the cable. `DMVKERM.COM` and `DMVKERM.TXT` are also on `GOODIES.IMG`.
+`DMVKERM.COM` and `DMVKERM.TXT` are on `../Images/GOODIES.IMG`, which is rebuilt with every change. `../Images/DMVKERM.IMG` is the last separate DMVKERM disk (16 Oct 2026, no longer updated); it also holds the original **Kermit-MS 2.32/A** from Columbia University for IBM-compatible PCs (`KERMIBM.EXE`), for the other end of the cable.
 
-Files: `src/` the sources (`dmvkerm.asm` and its includes), `tools/build.sh` builds `DMVKERM.COM` with JWasm under Linux, `tools/mktab.py` generates `src/tabellen.inc` (character and keyboard tables), `tools/mkdisk.py` writes `DMVKERM.IMG` and adds DMVKERM to `GOODIES.IMG`. `DMVKERM.TXT` is the description (German), `DMVKERM.INI` a sample start-up file.
+Files: `src/` the sources (`dmvkerm.asm` and its includes), `tools/build.sh` builds `DMVKERM.COM` with JWasm under Linux, `tools/mktab.py` generates `src/tabellen.inc` (character and keyboard tables), `tools/mkdisk.py` puts DMVKERM on `GOODIES.IMG`. `DMVKERM.TXT` is the description (German), `DMVKERM.INI` a sample start-up file.
 
 Tested in MAME: DMV with K211 and K235 under MS-DOS 3.30 at 9600 baud against an IBM XT running MS-Kermit 2.32 (SEND and GET, linked with `-bitb socket.127.0.0.1:2323` and `ncat --broker`). Also tested in an emulator test bench against C-Kermit (also as a server, with long packets, even parity and the REMOTE commands both ways), XMODEM against lrzsz, and the VT102 subset against the pyte reference. Not yet tested under NCR MS-DOS 2.11 or DR-DOS 3.41, with the K801, or on real hardware.
 
@@ -34,15 +34,15 @@ Tested in MAME: DMV with K211 and K235 under MS-DOS 3.30 at 9600 baud against an
 - Findet die seriellen Module und ihren Interrupt selbst, wie schon der große Kermit-Port: den IRQ des Steckplatzes an der K235 oder IRQ2 bei einer K211/K212, die nach dem NCR-Handbuch geändert ist. Ohne Interrupt fragt es ab.
 - Die Bildschirmausgabe läuft über die DOS-Konsole und benutzt nur, was alle drei DOS-Fassungen verstehen. Die Tastatur wird direkt am 8741 gelesen.
 
-Auf der Diskette `../Images/DMVKERM.IMG` liegt zusätzlich das originale **MS-Kermit 3.14** der Columbia University für IBM-kompatible PCs (`KERMIBM.EXE`), für die Gegenseite. `DMVKERM.COM` und `DMVKERM.TXT` stehen auch auf `GOODIES.IMG`.
+`DMVKERM.COM` und `DMVKERM.TXT` stehen auf `../Images/GOODIES.IMG`, die bei jeder Änderung neu gebaut wird. `../Images/DMVKERM.IMG` ist der letzte Stand der eigenen DMVKERM-Diskette (16.10.2026, wird nicht mehr gepflegt); darauf liegt zusätzlich das originale **Kermit-MS 2.32/A** der Columbia University für IBM-kompatible PCs (`KERMIBM.EXE`), für die Gegenseite.
 
-Dateien: `src/` die Quellen (`dmvkerm.asm` mit seinen Include-Dateien), `tools/build.sh` baut `DMVKERM.COM` mit JWasm unter Linux, `tools/mktab.py` erzeugt `src/tabellen.inc` (Zeichen- und Tastaturtabellen), `tools/mkdisk.py` schreibt `DMVKERM.IMG` und trägt DMVKERM in `GOODIES.IMG` ein. `DMVKERM.TXT` ist die Beschreibung, `DMVKERM.INI` eine Beispiel-Startdatei.
+Dateien: `src/` die Quellen (`dmvkerm.asm` mit seinen Include-Dateien), `tools/build.sh` baut `DMVKERM.COM` mit JWasm unter Linux, `tools/mktab.py` erzeugt `src/tabellen.inc` (Zeichen- und Tastaturtabellen), `tools/mkdisk.py` trägt DMVKERM in `GOODIES.IMG` ein. `DMVKERM.TXT` ist die Beschreibung, `DMVKERM.INI` eine Beispiel-Startdatei.
 
 In MAME getestet: DMV mit K211 und K235 unter MS-DOS 3.30 bei 9600 Baud gegen einen IBM XT mit MS-Kermit 2.32 (SEND und GET, verbunden mit `-bitb socket.127.0.0.1:2323` und `ncat --broker`). Dazu im Emulator-Prüfstand gegen C-Kermit (auch als Server, mit langen Paketen, gerader Parität und den REMOTE-Befehlen in beide Richtungen), XMODEM gegen lrzsz und die VT102-Teilmenge gegen die Referenz pyte. Unter NCR MS-DOS 2.11 und DR-DOS 3.41, mit der K801 und auf echter Hardware noch nicht erprobt.
 
 ## License · Lizenz
 
-DMVKERM: MIT, like the rest of this repository · wie der Rest des Repositorys. MS-Kermit 3.14 (`KERMIBM.EXE` on the disk · auf der Diskette): Revised 3-Clause BSD License of Columbia University, see · siehe [KERMIT.LIC](KERMIT.LIC).
+DMVKERM: MIT, like the rest of this repository · wie der Rest des Repositorys. Kermit-MS 2.32/A (`KERMIBM.EXE` on `DMVKERM.IMG` · auf `DMVKERM.IMG`): Revised 3-Clause BSD License of Columbia University, see · siehe [KERMIT.LIC](KERMIT.LIC).
 
 ---
 

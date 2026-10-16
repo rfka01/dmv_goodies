@@ -9,7 +9,7 @@ Programs for the **NCR Decision Mate V** (DMV) under MS-DOS · Programme für di
 | [`dmvrace/`](dmvrace/) | Processor race Z80 / 8088 / 8087 / 68008 · Prozessor-Rennen |
 | [`mousetst/`](mousetst/) | Graphical test for the K806 mouse adapter · Grafischer Test für den Maus-Adapter K806 |
 | [`dmvkerm/`](dmvkerm/) | small Kermit and terminal for the K211/K212/K801 serial modules · kleines Kermit und Terminal für die seriellen Module K211/K212/K801 |
-| [`Images/`](Images/) | `GOODIES.IMG`: 360 KB DMV disk with all programs, documentation and KITT.PIC · DMV-Diskette mit allen Programmen, Beschreibungen und KITT.PIC; `DMVKERM.IMG`: DMVKERM disk with MS-Kermit for IBM PCs · DMVKERM-Diskette mit MS-Kermit für IBM-PCs |
+| [`Images/`](Images/) | `GOODIES.IMG`: 360 KB DMV disk with all programs, documentation and KITT.PIC · DMV-Diskette mit allen Programmen, Beschreibungen und KITT.PIC; `DMVKERM.IMG`: last separate DMVKERM disk with Kermit-MS 2.32 for IBM PCs · letzter Stand der DMVKERM-Diskette mit Kermit-MS 2.32 für IBM-PCs |
 
 The directories hold the sources, the disk image holds the ready-to-run files. · In den Verzeichnissen liegen die Quellen, auf dem Diskettenabbild die fertigen Programme.
 
@@ -23,7 +23,7 @@ The directories hold the sources, the disk image holds the ready-to-run files. �
 
 **MOUSETST** – A coordinate cross with the origin in the middle of the screen that traces the position of the K806 mouse adapter in all directions, with scales from 1 to 8 counts per pixel and limits at the screen edge or free. It finds the K806 on any IFSEL address and shows it. The NCR diagnostic program's expected counts for 5 inches are listed in the description.
 
-**DMVKERM** – a small Kermit for the DMV, written from scratch in assembler (one 22 KB `.COM` file): terminal with a VT102 subset, file transfer with Kermit (client and server, long packets, CRC) and XMODEM (CRC, 1K blocks), scripts for dialling a mailbox, over the K211/K212/K213 and K801 serial modules, under NCR MS-DOS 2.11 and the DMV ports of MS-DOS 3.30 and DR-DOS 3.41 (tested in MAME under 3.30 against MS-Kermit on an IBM XT). It finds the modules and their interrupt by itself; CTRL-CLR is the escape key. Its own disk `DMVKERM.IMG` also holds the original MS-Kermit 3.14 for IBM-compatible PCs for the other end of the cable.
+**DMVKERM** – a small Kermit for the DMV, written from scratch in assembler (one 22 KB `.COM` file): terminal with a VT102 subset, file transfer with Kermit (client and server, long packets, CRC) and XMODEM (CRC, 1K blocks), scripts for dialling a mailbox, over the K211/K212/K213 and K801 serial modules, under NCR MS-DOS 2.11 and the DMV ports of MS-DOS 3.30 and DR-DOS 3.41 (tested in MAME under 3.30 against MS-Kermit on an IBM XT). It finds the modules and their interrupt by itself; CTRL-CLR is the escape key. It is on `GOODIES.IMG`; the last separate disk `DMVKERM.IMG` also holds the original Kermit-MS 2.32 for IBM-compatible PCs for the other end of the cable.
 
 ## Deutsch
 
@@ -35,7 +35,7 @@ The directories hold the sources, the disk image holds the ready-to-run files. �
 
 **MOUSETST** – Ein Koordinatenkreuz mit dem Nullpunkt in der Bildmitte, auf dem die Position des Maus-Adapters K806 in alle Richtungen als Spur erscheint, mit Maßstäben von 1 bis 8 Zählschritten pro Bildpunkt und Begrenzung am Bildrand oder frei. Es findet den K806 auf jeder IFSEL-Adresse und zeigt sie an. Die von der NCR-Diagnose erwarteten Werte für 5 Zoll stehen in der Beschreibung.
 
-**DMVKERM** – ein kleines Kermit für die DMV, von Grund auf in Assembler geschrieben (eine `.COM`-Datei mit 22 KB): Terminal mit VT102-Teilmenge, Dateiübertragung mit Kermit (Client und Server, lange Pakete, CRC) und XMODEM (CRC, 1-KB-Blöcke), Skripte für die Einwahl in eine Mailbox, über die seriellen Module K211/K212/K213 und K801, unter NCR MS-DOS 2.11 und den DMV-Ports von MS-DOS 3.30 und DR-DOS 3.41 (in MAME unter 3.30 gegen MS-Kermit auf einem IBM XT getestet). Es findet die Module und ihren Interrupt selbst; CTRL-CLR ist die Fluchttaste. Auf der eigenen Diskette `DMVKERM.IMG` liegt zusätzlich das originale MS-Kermit 3.14 für IBM-kompatible PCs für die Gegenseite.
+**DMVKERM** – ein kleines Kermit für die DMV, von Grund auf in Assembler geschrieben (eine `.COM`-Datei mit 22 KB): Terminal mit VT102-Teilmenge, Dateiübertragung mit Kermit (Client und Server, lange Pakete, CRC) und XMODEM (CRC, 1-KB-Blöcke), Skripte für die Einwahl in eine Mailbox, über die seriellen Module K211/K212/K213 und K801, unter NCR MS-DOS 2.11 und den DMV-Ports von MS-DOS 3.30 und DR-DOS 3.41 (in MAME unter 3.30 gegen MS-Kermit auf einem IBM XT getestet). Es findet die Module und ihren Interrupt selbst; CTRL-CLR ist die Fluchttaste. Es steht auf `GOODIES.IMG`; auf dem letzten Stand der eigenen Diskette `DMVKERM.IMG` liegt zusätzlich das originale Kermit-MS 2.32 für IBM-kompatible PCs für die Gegenseite.
 
 ## Requirements · Voraussetzungen
 
@@ -43,7 +43,7 @@ NCR Decision Mate V with 8088/V20 card (K230/K231/K235). DMVDEMO and DMVRACE run
 
 ## License · Lizenz
 
-MIT License, see [LICENSE](LICENSE). **Exceptions:** MS-Kermit 3.14 for IBM PCs on `DMVKERM.IMG` is under the Revised 3-Clause BSD License of Columbia University, see [dmvkerm/KERMIT.LIC](dmvkerm/KERMIT.LIC); `KITT.PIC` is an edited photo by Poudou99 (Wikimedia Commons) under CC BY-SA 4.0, see [dmvdemo/KITT-LICENSE.txt](dmvdemo/KITT-LICENSE.txt).
+MIT License, see [LICENSE](LICENSE). **Exceptions:** Kermit-MS 2.32 for IBM PCs on `DMVKERM.IMG` is under the Revised 3-Clause BSD License of Columbia University, see [dmvkerm/KERMIT.LIC](dmvkerm/KERMIT.LIC); `KITT.PIC` is an edited photo by Poudou99 (Wikimedia Commons) under CC BY-SA 4.0, see [dmvdemo/KITT-LICENSE.txt](dmvdemo/KITT-LICENSE.txt).
 
 ---
 

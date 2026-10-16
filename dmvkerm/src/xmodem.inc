@@ -282,7 +282,10 @@ xs8w:	inc	kwdh
 	call	xcan
 	mov	dx,offset a_zeit
 	jmp	meldung
-xs9:	inc	xblk
+xs9:	cmp	kfx,0			; ^X/^Z: abbrechen
+	je	xs9a
+	jmp	xs_abbr
+xs9a:	inc	xblk
 	call	zeige
 	jmp	xs3
 xs_eot:	mov	versuch,0
@@ -460,7 +463,10 @@ xr8a:	lodsb
 	loop	xr8a
 	inc	xblk
 	call	zeige
-xr_ack:	mov	versuch,0
+xr_ack:	cmp	kfx,0			; ^X/^Z: abbrechen
+	je	xr_ack1
+	jmp	xr_abbr
+xr_ack1: mov	versuch,0
 	mov	al,X_ACK
 	call	sputroh
 	jmp	xr2

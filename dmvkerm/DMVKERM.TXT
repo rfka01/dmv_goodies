@@ -72,6 +72,7 @@ Einstellungen
   SET PORT n           serielles Modul n (1, 2, ...)
   SET SPEED n          Baudrate: 50 75 110 134 150 300 600 1200 1800
                        2000 2400 3600 4800 7200 9600 19200
+  SET BAUD n           dasselbe wie SET SPEED (wie bei MS-Kermit)
   SET PARITY p         NONE, EVEN, ODD, MARK, SPACE (Vorgabe NONE, 8 Bit)
   SET FLOW f           NONE oder XON/XOFF (Vorgabe XON/XOFF)
   SET XMODEM 1K|128    Blockgroesse beim Senden mit XMODEM (Vorgabe 1K)
@@ -106,6 +107,8 @@ und letzte Meldung. Tasten waehrend der Uebertragung:
 
   CTRL-X               diese Datei abbrechen, mit der naechsten weiter
   CTRL-Z               alle restlichen Dateien abbrechen
+                       (solange noch keine Datei laeuft, beenden beide
+                       die Uebertragung; bei XMODEM ebenso)
   CTRL-E, CTRL-C, ESC  Uebertragung beenden (die Gegenseite erfaehrt es)
   Return               das letzte Paket sofort wiederholen
 
@@ -234,9 +237,9 @@ Verzeichnis aus. Zeilen, die mit ; beginnen, sind Kommentare. Beispiel:
 
 Die Gegenseite
 --------------
-Auf einem IBM-kompatiblen PC laeuft MS-DOS Kermit (KERMIBM.EXE auf der
-Diskette DMVKERM.IMG ist MS-Kermit 3.14 der Columbia University; auf
-den PC kopieren, gern unter dem Namen KERMIT.EXE). Unter Linux oder Windows dienen
+Auf einem IBM-kompatiblen PC laeuft MS-DOS Kermit der Columbia
+University, zum Beispiel Kermit-MS 2.32 (liegt als KERMIBM.EXE auf der
+Diskette DMVKERM.IMG im Repository) oder MS-Kermit 3.14. Unter Linux oder Windows dienen
 C-Kermit bzw. Kermit 95, fuer XMODEM auch Tera Term oder lrzsz (sx, rx).
 
 Beispiel mit einem PC als Gegenseite (Nullmodemkabel, 9600 Baud):
@@ -274,5 +277,4 @@ Emulator-Pruefstand gegen C-Kermit und lrzsz.
 
 Lizenz
 ------
-DMVKERM: MIT-Lizenz (C) 2026 rfka01. MS-Kermit 3.14 (KERMIBM.EXE):
-Revised 3-Clause BSD License der Columbia University, siehe KERMIT.LIC.
+DMVKERM: MIT-Lizenz (C) 2026 rfka01.

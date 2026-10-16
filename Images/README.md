@@ -13,12 +13,12 @@
 
 The `.TXT` files are the German descriptions (DOS text, CRLF). · Die `.TXT`-Dateien sind die deutschen Beschreibungen.
 
-`DMVKERM.IMG` – 360 KB disk image with DMVKERM for the DMV · 360-KB-Diskettenabbild mit DMVKERM für die DMV:
+`DMVKERM.IMG` – last separate DMVKERM disk (16 Oct 2026, no longer updated; the current DMVKERM is on `GOODIES.IMG`) · letzter Stand der eigenen DMVKERM-Diskette (16.10.2026, wird nicht mehr gepflegt; das aktuelle DMVKERM steht auf `GOODIES.IMG`):
 
 | File | |
 |---|---|
 | `DMVKERM.COM` | Kermit and terminal for the DMV · Kermit und Terminal für die DMV |
 | `DMVKERM.TXT` | description (German) · Beschreibung |
 | `DMVKERM.INI` | sample start-up settings · Beispiel-Starteinstellungen |
-| `KERMIBM.EXE` | original MS-Kermit 3.14 (Columbia University) for IBM-compatible PCs · für IBM-kompatible PCs |
+| `KERMIBM.EXE` | original Kermit-MS 2.32/A (Columbia University) for IBM-compatible PCs · für IBM-kompatible PCs |
 | `KERMIT.LIC` | licenses · Lizenzen |

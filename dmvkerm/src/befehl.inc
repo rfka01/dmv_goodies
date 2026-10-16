@@ -97,6 +97,8 @@ set_tab	db	4,'PORT'
 	dw	s_port
 	db	5,'SPEED'
 	dw	s_speed
+	db	4,'BAUD'		; wie bei MS-Kermit: dasselbe wie SPEED
+	dw	s_speed
 	db	6,'PARITY'
 	dw	s_parity
 	db	4,'FLOW'
@@ -580,7 +582,7 @@ modname	endp
 hilfe	db	'Befehle (abkuerzbar):',cr,lf
 	db	'  CONNECT            Terminal (Ctrl-CLR: Befehl, C zurueck)',cr,lf
 	db	'  SET PORT n         serielles Modul n (1, 2, ...)',cr,lf
-	db	'  SET SPEED n        Baudrate (300 ... 19200)',cr,lf
+	db	'  SET SPEED n        Baudrate (300 ... 19200), auch SET BAUD n',cr,lf
 	db	'  SET PARITY p       NONE, EVEN, ODD, MARK, SPACE',cr,lf
 	db	'  SET FLOW f         NONE, XON/XOFF',cr,lf
 	db	'  SET XMODEM 1K|128  Blockgroesse beim Senden mit XMODEM',cr,lf
