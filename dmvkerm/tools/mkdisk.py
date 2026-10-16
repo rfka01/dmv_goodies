@@ -8,7 +8,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from fat12 import Fat12                                   # noqa: E402
 
 D = os.path.join(os.path.dirname(__file__), '..')
-DAT = (2026, 10, 16)
+import datetime                                           # noqa: E402
+from zoneinfo import ZoneInfo                             # noqa: E402
+
+# Datum und Uhrzeit des Baus (deutsche Zeit) als Stempel der Dateien
+JETZT = datetime.datetime.now(ZoneInfo('Europe/Berlin'))
+DAT = (JETZT.year, JETZT.month, JETZT.day)
+ZEIT = (JETZT.hour, JETZT.minute, JETZT.second)
 
 
 def txt(name):
@@ -28,7 +34,7 @@ def main(images):
     for n, d in ((b'DMVKERM COM', com()), (b'DMVKERM TXT', txt('DMVKERM.TXT'))):
         if g.find(n) is not None:
             g.delete(n)
-        g.add(n, d, DAT)
+        g.add(n, d, DAT, zeit=ZEIT)
     open(goodies, 'wb').write(g.image())
 
 

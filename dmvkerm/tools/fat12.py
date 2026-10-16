@@ -22,7 +22,7 @@ class Fat12:
         i=s.find(name); o=s.entry(i); c=struct.unpack('<H',s.d[o+26:o+28])[0]
         while 2<=c<0xff0: n=s.get(c); s.set(c,0); c=n
         s.d[o]=0xE5
-    def add(s,name,data,date=(1988,5,4),attr=0x20):
+    def add(s,name,data,date=(1988,5,4),attr=0x20,zeit=(0,0,0)):
         assert len(name)==11,('Dateiname muss 11 Zeichen haben',name)
         need=max(1,-(-len(data)//(s.spc*s.bps))); free=[c for c in range(2,s.ncl) if s.get(c)==0][:need]
         assert len(free)==need,'Diskette voll'
@@ -34,7 +34,7 @@ class Fat12:
             o=s.entry(i)
             if s.d[o] in (0,0xE5): break
         y,m,dd=date
-        s.d[o:o+32]=name+bytes([attr])+b'\0'*10+struct.pack('<HHHI',0,((y-1980)<<9)|(m<<5)|dd,free[0],len(data))
+        s.d[o:o+32]=name+bytes([attr])+b'\0'*10+struct.pack('<HHHI',(zeit[0]<<11)|(zeit[1]<<5)|(zeit[2]//2),((y-1980)<<9)|(m<<5)|dd,free[0],len(data))
     def image(s):
         for k in range(s.nf):
             o=(s.res+k*s.spf)*s.bps; s.d[o:o+len(s.fat)]=s.fat
