@@ -27,9 +27,9 @@ MRW	equ	6
 CRW	equ	7
 PIC0	equ	90h
 PIC1	equ	91h
-RXGR	equ	2048		; Empfangspuffer
-RXHOCH	equ	RXGR-256	; ab hier XOFF senden
-RXTIEF	equ	256		; ab hier wieder XON
+RXGR	equ	8192		; Empfangspuffer (Zweierpotenz)
+RXHOCH	equ	RXGR/2		; ab hier XOFF senden (viel Luft fuer Nachzuegler)
+RXTIEF	equ	RXGR/8		; ab hier wieder XON
 
 iforder	db	70h, 78h, 60h, 68h, 30h, 38h, 0B0h, 0B8h
 ifbase	db	4 dup (0)	; gefundene Module: Basis
@@ -636,7 +636,10 @@ rxl3:	cmp	ah,xon
 	mov	xoffemp,0
 	jmp	short rxl1
 rxl4:	cmp	rxanz,RXGR
-	jae	rxl1			; voll: verwerfen
+	jb	rxl4a
+	inc	rxverl			; voll: verwerfen und zaehlen
+	jmp	short rxl1
+rxl4a:
 	mov	bx,rxrein
 	mov	rxpuf[bx],al
 	inc	bx

@@ -1,5 +1,5 @@
-DMVKERM - Kermit und Terminal fuer die NCR Decision Mate V
-===========================================================
+DMVKERM 1.0 - Kermit und Terminal fuer die NCR Decision Mate V
+===============================================================
 
 DMVKERM ist ein kleines Kermit fuer die seriellen Module K211, K212,
 K213 (Signetics 2651) und K801 (2661). Es bietet ein Terminal mit einer

@@ -23,8 +23,8 @@ kgross	dw	0, 0		; Dateigroesse fuer die Prozente (0 = unbekannt)
 kplen	dw	0		; Laenge des letzten Datenpakets
 
 b_titel	dw	0
-b_tkerm	db	'DMVKERM 0.1  -  Dateiuebertragung mit Kermit',0
-b_txmod	db	'DMVKERM 0.1  -  Dateiuebertragung mit XMODEM',0
+b_tkerm	db	'DMVKERM 1.0  -  Dateiuebertragung mit Kermit',0
+b_txmod	db	'DMVKERM 1.0  -  Dateiuebertragung mit XMODEM',0
 b_masks	db	Z_DATEI,'               Datei:',0
 	db	Z_BYTES,'   Bytes uebertragen:',0
 	db	Z_PROZ,' Prozent uebertragen:',0

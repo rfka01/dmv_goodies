@@ -4,7 +4,7 @@
 
 ## English
 
-**DMVKERM** is a small Kermit for the **NCR Decision Mate V**: a terminal with a VT102 subset, and file transfer with Kermit (client and server) and XMODEM. It works with the serial modules **K211/K212/K213** (Signetics 2651) and **K801** (2661). It is written from scratch in assembler: one `.COM` file of about 22 KB that needs about 38 KB of memory when it runs. Commands are English, as in every Kermit. Messages are German.
+**DMVKERM 1.0** is a small Kermit for the **NCR Decision Mate V**: a terminal with a VT102 subset, and file transfer with Kermit (client and server) and XMODEM. It works with the serial modules **K211/K212/K213** (Signetics 2651) and **K801** (2661). It is written from scratch in assembler: one `.COM` file of about 22 KB that needs about 38 KB of memory when it runs. Commands are English, as in every Kermit. Messages are German.
 
 - Runs under NCR MS-DOS 2.11 and under the DMV ports of MS-DOS 3.30 and DR-DOS 3.41, with an 8088/V20 card (K230, K231, K235).
 - **Terminal**: `CONNECT`. Supports cursor movement, erase, insert/delete line and character, scrolling region, save/restore cursor, attributes (inverse, half intensity for bold/underline, blink), DEC line graphics (shown as `+ - |`), application cursor keys, and the DA/DSR reports. **CTRL-CLR** is the escape key: then `C` returns, `B` sends a break, `H` hangs up. To dial a Hayes modem, type `ATDT…` in CONNECT.
@@ -23,7 +23,7 @@ Tested in MAME: DMV with K211 and K235 under MS-DOS 3.30 at 9600 baud against an
 
 ## Deutsch
 
-**DMVKERM** ist ein kleines Kermit für die **NCR Decision Mate V**: ein Terminal mit einer VT102-Teilmenge und Dateiübertragung mit Kermit (Client und Server) und XMODEM. Es arbeitet mit den seriellen Modulen **K211/K212/K213** (Signetics 2651) und **K801** (2661). Es ist von Grund auf neu in Assembler geschrieben: eine `.COM`-Datei mit rund 22 KB, die beim Lauf rund 38 KB Speicher braucht. Die Befehle sind englisch, wie bei jedem Kermit. Die Meldungen sind deutsch.
+**DMVKERM 1.0** ist ein kleines Kermit für die **NCR Decision Mate V**: ein Terminal mit einer VT102-Teilmenge und Dateiübertragung mit Kermit (Client und Server) und XMODEM. Es arbeitet mit den seriellen Modulen **K211/K212/K213** (Signetics 2651) und **K801** (2661). Es ist von Grund auf neu in Assembler geschrieben: eine `.COM`-Datei mit rund 22 KB, die beim Lauf rund 38 KB Speicher braucht. Die Befehle sind englisch, wie bei jedem Kermit. Die Meldungen sind deutsch.
 
 - Läuft unter NCR MS-DOS 2.11 und unter den DMV-Ports von MS-DOS 3.30 und DR-DOS 3.41, mit 8088/V20-Karte (K230, K231, K235).
 - **Terminal**: `CONNECT`. Versteht Cursorbewegung, Löschen, Zeilen und Zeichen einfügen/löschen, Rollbereich, Cursor sichern und wiederherstellen, Attribute (invers, halbhell für fett/unterstrichen, blinkend), DEC-Liniengrafik (als `+ - |`), Anwendungsmodus der Cursortasten sowie die Abfragen DA/DSR. **CTRL-CLR** ist die Fluchttaste: danach `C` zurück, `B` Break, `H` auflegen. Ein Hayes-Modem wählt man in CONNECT mit `ATDT…`.
