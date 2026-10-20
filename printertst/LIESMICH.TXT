@@ -1,0 +1,68 @@
+DMV Druckertest-Diskette (Stand 20.10.2026)
+==========================================
+
+Alle Dateien mit COPY /B an den Drucker schicken (das /B ist wichtig:
+die Grafikdateien enthalten das Byte 1Ah, das COPY sonst als
+Dateiende wertet), z.B.:
+
+    COPY /B BILD.PRN LPT1:
+
+Datei          Drucker                     Inhalt
+------------   -------------------------   -------------------------------
+BILD.PRN       alle                        ASCII-Bild (reiner Text)
+ZEILEN.PRN     alle                        100 nummerierte Zeilen und FF:
+                                           Seitenwechsel, Einzelblaetter,
+                                           Tabellierpapier
+FX80FONT.PRN   Epson FX-80 (LX-810L)       Schriften und Attribute,
+                                           ESC !, Laenderzeichensaetze,
+                                           Kursivzeichensatz A0h-FEh
+JX80FONT.PRN   Epson JX-80                 wie FX-80, dazu 7 Farben
+LX800FNT.PRN   Epson LX-800                wie FX-80, dazu NLQ
+                                           (das ROM ist eine russische
+                                           Variante: A0h-FEh kyrillisch)
+EX800FNT.PRN   Epson EX-800                wie FX-80, dazu NLQ Roman und
+                                           NLQ Sans Serif (ESC k)
+NL10FONT.PRN   Star NL-10 (IBM-Kassette)   Schriften, NLQ, IBM-Zeichensatz 2
+MD16FONT.PRN   Nixdorf MD 16 (Epson-Mode)  Schriften, NLQ Roman/Script,
+                                           Laenderzeichensaetze
+GRAFIK.PRN     alle ausser NL-10 IBM       Bitgrafik ESC L 120 dpi
+               (FX-80, JX-80, MD 16,       (Apfelmaennchen, Fehlerdiffusion),
+               LX-800, EX-800, LX-810L)    Graukeil, Liniengrafik ESC K
+JX80GRAF.PRN   Epson JX-80                 Farbgrafik: Apfelmaennchen in den
+                                           Farbbandfarben, Farbbalken
+MX80.PRN       Epson MX-80 (alle ROMs)     Grundbefehlssatz: SI, SO, ESC E/G,
+                                           ESC 0/1/2/A, Zeichensatz, Lineal
+                                           (Schriftart gilt je ganze Zeile)
+MX80GTRX.PRN   Epson MX-80 Graftrax        Bitgrafik ESC L/K (Zeilenabstand
+                                           ESC A 8), Bidirektional-Test,
+                                           ESC A n, ESC R, ESC 4 Kursiv
+                                           (die vorliegenden ROMs kennen
+                                           weder ESC 3 noch ESC 4)
+MX80DP.PRN     Epson MX-80 Dots Perfect    Attribute in der Zeile, Unter-
+                                           streichen, Kursiv, ESC W, Hoch-/
+                                           Tiefstellung, Bitgrafik; NLQ
+                                           mit DIP-Schalter SW2-2 ON
+PRNTEST.BAT    alle                        druckt BILD.PRN und GRAFIK.PRN
+
+MAME-Optionen, parallel (Beispiel K210 in Slot 5):
+    -slot5 k210 -slot5:k210:centronics ex800 -printout druck.pdf
+    (fx80, jx80, nl10, md16, lx800, ex800, lx810l, mx80, mx80dp)
+
+EX-800 seriell (Beispiel K801 in Slot 6, IFSEL 2B):
+    -slot6 k801 -slot6:k801:rs232 ex800 -printout druck.pdf
+    Der Drucker steht dann ab Werk auf 9600 Baud, 8 Bit, keine Paritaet,
+    1 Stoppbit; er bremst den Rechner ueber DSR/CTS und XON/XOFF.
+
+Papier: Im Menue Maschinen-Konfiguration, Geraet bitmap_printer:
+Format (Endlos 12"/11", A4, Letter), Tabellierpapier, Einzelblattzufuhr.
+Die Seitenlaenge der Druckerfirmware stellen die DIP-Schalter oder
+ESC C ein.
+
+Selbsttests: Eingabe "Power switch" des Druckers und die Einstellung
+"Keys held at power on" (MX-80: LINE FEED).
+
+MX-80: DIP-Schalter SW1-8 auf "Fixed low" lassen (Werkseinstellung),
+sonst wartet der Drucker auf /SLCT IN vom Rechner.
+
+Die PDF-Datei ist vollstaendig, wenn MAME beendet oder das Medium
+"printout" im Medien-Menue abgemeldet wird.

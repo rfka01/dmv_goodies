@@ -8,8 +8,9 @@ Programs for the **NCR Decision Mate V** (DMV) under MS-DOS · Programme für di
 | [`dmvdemo/`](dmvdemo/) | Graphics demo for the µPD7220 · Grafikdemo für den µPD7220 |
 | [`dmvrace/`](dmvrace/) | Processor race Z80 / 8088 / 8087 / 68008 · Prozessor-Rennen |
 | [`mousetst/`](mousetst/) | Graphical test for the K806 mouse adapter · Grafischer Test für den Maus-Adapter K806 |
+| [`printertst/`](printertst/) | Printer test files for the printers emulated in MAME (Epson MX-80, FX-80, JX-80, LX-800, EX-800, Star NL-10, Nixdorf MD 16) · Druckertestdateien für die in MAME emulierten Drucker |
 | [`dmvkerm/`](dmvkerm/) | small Kermit and terminal for the K211/K212/K801 serial modules · kleines Kermit und Terminal für die seriellen Module K211/K212/K801 |
-| [`Images/`](Images/) | `GOODIES.IMG`: 360 KB DMV disk with all programs, documentation and KITT.PIC · DMV-Diskette mit allen Programmen, Beschreibungen und KITT.PIC; `DMVKERM.IMG`: last separate DMVKERM disk with Kermit-MS 2.32 for IBM PCs · letzter Stand der DMVKERM-Diskette mit Kermit-MS 2.32 für IBM-PCs |
+| [`Images/`](Images/) | `GOODIES.IMG`: 360 KB DMV disk with all programs, documentation and KITT.PIC · DMV-Diskette mit allen Programmen, Beschreibungen und KITT.PIC; `DMVPRN.IMG`: printer test disk · Druckertest-Diskette; `DMVKERM.IMG`: last separate DMVKERM disk with Kermit-MS 2.32 for IBM PCs · letzter Stand der DMVKERM-Diskette mit Kermit-MS 2.32 für IBM-PCs |
 
 The directories hold the sources, the disk image holds the ready-to-run files. · In den Verzeichnissen liegen die Quellen, auf dem Diskettenabbild die fertigen Programme.
 

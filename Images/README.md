@@ -22,3 +22,14 @@ The `.TXT` files are the German descriptions (DOS text, CRLF). · Die `.TXT`-Dat
 | `DMVKERM.INI` | sample start-up settings · Beispiel-Starteinstellungen |
 | `KERMIBM.EXE` | original Kermit-MS 2.32/A (Columbia University) for IBM-compatible PCs · für IBM-kompatible PCs |
 | `KERMIT.LIC` | licenses · Lizenzen |
+
+`DMVPRN.IMG` – printer test disk (20 Oct 2026) with the test files from [`printertst/`](../printertst/) · Druckertest-Diskette mit den Testdateien aus `printertst/`:
+
+| File | |
+|---|---|
+| `BILD.PRN`, `ZEILEN.PRN`, `GRAFIK.PRN`, `PRNTEST.BAT` | all printers · alle Drucker |
+| `FX80FONT.PRN`, `JX80FONT.PRN`, `JX80GRAF.PRN` | Epson FX-80, JX-80 |
+| `LX800FNT.PRN`, `EX800FNT.PRN` | Epson LX-800, EX-800 |
+| `MX80.PRN`, `MX80GTRX.PRN`, `MX80DP.PRN` | Epson MX-80, Graftrax, Dots Perfect |
+| `NL10FONT.PRN`, `MD16FONT.PRN` | Star NL-10, Nixdorf MD 16 |
+| `LIESMICH.TXT` | description (German) · Beschreibung |
