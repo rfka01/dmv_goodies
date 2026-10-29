@@ -427,9 +427,11 @@ sh_2661	db	' (2661)$'
 sh_k211	db	'K211$'
 sh_k212	db	'K212$'
 sh_k801	db	'K801$'
+sh_k215	db	'K215$'
 sh_port	db	cr,lf,'Port:            $'
 sh_irq	db	', IRQ $'
 sh_poll	db	', abgefragt (kein IRQ)$'
+sh_puf	db	', 2 KB Puffer auf der Karte, abgefragt$'
 sh_ein	db	cr,lf,'Einstellungen:   $'
 sh_baud	db	' Baud, Paritaet $'
 sh_fl	db	cr,lf,'Flusssteuerung:  $'
@@ -479,6 +481,9 @@ bsh3:	cmp	poffen,0
 	dec	bl
 	xor	bh,bh
 	call	modname
+	mov	dx,offset sh_puf
+	cmp	partk,0
+	jne	bsh4
 	mov	dx,offset sh_poll
 	cmp	pirq,0FFh
 	je	bsh4
@@ -558,6 +563,9 @@ sh_log	db	cr,lf,'Mitschnitt:      $'
 modname	proc	near
 	push	ax
 	push	dx
+	mov	dx,offset sh_k215
+	cmp	ifart[bx],3
+	je	mn1
 	mov	dx,offset sh_k801
 	cmp	ifart[bx],2
 	je	mn1

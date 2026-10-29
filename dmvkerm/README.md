@@ -4,7 +4,7 @@
 
 ## English
 
-**DMVKERM 1.0** is a small Kermit for the **NCR Decision Mate V**: a terminal with a VT102 subset, and file transfer with Kermit (client and server) and XMODEM. It works with the serial modules **K211/K212/K213** (Signetics 2651) and **K801** (2661). It is written from scratch in assembler: one `.COM` file of about 22 KB that needs about 38 KB of memory when it runs. Commands are English, as in every Kermit. Messages are German.
+**DMVKERM 1.1** is a small Kermit for the **NCR Decision Mate V**: a terminal with a VT102 subset, and file transfer with Kermit (client and server) and XMODEM. It works with the serial modules **K211/K212/K213** (Signetics 2651), **K801** (2661) and **K215** (2651 behind an 8741 with a 2 KB buffer). It is written from scratch in assembler: one `.COM` file of about 22 KB that needs about 38 KB of memory when it runs. Commands are English, as in every Kermit. Messages are German.
 
 - Runs under NCR MS-DOS 2.11 and under the DMV ports of MS-DOS 3.30 and DR-DOS 3.41, with an 8088/V20 card (K230, K231, K235).
 - **Terminal**: `CONNECT`. Supports cursor movement, erase, insert/delete line and character, scrolling region, save/restore cursor, attributes (inverse, half intensity for bold/underline, blink), DEC line graphics (shown as `+ - |`), application cursor keys, and the DA/DSR reports. **CTRL-CLR** is the escape key: then `C` returns, `B` sends a break, `H` hangs up. To dial a Hayes modem, type `ATDT…` in CONNECT.
@@ -12,7 +12,7 @@
 - **XMODEM**: `XSEND`, `XRECEIVE`. Checksum or CRC, 128- and 1024-byte blocks (`SET XMODEM 1K|128`).
 - `SET PORT/SPEED/PARITY/FLOW`, `SHOW`, `HANGUP`, `STATISTICS`, `LOG SESSION`/`CLOSE`, `TRANSMIT`, `DIR`, `CD`, `DEL`, `TYPE`, `PUSH`, `RUN`, `TAKE`, and `DMVKERM.INI` at start-up.
 - **Scripts** for dialling a mailbox: `OUTPUT`, `INPUT`, `PAUSE`, `CLEAR`, `ECHO`, `IF SUCCESS|FAILURE`, `GOTO`, `STOP`.
-- Finds the serial modules and their interrupt by itself, like the large Kermit port did: the module's slot IRQ on the K235, or IRQ2 on a K211/K212 modified after NCR's handbook. Without an interrupt it polls.
+- Finds the serial modules and their interrupt by itself, like the large Kermit port did: the module's slot IRQ on the K235, or IRQ2 on a K211/K212 modified after NCR's handbook. Without an interrupt it polls. A K215 is recognised like NCR's diagnostic V1K215 does it, by the echo command of its 8741, and is always polled since it buffers 2 KB itself.
 - Screen output goes through the DOS console with only what all three DOS versions understand. The keyboard is read from the 8741 directly.
 
 `DMVKERM.COM` and `DMVKERM.TXT` are on `../Images/GOODIES.IMG`, which is rebuilt with every change. `../Images/DMVKERM.IMG` is the last separate DMVKERM disk (16 Oct 2026, no longer updated); it also holds the original **Kermit-MS 2.32/A** from Columbia University for IBM-compatible PCs (`KERMIBM.EXE`), for the other end of the cable.
@@ -23,7 +23,7 @@ Tested in MAME: DMV with K211 and K235 under MS-DOS 3.30 at 9600 baud against an
 
 ## Deutsch
 
-**DMVKERM 1.0** ist ein kleines Kermit für die **NCR Decision Mate V**: ein Terminal mit einer VT102-Teilmenge und Dateiübertragung mit Kermit (Client und Server) und XMODEM. Es arbeitet mit den seriellen Modulen **K211/K212/K213** (Signetics 2651) und **K801** (2661). Es ist von Grund auf neu in Assembler geschrieben: eine `.COM`-Datei mit rund 22 KB, die beim Lauf rund 38 KB Speicher braucht. Die Befehle sind englisch, wie bei jedem Kermit. Die Meldungen sind deutsch.
+**DMVKERM 1.1** ist ein kleines Kermit für die **NCR Decision Mate V**: ein Terminal mit einer VT102-Teilmenge und Dateiübertragung mit Kermit (Client und Server) und XMODEM. Es arbeitet mit den seriellen Modulen **K211/K212/K213** (Signetics 2651), **K801** (2661) und **K215** (2651 hinter einem 8741 mit 2 KB Puffer). Es ist von Grund auf neu in Assembler geschrieben: eine `.COM`-Datei mit rund 22 KB, die beim Lauf rund 38 KB Speicher braucht. Die Befehle sind englisch, wie bei jedem Kermit. Die Meldungen sind deutsch.
 
 - Läuft unter NCR MS-DOS 2.11 und unter den DMV-Ports von MS-DOS 3.30 und DR-DOS 3.41, mit 8088/V20-Karte (K230, K231, K235).
 - **Terminal**: `CONNECT`. Versteht Cursorbewegung, Löschen, Zeilen und Zeichen einfügen/löschen, Rollbereich, Cursor sichern und wiederherstellen, Attribute (invers, halbhell für fett/unterstrichen, blinkend), DEC-Liniengrafik (als `+ - |`), Anwendungsmodus der Cursortasten sowie die Abfragen DA/DSR. **CTRL-CLR** ist die Fluchttaste: danach `C` zurück, `B` Break, `H` auflegen. Ein Hayes-Modem wählt man in CONNECT mit `ATDT…`.
@@ -31,7 +31,7 @@ Tested in MAME: DMV with K211 and K235 under MS-DOS 3.30 at 9600 baud against an
 - **XMODEM**: `XSEND`, `XRECEIVE`. Prüfsumme oder CRC, Blöcke zu 128 und 1024 Byte (`SET XMODEM 1K|128`).
 - `SET PORT/SPEED/PARITY/FLOW`, `SHOW`, `HANGUP`, `STATISTICS`, `LOG SESSION`/`CLOSE`, `TRANSMIT`, `DIR`, `CD`, `DEL`, `TYPE`, `PUSH`, `RUN`, `TAKE` und `DMVKERM.INI` beim Start.
 - **Skripte** für die Einwahl in eine Mailbox: `OUTPUT`, `INPUT`, `PAUSE`, `CLEAR`, `ECHO`, `IF SUCCESS|FAILURE`, `GOTO`, `STOP`.
-- Findet die seriellen Module und ihren Interrupt selbst, wie schon der große Kermit-Port: den IRQ des Steckplatzes an der K235 oder IRQ2 bei einer K211/K212, die nach dem NCR-Handbuch geändert ist. Ohne Interrupt fragt es ab.
+- Findet die seriellen Module und ihren Interrupt selbst, wie schon der große Kermit-Port: den IRQ des Steckplatzes an der K235 oder IRQ2 bei einer K211/K212, die nach dem NCR-Handbuch geändert ist. Ohne Interrupt fragt es ab. Eine K215 erkennt es wie NCRs Diagnose V1K215 am Echo-Befehl ihres 8741; sie wird immer abgefragt, weil sie selbst 2 KB puffert.
 - Die Bildschirmausgabe läuft über die DOS-Konsole und benutzt nur, was alle drei DOS-Fassungen verstehen. Die Tastatur wird direkt am 8741 gelesen.
 
 `DMVKERM.COM` und `DMVKERM.TXT` stehen auf `../Images/GOODIES.IMG`, die bei jeder Änderung neu gebaut wird. `../Images/DMVKERM.IMG` ist der letzte Stand der eigenen DMVKERM-Diskette (16.10.2026, wird nicht mehr gepflegt); darauf liegt zusätzlich das originale **Kermit-MS 2.32/A** der Columbia University für IBM-kompatible PCs (`KERMIBM.EXE`), für die Gegenseite.

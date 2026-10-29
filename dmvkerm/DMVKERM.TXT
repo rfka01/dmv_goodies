@@ -1,8 +1,9 @@
-DMVKERM 1.0 - Kermit und Terminal fuer die NCR Decision Mate V
+DMVKERM 1.1 - Kermit und Terminal fuer die NCR Decision Mate V
 ===============================================================
 
 DMVKERM ist ein kleines Kermit fuer die seriellen Module K211, K212,
-K213 (Signetics 2651) und K801 (2661). Es bietet ein Terminal mit einer
+K213 (Signetics 2651), K801 (2661) und K215 (2651 mit 2 KB Puffer).
+Es bietet ein Terminal mit einer
 VT102-Teilmenge sowie Dateiuebertragung mit Kermit (auch als Server)
 und mit XMODEM, dazu Skripte fuer die Einwahl. DMVKERM.COM ist rund
 22 KB gross und belegt beim Lauf rund 38 KB Speicher.
@@ -21,7 +22,9 @@ Aufruf
 Beim Start sucht DMVKERM die seriellen Module (IFSEL 1A, 1B, 0A, 0B,
 2A, 2B, 3A, 3B; das erste gefundene ist PORT 1) und stellt PORT 1 ein.
 Mit K235 ermittelt es den Interrupt des Moduls und empfaengt per
-Interrupt, sonst fragt es ab. Danach liest es DMVKERM.INI aus dem
+Interrupt, sonst fragt es ab. Eine K215 erkennt es wie NCRs Diagnose
+V1K215 am Echo-Befehl ihres 8741; sie wird immer abgefragt, weil sie
+die Zeichen selbst puffert. Danach liest es DMVKERM.INI aus dem
 aktuellen Verzeichnis, wenn es diese Datei gibt.
 
 
@@ -82,7 +85,8 @@ Einstellungen
 
 Ohne Interrupt (K230/K231 oder Modul ohne IRQ-Leitung) haelt der 2651
 nur zwei Zeichen; beim Empfangen geht das bis etwa 2400 Baud sicher.
-Mit Interrupt sind 9600 Baud kein Problem.
+Mit Interrupt sind 9600 Baud kein Problem. Die K215 puffert 2 KB auf
+der Karte und kommt deshalb auch ohne Interrupt mit 19200 Baud aus.
 
 
 Dateiuebertragung mit Kermit
@@ -269,10 +273,20 @@ Technisches
   K801 auf der IRQ-Leitung des Steckplatzes (K235: IRQ 3, 4, 5 oder 7);
   eine nach Abschnitt 3.2 des NCR-RS-232-Handbuchs geaenderte Karte
   meldet nur RxRDY auf IRQ 2. DMVKERM findet beides selbst.
+- Bei der K215 spricht DMVKERM nicht mit dem 2651, sondern mit dem
+  8741 davor (x0 Daten, x1 Befehl/Status): 00h Befehlsregister, 01h
+  Moderegister, 03h Status, 08h naechstes Zeichen, 09h senden. Den
+  Kartenpuffer holt es laufend in seinen eigenen Puffer, denn die
+  Firmware ueberschreibt bei vollem Puffer das aelteste Zeichen.
+  Ein einzelnes Datenbyte ohne Befehl blockiert die Firmware, bis ein
+  Befehl kommt (etwa von einem Programm, das nach einem 2651 sucht);
+  DMVKERM schreibt seine Befehle darum auch dann, wenn IBF nicht frei
+  wird.
 
 In MAME getestet: DMV mit K211 und K235 unter MS-DOS 3.30, 9600 Baud,
 gegen einen IBM XT mit MS-Kermit 2.32 (SEND und GET). Dazu in einem
-Emulator-Pruefstand gegen C-Kermit und lrzsz.
+Emulator-Pruefstand gegen C-Kermit und lrzsz, dort auch mit einer
+K215, deren 8741 die Original-Firmware 32905 ausfuehrt.
 
 
 Lizenz

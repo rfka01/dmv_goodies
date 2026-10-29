@@ -61,7 +61,7 @@ start:	jmp	anfang
 	include	skript.inc
 
 ; ---------------------------------------------------------------------------
-titel	db	'DMVKERM 1.0 - Kermit fuer die NCR Decision Mate V',cr,lf
+titel	db	'DMVKERM 1.1 - Kermit fuer die NCR Decision Mate V',cr,lf
 	db	'HELP zeigt die Befehle, EXIT beendet.',cr,lf,'$'
 
 anfang:	cld

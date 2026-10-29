@@ -1,4 +1,5 @@
-; seri.inc - serielle Module der DMV: 2651 (K211/K212/K213), 2661 (K801)
+; seri.inc - serielle Module der DMV: 2651 (K211/K212/K213), 2661 (K801),
+;            K215 (2651 hinter einem 8741 mit 2 KB Empfangspuffer)
 ;
 ; Register relativ zur Basis der IFSEL-Haelfte (A2 ist die R/W-Leitung):
 ;	lesen:     +0 Daten  +1 Status  +2 Mode (MR1/MR2)  +3 Befehl
@@ -33,13 +34,14 @@ RXTIEF	equ	RXGR/8		; ab hier wieder XON
 
 iforder	db	70h, 78h, 60h, 68h, 30h, 38h, 0B0h, 0B8h
 ifbase	db	4 dup (0)	; gefundene Module: Basis
-ifart	db	4 dup (0)	;  1 = 2651, 2 = 2661
+ifart	db	4 dup (0)	;  1 = 2651, 2 = 2661, 3 = K215
 ifirq	db	4 dup (0FEh)	;  IRQ, FE = noch nicht gesucht, FF = keiner
 ifn	db	0
 
 portnr	db	0		; 1.. aktuelles Modul, 0 = keins
 pbase	dw	0
 pirq	db	0FFh
+partk	db	0		; 1 = aktuelles Modul ist eine K215
 pbefehl	db	26h		; Befehlsregister ohne TxEN: RTS, RxEN, DTR
 palt	db	0		; Befehlsregister vor uns (DOS-AUX)
 pmr1	db	4Eh		; MR1: asynchron 16x, 8 Bit, keine Paritaet, 1 Stopp
@@ -125,12 +127,16 @@ ifh9:	stc
 	ret
 ifhat	endp
 
-; Basis DX pruefen: AL = 1 fuer 2651, 2 fuer 2661, 0 fuer nichts
+; Basis DX pruefen: AL = 1 fuer 2651, 2 fuer 2661, 3 fuer K215, 0 fuer nichts
 ifeins	proc	near
 	push	bx
 	push	cx
 	push	dx
-	mov	bx,dx
+	call	ifk215			; zuerst die K215 (schreibt nur, wenn
+	jnc	ife0			;  der 8741 wie einer aussieht)
+	mov	al,3
+	jmp	ife9
+ife0:	mov	bx,dx
 	mov	cx,4
 	mov	ah,0FFh
 ife1:	in	al,dx
@@ -179,6 +185,160 @@ ife9:	pop	dx
 	ret
 ifeins	endp
 
+; K215 an Basis DX? Carry = ja. Vorgehen wie NCRs Diagnose V1K215:
+; Status des 8741 (x1, gespiegelt auf x3) hat die oberen vier Bits 0, und
+; der Echo-Befehl 0Bh gibt 55h und AAh zurueck. Auf einer K211 ist ein
+; OUT auf x0/x1 nur ein Lesezyklus des 2651. Nicht auf 30h (Maus K806,
+; auch ein 8741).
+ifk215	proc	near
+	push	ax
+	push	cx
+	push	dx
+	cmp	dl,30h
+	je	ifk_n
+	mov	pbase,dx
+	inc	dx			; x1 und x3: oberes Halbbyte 0 (F0/F1
+	in	al,dx			;  darf der 8741 dabei aendern)
+	test	al,0F0h
+	jnz	ifk_n
+	add	dx,2
+	in	al,dx
+	test	al,0F0h
+	jnz	ifk_n
+	test	al,01h			; liegt noch ein Byte bereit: abholen
+	jz	ifk1
+	sub	dx,3
+	in	al,dx
+ifk1:	mov	al,55h
+	call	kecho
+	jc	ifk_n
+	mov	al,0AAh
+	call	kecho
+	jc	ifk_n
+	pop	dx
+	pop	cx
+	pop	ax
+	stc
+	ret
+ifk_n:	pop	dx
+	pop	cx
+	pop	ax
+	clc
+	ret
+ifk215	endp
+
+; Echo AL ueber den 8741 an pbase; Carry, wenn es nicht zurueckkommt
+kecho	proc	near
+	push	bx
+	mov	bl,al
+	mov	al,0Bh
+	call	kcmd
+	jc	kec9
+	mov	al,bl
+	call	kdat
+	jc	kec9
+	call	kles
+	jc	kec9
+	cmp	al,bl
+	je	kec9			; gleich: Carry ist 0
+	stc
+kec9:	pop	bx
+	ret
+kecho	endp
+
+; --- K215: Zugriff auf den 8741 ---------------------------------------------
+; Status an x1: Bit 0 OBF (Byte zum Abholen), Bit 1 IBF (8741 hat das
+; letzte Byte noch nicht genommen). Alle mit Zeitgrenze, Carry bei Ablauf.
+kwarte	proc	near			; bis IBF = 0
+	push	cx
+	push	dx
+	mov	dx,pbase
+	inc	dx
+	xor	cx,cx
+kw1:	in	al,dx
+	test	al,02h
+	jz	kw9
+	loop	kw1
+	stc
+kw9:	pop	dx
+	pop	cx
+	ret
+kwarte	endp
+
+; Ein Befehl wird auch geschrieben, wenn IBF nicht frei wird: steckt ein
+; einzelnes Datenbyte ohne Befehl im 8741 (F1 = 0), liest die Firmware es
+; nie ab (Hauptschleife 03Dh), und nur ein Befehl loest die Sperre.
+kcmd	proc	near			; Befehl AL
+	push	dx
+	push	ax
+	call	kwarte
+	pop	ax
+	mov	dx,pbase
+	inc	dx
+	out	dx,al
+	clc
+	pop	dx
+	ret
+kcmd	endp
+
+kdat	proc	near			; Datenbyte AL
+	push	dx
+	push	ax
+	call	kwarte
+	pop	ax
+	jc	kda9
+	mov	dx,pbase
+	out	dx,al
+	clc
+kda9:	pop	dx
+	ret
+kdat	endp
+
+kles	proc	near			; Ergebnis -> AL
+	push	cx
+	push	dx
+	mov	dx,pbase
+	inc	dx
+	xor	cx,cx
+kl1:	in	al,dx
+	test	al,01h
+	jnz	kl2
+	loop	kl1
+	stc
+	jmp	short kl9
+kl2:	dec	dx
+	in	al,dx
+	clc
+kl9:	pop	dx
+	pop	cx
+	ret
+kles	endp
+
+kfrag	proc	near			; Befehl AL, Ergebnis -> AL
+	call	kcmd
+	jc	kfr9
+	call	kles
+kfr9:	ret
+kfrag	endp
+
+kbefr	proc	near			; Befehlsregister des 2651 := AL
+	push	ax
+	mov	al,00h
+	call	kcmd
+	pop	ax
+	jc	kbr9
+	call	kdat
+kbr9:	ret
+kbefr	endp
+
+kstat	proc	near			; Status -> AL (Bit 1: Puffer nicht leer)
+	mov	al,03h
+	call	kfrag
+	jnc	kst9
+	xor	al,al			; keine Antwort: nichts da, nicht bereit
+kst9:	ret
+kstat	endp
+
 ; --- Modul waehlen ----------------------------------------------------------
 ; AL = 1..ifn. Schliesst das alte, sucht beim ersten Mal den IRQ, oeffnet.
 ; Carry, wenn es das Modul nicht gibt.
@@ -199,7 +359,12 @@ portwahl proc	near
 	mov	al,ifbase[bx]
 	xor	ah,ah
 	mov	pbase,ax
-	mov	al,ifirq[bx]
+	mov	partk,0
+	cmp	ifart[bx],3		; K215: gepuffert, wird abgefragt
+	jne	pw1
+	mov	partk,1
+	mov	ifirq[bx],0FFh
+pw1:	mov	al,ifirq[bx]
 	cmp	al,0FEh
 	jne	pw2
 	call	irqsuche
@@ -444,7 +609,30 @@ serini	proc	near
 	push	cx
 	push	dx
 	push	es
-	mov	dx,pbase
+	cmp	partk,0
+	je	sin0
+	mov	al,04h			; K215: Befehlsregister merken (setzt
+	call	kfrag			;  auch den MR-Zeiger zurueck)
+	mov	palt,al
+	call	setmode
+	mov	rxrein,0
+	mov	rxraus,0
+	mov	rxanz,0
+	mov	xoffges,0
+	mov	xoffemp,0
+	mov	al,pbefehl		; Sender bleibt an: es gibt keinen IRQ
+	or	al,01h
+	call	kbefr
+	mov	cx,2100			; alten Inhalt des Kartenpuffers weg
+sin0k:	call	kstat
+	test	al,02h
+	jz	sin0e
+	mov	al,08h
+	call	kfrag
+	loop	sin0k
+sin0e:	mov	poffen,1
+	jmp	sin9
+sin0:	mov	dx,pbase
 	add	dx,CRR
 	in	al,dx			; setzt auch den MR-Zeiger zurueck
 	mov	palt,al
@@ -486,7 +674,7 @@ sin4:	mov	al,pbefehl
 	add	dx,CRW
 	out	dx,al
 	mov	poffen,1
-	pop	es
+sin9:	pop	es
 	pop	dx
 	pop	cx
 	pop	bx
@@ -498,7 +686,21 @@ serini	endp
 setmode	proc	near
 	push	ax
 	push	dx
-	mov	dx,pbase
+	cmp	partk,0
+	je	smo0
+	mov	al,04h			; K215: MR-Zeiger zuruecksetzen
+	call	kfrag
+	mov	al,01h			; MR1
+	call	kcmd
+	mov	al,pmr1
+	call	kdat
+	mov	al,01h			; MR2
+	call	kcmd
+	mov	al,pbaud
+	or	al,30h
+	call	kdat
+	jmp	short smo9
+smo0:	mov	dx,pbase
 	add	dx,CRR
 	in	al,dx
 	add	dx,MRW-CRR
@@ -507,7 +709,7 @@ setmode	proc	near
 	mov	al,pbaud
 	or	al,30h			; interne Takte
 	out	dx,al
-	pop	dx
+smo9:	pop	dx
 	pop	ax
 	ret
 setmode	endp
@@ -537,7 +739,20 @@ serrst	proc	near
 srs0:	push	ax
 	push	cx
 	push	dx
-	mov	dx,pbase
+	cmp	partk,0
+	je	srs0a
+	mov	cx,2000			; K215: Sender leer, dann altes
+srsk1:	call	kstat			;  Befehlsregister zurueck
+	test	al,04h
+	jnz	srsk2
+	mov	ax,1
+	call	wartems
+	loop	srsk1
+srsk2:	mov	al,palt
+	call	kbefr
+	mov	poffen,0
+	jmp	short srs9
+srs0a:	mov	dx,pbase
 	inc	dx
 	mov	cx,2000
 srs1:	in	al,dx			; Sender leer (TxEMT), hoechstens ~2 s
@@ -570,7 +785,7 @@ srs3:	mov	dx,pbase
 	mov	al,palt
 	out	dx,al
 	mov	poffen,0
-	pop	dx
+srs9:	pop	dx
 	pop	cx
 	pop	ax
 	ret
@@ -605,7 +820,24 @@ rxl0:	mov	inleer,1
 	push	ax
 	push	bx
 	push	dx
-rxl1:	cli
+rxl1:	cmp	partk,0
+	je	rxl1a
+	call	kstat			; K215: Puffer der Karte leeren
+	test	al,02h
+	jz	rxl8
+	mov	ah,al
+	mov	al,08h
+	call	kfrag
+	test	ah,10h			; Ueberlauf im 2651
+	jz	rxl2
+	push	ax
+	mov	al,pbefehl
+	or	al,11h			; Fehler loeschen, Sender bleibt an
+	call	kbefr
+	inc	rxverl
+	pop	ax
+	jmp	short rxl2
+rxl1a:	cli
 	mov	dx,pbase
 	inc	dx
 	in	al,dx
@@ -638,7 +870,7 @@ rxl3:	cmp	ah,xon
 rxl4:	cmp	rxanz,RXGR
 	jb	rxl4a
 	inc	rxverl			; voll: verwerfen und zaehlen
-	jmp	short rxl1
+	jmp	rxl1
 rxl4a:
 	mov	bx,rxrein
 	mov	rxpuf[bx],al
@@ -646,7 +878,7 @@ rxl4a:
 	and	bx,RXGR-1
 	mov	rxrein,bx
 	inc	rxanz
-	jmp	short rxl1
+	jmp	rxl1
 rxl8:	sti
 	cmp	pfluss,0		; Puffer fast voll: XOFF
 	je	rxl9
@@ -658,6 +890,8 @@ rxl8:	sti
 	mov	al,xoff
 	call	sputroh
 rxl9:	cli
+	cmp	partk,0			; K215: oben schon bis leer gelesen
+	jne	rxl9a
 	mov	dx,pbase
 	inc	dx
 	in	al,dx
@@ -738,7 +972,32 @@ sputroh	proc	near
 	push	ax
 	push	cx
 	push	dx
-	mov	ah,al
+	cmp	partk,0
+	je	spr0
+	mov	ah,al			; K215: auf TxRDY warten, dann Befehl 09h
+	mov	cx,20000
+sprk1:	call	kstat
+	test	al,01h
+	jnz	sprk2
+	loop	sprk1
+	jmp	short sprk8
+sprk2:	mov	al,09h
+	call	kcmd
+	jc	sprk8
+	mov	al,ah
+	call	kdat
+	jc	sprk8
+	pop	dx
+	pop	cx
+	pop	ax
+	clc
+	ret
+sprk8:	pop	dx
+	pop	cx
+	pop	ax
+	stc
+	ret
+spr0:	mov	ah,al
 	mov	dx,pbase
 	add	dx,CRW
 	mov	al,pbefehl
@@ -790,7 +1049,18 @@ sputroh	endp
 sbreak	proc	near
 	push	ax
 	push	dx
-	mov	dx,pbase
+	cmp	partk,0
+	je	sbr0
+	mov	al,pbefehl		; K215
+	or	al,09h
+	call	kbefr
+	mov	ax,250
+	call	wartems
+	mov	al,pbefehl
+	or	al,01h
+	call	kbefr
+	jmp	short sbr9
+sbr0:	mov	dx,pbase
 	add	dx,CRW
 	mov	al,pbefehl
 	or	al,09h
@@ -799,7 +1069,7 @@ sbreak	proc	near
 	call	wartems
 	mov	al,pbefehl
 	out	dx,al
-	pop	dx
+sbr9:	pop	dx
 	pop	ax
 	ret
 sbreak	endp
@@ -808,7 +1078,17 @@ sbreak	endp
 shangup	proc	near
 	push	ax
 	push	dx
-	mov	dx,pbase
+	cmp	partk,0
+	je	sha0
+	mov	al,05h			; K215: nur RxEN und TxEN
+	call	kbefr
+	mov	ax,1000
+	call	wartems
+	mov	al,pbefehl
+	or	al,01h
+	call	kbefr
+	jmp	short sha9
+sha0:	mov	dx,pbase
 	add	dx,CRW
 	mov	al,04h			; nur RxEN
 	out	dx,al
@@ -816,14 +1096,17 @@ shangup	proc	near
 	call	wartems
 	mov	al,pbefehl
 	out	dx,al
-	pop	dx
+sha9:	pop	dx
 	pop	ax
 	ret
 shangup	endp
 
 ; Status: AL = Statusregister
 sstatus	proc	near
-	push	dx
+	cmp	partk,0
+	je	sst0
+	jmp	kstat
+sst0:	push	dx
 	mov	dx,pbase
 	inc	dx
 	in	al,dx
