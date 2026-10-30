@@ -19,7 +19,7 @@ Status 0.1: checked in the PC simulation; the Z8000 kernel gives the same GDC li
 
 Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate V**, die ins Programm gebunden wird – wie NCRGRAF (CP/M-80, MS-BASIC) und TurboGraf (Turbo Pascal 3). Was es dort schon gibt, heißt und verhält sich wie dort; so laufen alte Programme mit wenig Aufwand weiter. Die erste Fassung ist K&R-C für **CP/M-8000** (Z8001-Karte K238) mit einem Kern in Z8000-Assembler und einer Simulation für den PC. CP/M-68K, MS-DOS und Turbo Pascal 3 folgen.
 
-**Stand 0.1** (29.10.2026): in der PC-Simulation geprüft; der Z8000-Kern erzeugt dieselben GDC-Listen wie die C-Fassung (im CP/M-8000-Emulator von tpaxia verglichen). In MAME noch nicht gelaufen. Erstes Programm darauf ist Mahjongg (rfka01/dmv_games).
+**Stand 0.1** (30.10.2026): in der PC-Simulation geprüft; der Z8000-Kern erzeugt dieselben GDC-Listen wie die C-Fassung (im CP/M-8000-Emulator von tpaxia verglichen). Mit Mahjongg (rfka01/dmv_games) in MAME getestet, direkt am 7220 und über BIOS 66/67.
 
 ![Figuren](screenshots/figuren.png)
 ![Text](screenshots/text.png)
@@ -155,7 +155,7 @@ Für Brettspiele und alles, wo sich Bilder überdecken: nichts flackert, und jed
 
 ### Hardware
 
-Tastatur und Ton (8741) und Maus (K806) laufen nur über den DMV-BIOS-Block; der 7220 gehört im Grafikbetrieb dem Programm (`docs/DMV-Schnittstellen.md`, Abschnitt 9, „Wem welche Hardware gehört“). Diese Fassung baut alles als GDC-Befehlsliste (Aufbau wie BIOS 66) und gibt sie unter CP/M-8000 selbst an den 7220 aus (`GDIR.8KN`: BDOS 62 holt den Systemmodus, vor jedem Byte wird gewartet, bis das FIFO nicht voll ist, wie im BIOS); `gdirekt(0)` schaltet auf BIOS 66/67 um. Gezeichnet wird wie in HOPPLERs `DMVGFX.INC` und DMVDEMOs `GDCLIB.INC`: Mischbetrieb, 40 Worte je Bildzeile, Bit 0 = linker Punkt, GD-Bit für alles, was senkrecht weiterschreitet, nach jedem CURS eine neue MASK, vor Wortfolgen FIGS mit DC = 0 (der 7220 schreibt das erste Wort nach WDAT DC+1-mal).
+Tastatur und Ton (8741) und Maus (K806) laufen nur über den DMV-BIOS-Block; der 7220 gehört im Grafikbetrieb dem Programm (`docs/DMV-Schnittstellen.md`, Abschnitt 9, „Wem welche Hardware gehört“). Diese Fassung baut alles als GDC-Befehlsliste (Aufbau wie BIOS 66) und gibt sie unter CP/M-8000 selbst an den 7220 aus (`GDIR.8KN`: BDOS 62 holt den Systemmodus, vor jedem Byte wird gewartet, bis das FIFO nicht voll ist, wie im BIOS); `gdirekt(0)` schaltet auf BIOS 66/67 um. Beide Wege sind mit Mahjongg in MAME getestet. Gezeichnet wird wie in HOPPLERs `DMVGFX.INC` und DMVDEMOs `GDCLIB.INC`: Mischbetrieb, 40 Worte je Bildzeile, Bit 0 = linker Punkt, GD-Bit für alles, was senkrecht weiterschreitet, nach jedem CURS eine neue MASK, vor Wortfolgen FIGS mit DC = 0 (der 7220 schreibt das erste Wort nach WDAT DC+1-mal).
 
 ### Lizenz
 
