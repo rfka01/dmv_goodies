@@ -10,6 +10,7 @@ Programs for the **NCR Decision Mate V** (DMV) under MS-DOS · Programme für di
 | [`mousetst/`](mousetst/) | Graphical test for the K806 mouse adapter · Grafischer Test für den Maus-Adapter K806 |
 | [`printertst/`](printertst/) | Printer test files for the printers emulated in MAME (Epson MX-80, FX-80, JX-80, LX-800, EX-800, Star NL-10, Nixdorf MD 16) · Druckertestdateien für die in MAME emulierten Drucker |
 | [`dmvkerm/`](dmvkerm/) | small Kermit and terminal for the K211/K212/K801/K215 serial modules · kleines Kermit und Terminal für die seriellen Module K211/K212/K801/K215 |
+| [`dmvgraf/`](dmvgraf/) | C graphics library in the style of NCRGRAF/TurboGraf for CP/M-8000 (K238), with PC simulation · C-Grafikbibliothek nach Art von NCRGRAF/TurboGraf für CP/M-8000 (K238), mit PC-Simulation |
 | [`Images/`](Images/) | `GOODIES.IMG`: 360 KB DMV disk with all programs, documentation and KITT.PIC · DMV-Diskette mit allen Programmen, Beschreibungen und KITT.PIC; `DMVPRN.IMG`: printer test disk · Druckertest-Diskette; `DMVKERM.IMG`: last separate DMVKERM disk with Kermit-MS 2.32 for IBM PCs · letzter Stand der DMVKERM-Diskette mit Kermit-MS 2.32 für IBM-PCs |
 
 The directories hold the sources, the disk image holds the ready-to-run files. · In den Verzeichnissen liegen die Quellen, auf dem Diskettenabbild die fertigen Programme.
@@ -26,6 +27,8 @@ The directories hold the sources, the disk image holds the ready-to-run files. �
 
 **DMVKERM** – a small Kermit for the DMV, written from scratch in assembler (one 22 KB `.COM` file): terminal with a VT102 subset, file transfer with Kermit (client and server, long packets, CRC) and XMODEM (CRC, 1K blocks), scripts for dialling a mailbox, over the K211/K212/K213 and K801 serial modules, under NCR MS-DOS 2.11 and the DMV ports of MS-DOS 3.30 and DR-DOS 3.41 (tested in MAME under 3.30 against MS-Kermit on an IBM XT). It finds the modules and their interrupt by itself; CTRL-CLR is the escape key. It is on `GOODIES.IMG`; the last separate disk `DMVKERM.IMG` also holds the original Kermit-MS 2.32 for IBM-compatible PCs for the other end of the cable.
 
+**DMVGRAF** – A C graphics library for the µPD7220 in the style of NCRGRAF and TurboGraf: points, lines, circles, arcs, boxes, text, patterns, images in several formats (also stored in the free segments of a K208), off-screen composition of overlapping images, a mouse pointer with saved background, mouse, keyboard and tone. First version for CP/M-8000 on the K238 (DMV BIOS block, GDC output straight to the 7220 from system mode); a PC simulation renders the screen to PPM files. Used by Mahjongg in [rfka01/dmv_games](https://github.com/rfka01/dmv_games).
+
 ## Deutsch
 
 **ECODRIVE** – Die Farbgrafikkarte hat 96 KB Bildspeicher in drei Ebenen; Textbetrieb und grüne Grafik nutzen nur die grüne. ECODRIVE legt in Rot und Blau ein Laufwerk mit 62 KB ab. Es lädt und entfernt sich als TSR, prüft jeden Sektor gegen eine Prüfsumme, fragt vor dem Start von Grafikprogrammen nach und sperrt das Laufwerk, wenn eines davon es beschädigt hat.
@@ -37,6 +40,8 @@ The directories hold the sources, the disk image holds the ready-to-run files. �
 **MOUSETST** – Ein Koordinatenkreuz mit dem Nullpunkt in der Bildmitte, auf dem die Position des Maus-Adapters K806 in alle Richtungen als Spur erscheint, mit Maßstäben von 1 bis 8 Zählschritten pro Bildpunkt und Begrenzung am Bildrand oder frei. Es findet den K806 auf jeder IFSEL-Adresse und zeigt sie an. Die von der NCR-Diagnose erwarteten Werte für 5 Zoll stehen in der Beschreibung.
 
 **DMVKERM** – ein kleines Kermit für die DMV, von Grund auf in Assembler geschrieben (eine `.COM`-Datei mit 22 KB): Terminal mit VT102-Teilmenge, Dateiübertragung mit Kermit (Client und Server, lange Pakete, CRC) und XMODEM (CRC, 1-KB-Blöcke), Skripte für die Einwahl in eine Mailbox, über die seriellen Module K211/K212/K213 und K801, unter NCR MS-DOS 2.11 und den DMV-Ports von MS-DOS 3.30 und DR-DOS 3.41 (in MAME unter 3.30 gegen MS-Kermit auf einem IBM XT getestet). Es findet die Module und ihren Interrupt selbst; CTRL-CLR ist die Fluchttaste. Es steht auf `GOODIES.IMG`; auf dem letzten Stand der eigenen Diskette `DMVKERM.IMG` liegt zusätzlich das originale Kermit-MS 2.32 für IBM-kompatible PCs für die Gegenseite.
+
+**DMVGRAF** – Eine C-Grafikbibliothek für den µPD7220 nach Art von NCRGRAF und TurboGraf: Punkte, Linien, Kreise, Bögen, Rechtecke, Text, Muster, Bilder in mehreren Formaten (auch in den freien Segmenten einer K208), Zusammensetzen überlappender Bilder abseits des Schirms, ein Mauszeiger mit gesichertem Hintergrund, Maus, Tastatur und Ton. Erste Fassung für CP/M-8000 auf der K238 (DMV-BIOS-Block, GDC-Ausgabe aus dem Systemmodus direkt an den 7220); eine PC-Simulation schreibt den Schirm als PPM-Datei. Mahjongg in [rfka01/dmv_games](https://github.com/rfka01/dmv_games) baut darauf.
 
 ## Requirements · Voraussetzungen
 

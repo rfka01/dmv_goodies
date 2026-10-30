@@ -1,0 +1,8 @@
+bild figuren.ppm
+taste x
+bild text.ppm
+taste x
+bild bilder.ppm
+maus 300 200 0
+taste 0x00
+taste 0x1B

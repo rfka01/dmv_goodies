@@ -1,0 +1,206 @@
+;* GZ8K.8KN - DMVGRAF fuer CP/M-8000: Kern in Z8000-Assembler
+;*
+;* Dasselbe wie GKERN.C (dort die Beschreibung), fuer nicht segmentierte
+;* C-Programme (zcc -m1): Parameter auf dem Stapel hinter der
+;* Ruecksprungadresse, Ergebnis in r7; r8-r14 bleiben erhalten.
+;*
+;* Vorsicht: TEST laesst P/V stehen; fuer "<= 0" daher CP (setzt V).
+;*
+;* Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT
+
+__text:	.sect
+
+	.global	_gkopi
+	.global	_gnull
+	.global	_gzeile
+	.global	_gnib
+
+;* gkopi(d, s, n)
+_gkopi:
+	ld	r7,6(r15)
+	cp	r7,#0
+	jr	le,GK9
+	ld	r5,2(r15)
+	ld	r6,4(r15)
+	ldirb	@r5,@r6,r7
+GK9:	clr	r7
+	ret
+
+;* gnull(d, n): erstes Byte 0, dann ueberlappend weiterkopieren
+_gnull:
+	ld	r7,4(r15)
+	cp	r7,#0
+	jr	le,GN9
+	ld	r5,2(r15)
+	clrb	@r5
+	dec	r7,#1
+	jr	z,GN9
+	ld	r6,r5
+	inc	r5,#1
+	ldirb	@r5,@r6,r7
+GN9:	clr	r7
+	ret
+
+;* gzeile(d, z, n, sh, cnt, ns, c01, c23, eb)
+;*   r8 d, r9 z, r10 n, r11 2n, r12 3n, r13 eb, r14 2eb, r3 sh,
+;*   rh4/rl4/rh5/rl5 Uebertraege Maske/Ebene 0/1/2, r6 ns, r7 cnt
+_gzeile:
+	dec	r15,#14
+	ldm	@r15,r8,#7
+	ld	r8,16(r15)
+	ld	r9,18(r15)
+	ld	r10,20(r15)
+	ld	r11,r10
+	add	r11,r10
+	ld	r12,r11
+	add	r12,r10
+	ld	r3,22(r15)
+	ld	r7,24(r15)
+	ld	r6,26(r15)
+	ld	r4,28(r15)
+	ld	r5,30(r15)
+	ld	r13,32(r15)
+	ld	r14,r13
+	add	r14,r13
+	cp	r7,#0
+	jr	le,GZ9
+	test	r3
+	jr	nz,GZ1
+;* ohne Versatz: Bytes mit Maske 0 auslassen
+GZ0:	ldb	rl0,@r9
+	testb	rl0
+	jr	z,GZ0N
+	ldb	rh0,rl0
+	comb	rh0
+	ldb	rl1,r9(r10)
+	andb	rl1,rl0
+	ldb	rl2,@r8
+	andb	rl2,rh0
+	orb	rl2,rl1
+	ldb	@r8,rl2
+	ldb	rl1,r9(r11)
+	andb	rl1,rl0
+	ldb	rl2,r8(r13)
+	andb	rl2,rh0
+	orb	rl2,rl1
+	ldb	r8(r13),rl2
+	ldb	rl1,r9(r12)
+	andb	rl1,rl0
+	ldb	rl2,r8(r14)
+	andb	rl2,rh0
+	orb	rl2,rl1
+	ldb	r8(r14),rl2
+GZ0N:	inc	r8,#1
+	inc	r9,#1
+	djnz	r7,GZ0
+	jr	GZ9
+;* mit Versatz
+GZ1:	clr	r1
+	cp	r6,#0
+	jr	le,GZ1A
+	ldb	rl1,@r9
+GZ1A:	sdl	r1,r3
+	orb	rl1,rh4
+	ldb	rh4,rh1
+	ldb	rl0,rl1
+	ldb	rh0,rl1
+	comb	rh0
+	clr	r1
+	cp	r6,#0
+	jr	le,GZ2A
+	ldb	rl1,r9(r10)
+GZ2A:	sdl	r1,r3
+	orb	rl1,rl4
+	ldb	rl4,rh1
+	andb	rl1,rl0
+	ldb	rl2,@r8
+	andb	rl2,rh0
+	orb	rl2,rl1
+	ldb	@r8,rl2
+	clr	r1
+	cp	r6,#0
+	jr	le,GZ3A
+	ldb	rl1,r9(r11)
+GZ3A:	sdl	r1,r3
+	orb	rl1,rh5
+	ldb	rh5,rh1
+	andb	rl1,rl0
+	ldb	rl2,r8(r13)
+	andb	rl2,rh0
+	orb	rl2,rl1
+	ldb	r8(r13),rl2
+	clr	r1
+	cp	r6,#0
+	jr	le,GZ4A
+	ldb	rl1,r9(r12)
+GZ4A:	sdl	r1,r3
+	orb	rl1,rl5
+	ldb	rl5,rh1
+	andb	rl1,rl0
+	ldb	rl2,r8(r14)
+	andb	rl2,rh0
+	orb	rl2,rl1
+	ldb	r8(r14),rl2
+	inc	r8,#1
+	inc	r9,#1
+	dec	r6,#1
+	djnz	r7,GZ1
+GZ9:	ldm	r8,@r15,#7
+	inc	r15,#14
+	clr	r7
+	ret
+
+;* gnib(z, q, tb, n): je vier Eingabebytes die Zweierfelder der Tafel in
+;* vier Bytes sammeln; Feld einodern und um 2 nach rechts drehen, nach
+;* vier Runden steht das erste Feld wieder in Bit 0/1.
+;*   r8 z, r9 q, r10 tb, r11 80, r12 160, r13 240, r7 n, r6 Runde,
+;*   rl3 Index (rh3 = 0), rl4/rh4/rl5 Ebene 0/1/2, rh5 sichtbar
+_gnib:
+	dec	r15,#14
+	ldm	@r15,r8,#7
+	ld	r8,16(r15)
+	ld	r9,18(r15)
+	ld	r10,20(r15)
+	ld	r7,22(r15)
+	ld	r11,#80
+	ld	r12,#160
+	ld	r13,#240
+	clr	r3
+	cp	r7,#0
+	jr	le,GB9
+GB1:	clr	r4
+	clr	r5
+	ld	r6,#4
+GB2:	ldb	rl3,@r9
+	inc	r9,#1
+	ldb	rl1,r10(r3)
+	ldb	rl2,rl1
+	andb	rl2,#3
+	orb	rl4,rl2
+	rrb	rl4,#2
+	rrb	rl1,#2
+	ldb	rl2,rl1
+	andb	rl2,#3
+	orb	rh4,rl2
+	rrb	rh4,#2
+	rrb	rl1,#2
+	ldb	rl2,rl1
+	andb	rl2,#3
+	orb	rl5,rl2
+	rrb	rl5,#2
+	rrb	rl1,#2
+	ldb	rl2,rl1
+	andb	rl2,#3
+	orb	rh5,rl2
+	rrb	rh5,#2
+	djnz	r6,GB2
+	ldb	@r8,rh5
+	ldb	r8(r11),rl4
+	ldb	r8(r12),rh4
+	ldb	r8(r13),rl5
+	inc	r8,#1
+	djnz	r7,GB1
+GB9:	ldm	r8,@r15,#7
+	inc	r15,#14
+	clr	r7
+	ret

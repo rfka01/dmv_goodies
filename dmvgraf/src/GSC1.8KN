@@ -1,0 +1,34 @@
+;* GSC1.8KN - DMVGRAF fuer CP/M-8000: Speicherkopie ueber System Call 1
+;*
+;*   long gsc1m(adr)            int adr: Adresse im eigenen Datenbereich
+;*                              -> segmentierte Adresse ("Map Address",
+;*                                 Bereich 0 = Daten des Aufrufers)
+;*   gsc1c(quelle, ziel, n)     long, long, int: n Byte kopieren (n > 0)
+;*
+;* System Call 1 ist DRs Speicherschnittstelle des BIOS (rr6 Quelle,
+;* rr4 Ziel, rr2 Laenge; rr2 = 0: Adresse umrechnen, r5 Bereich). Aufruf
+;* aus einem nicht segmentierten C-Programm, Parameter auf dem Stapel
+;* hinter der Ruecksprungadresse (2 Byte).
+;*
+;* Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT
+
+__text:	.sect
+
+	.global	_gsc1m
+	.global	_gsc1c
+
+_gsc1m:
+	ld	r7,2(r15)
+	clr	r6
+	clr	r5
+	subl	rr2,rr2
+	sc	#1
+	ret
+
+_gsc1c:
+	ldl	rr6,2(r15)
+	ldl	rr4,6(r15)
+	ld	r3,10(r15)
+	clr	r2
+	sc	#1
+	ret

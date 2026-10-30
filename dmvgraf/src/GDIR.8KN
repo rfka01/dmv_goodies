@@ -1,0 +1,108 @@
+;* GDIR.8KN - DMVGRAF fuer CP/M-8000 (K238): uPD7220 direkt ansprechen
+;*
+;*   gdirl(segw, liste)            GDC-Liste ausgeben (Aufbau wie BIOS 66:
+;*                                 n, Befehl, n-1 Parameter; n = 0 Ende)
+;*   gdirr(segw, liste, n, ziel)   Liste ausgeben, dann n Byte vom 7220
+;*                                 lesen (wie BIOS 67/2) -> 0 gut,
+;*                                 1 Zeitgrenze
+;*
+;* segw ist das Segmentwort des eigenen Datenbereichs (Segment in Bit
+;* 14-8, aus System Call 1 "Map Address"), liste und ziel Adressen darin.
+;* Der 7220 gehoert im Grafikbetrieb dem Programm (docs/DMV-
+;* Schnittstellen.md im Repo rfka01/dmv_os, Abschnitt 9, "Wem welche
+;* Hardware gehoert"); Ein- und Ausgabebefehle gehen nur im Systemmodus.
+;* Den holt BDOS 62 (Set Supervisor State): danach laeuft das Programm
+;* segmentiert im Systemmodus auf dem Systemstapel weiter. Hier werden
+;* darum keine Direktadressen und kein Stapel benutzt; zurueck in den nicht
+;* segmentierten Normalmodus geht es mit LDCTL FCW (Bit 15 und 14
+;* loeschen), wie SUPTEST in v015 gezeigt hat.
+;*
+;* Anschluesse wie im BIOS: A0h Status (lesen) und Parameter (schreiben),
+;* A1h Daten (lesen) und Befehl (schreiben). Vor jedem Byte warten, bis
+;* das FIFO nicht voll ist (Status Bit 1); beim Lesen auf "Daten bereit"
+;* (Bit 0), mit Zeitgrenze wie der BIOS.
+;*
+;* Aufruf aus zcc (nicht segmentiert): Argumente ab 2(r15), Ergebnis in
+;* r7, r8-r14 bleiben erhalten.
+;*
+;* Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT
+
+__text:	.sect
+
+	.global	_gdirl
+	.global	_gdirr
+
+_gdirl:
+	dec	r15,#8
+	ldm	@r15,r8,#4	; r8-r11 retten (Benutzerstapel)
+	ld	r8,10(r15)	; Segmentwort
+	ld	r9,12(r15)	; Liste
+	clr	r10		; nichts lesen
+	clr	r11
+	jr	GD0
+
+_gdirr:
+	dec	r15,#8
+	ldm	@r15,r8,#4
+	ld	r8,10(r15)
+	ld	r9,12(r15)
+	ld	r10,14(r15)	; Zahl der Bytes
+	ld	r11,16(r15)	; Ziel
+GD0:
+	ld	r5,#62		; BDOS 62: Set Supervisor State
+	clr	r6
+	clr	r7
+	sc	#2
+; segmentiert, Systemmodus: rr8 zeigt auf die Liste
+	ld	r2,#0A0h
+	ld	r3,#0A1h
+	clr	r7		; Ergebnis 0
+GL0:
+	ldb	rl0,@r8		; n
+	inc	r9,#1
+	testb	rl0
+	jr	z,GLE
+	clrb	rh0
+	ld	r4,r0
+	ldb	rl1,@r8		; Befehl
+	inc	r9,#1
+GW1:	inb	rl0,@r2
+	bitb	rl0,#1		; FIFO voll?
+	jr	nz,GW1
+	outb	@r3,rl1
+	dec	r4,#1
+	jr	z,GL0
+GL1:	ldb	rl1,@r8		; Parameter
+	inc	r9,#1
+GW2:	inb	rl0,@r2
+	bitb	rl0,#1
+	jr	nz,GW2
+	outb	@r2,rl1
+	djnz	r4,GL1
+	jr	GL0
+GLE:
+	test	r10
+	jr	z,GX
+	ld	r9,r11		; Ziel im selben Segment
+GR1:	ld	r6,#16
+GR2:	clr	r5
+GR3:	inb	rl0,@r2
+	bitb	rl0,#0		; Daten bereit?
+	jr	nz,GR4
+	djnz	r5,GR3
+	djnz	r6,GR2
+	ld	r7,#1		; Zeitgrenze
+	jr	GX
+GR4:	inb	rl1,@r3
+	ldb	@r8,rl1
+	inc	r9,#1
+	djnz	r10,GR1
+GX:
+	ldctl	r0,FCW
+	res	r0,#15		; nicht segmentiert
+	res	r0,#14		; Normalmodus
+	ldctl	FCW,r0
+; wieder nicht segmentiert, Normalmodus, Benutzerstapel
+	ldm	r8,@r15,#4
+	inc	r15,#8
+	ret
