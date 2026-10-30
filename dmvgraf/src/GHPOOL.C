@@ -4,7 +4,9 @@
  */
 #include "GINTERN.H"
 
-#define GBPOOL 16384
+#ifndef GBPOOL
+#define GBPOOL 16384   /* CP/M-68K: mit -DGBPOOL=61440 uebersetzen */
+#endif
 
 static char pool[GBPOOL];
 
@@ -19,21 +21,12 @@ int b;
         return (long)GBPOOL;
 }
 
-static int pkopi(d, s, n)
-register char *d, *s;
-register int n;
-{
-        while (n-- > 0)
-                *d++ = *s++;
-        return 0;
-}
-
 int ghsput(b, o, s, n)
 int b, n;
 UW o;
 char *s;
 {
-        return pkopi(&pool[o], s, n);
+        return gkopi(&pool[o], s, n);
 }
 
 int ghsget(d, b, o, n)
@@ -41,12 +34,12 @@ char *d;
 int b, n;
 UW o;
 {
-        return pkopi(d, &pool[o], n);
+        return gkopi(d, &pool[o], n);
 }
 
 int ghsmov(b, z, q, n)
 int b;
 UW z, q, n;
 {
-        return pkopi(&pool[z], &pool[q], (int)n);
+        return gkopi(&pool[z], &pool[q], (int)n);
 }

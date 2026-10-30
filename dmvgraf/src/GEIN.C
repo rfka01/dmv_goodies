@@ -109,11 +109,7 @@ int grnd()
 
         if (qstart())
                 return z & 0x7FFF;
-        n = 0;
-        while ((ghstat() & 0x20) && n < 20000)
-                n++;
-        while (!(ghstat() & 0x20) && n < 30000)
-                n++;
+        n = ghvzahl();
         z = M16(z * 31421 + n + 6927);
         if (qhw & GH_MAUS) {
                 blk[0] = 0;

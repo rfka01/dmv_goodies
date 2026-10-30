@@ -21,7 +21,7 @@
 #include <string.h>
 #include "GINTERN.H"
 
-static unsigned short vram[0x10000];
+static unsigned short vram[0x10000];  /* mono: nur A0-A13 (wie MAME) */
 static unsigned long ead;
 static unsigned mask = 1, pattern = 0xFFFF;
 static int modus, gchr, prot;
@@ -95,7 +95,7 @@ static unsigned musterp(int c)
 
 static void schreib(unsigned data, unsigned m)
 {
-        unsigned short *p = &vram[ead & 0xFFFF];
+        unsigned short *p = &vram[ead & (farbe ? 0xFFFF : 0x3FFF)];
         unsigned cur = *p;
 
         switch (modus & 3) {
@@ -278,10 +278,18 @@ static int befehl(int c, unsigned char *p, int n, unsigned char *lies,
                         }
                         figreset();
                 }
+        } else if (c == 0xE0) {
+                /* CURD: EAD in drei Bytes (wie MAME; der echte 7220
+                   schickt danach noch MASK) */
+                if (lies) {
+                        lies[(*nl)++] = ead & 0xFF;
+                        lies[(*nl)++] = (ead >> 8) & 0xFF;
+                        lies[(*nl)++] = (ead >> 16) & 0x03;
+                }
         } else if ((c & 0xE4) == 0xA0) {
                 /* RDAT: wie MAME genau DC Worte (der echte 7220: DC+1) */
                 for (k = 0; k < fdc && lies; k++) {
-                        unsigned w = vram[ead & 0xFFFF];
+                        unsigned w = vram[ead & (farbe ? 0xFFFF : 0x3FFF)];
                         lies[(*nl)++] = w & 0xFF;
                         lies[(*nl)++] = (w >> 8) & 0xFF;
                         ead += xdir[fdir] + (fdir == 0 || fdir == 1
@@ -327,6 +335,17 @@ char *l;
 }
 
 int ghdset(an) int an; { return -1; }
+
+int ghvzahl()
+{
+        int n = 0;
+
+        while ((ghstat() & 0x20) && n < 20000)
+                n++;
+        while (!(ghstat() & 0x20) && n < 30000)
+                n++;
+        return n;
+}
 
 int ghrdat(b)
 char *b;

@@ -6,7 +6,11 @@
 #ifdef HOST
 #define UW unsigned short
 #else
+#ifdef __GNUC__                 /* gcc fuer CP/M-68K: int hat 32 Bit */
+#define UW unsigned short
+#else
 #define UW unsigned
+#endif
 #endif
 #define M16(x) ((x) & 0xFFFF)
 
@@ -30,6 +34,7 @@ extern int ghrdat();    /* (char *block) Liste ausfuehren und lesen, BIOS 67/2 *
 extern int ghdset();    /* (an) 7220 direkt -> vorher, -1 nicht moeglich */
 extern int ghstat();    /* () GDC-Statusbyte */
 extern int ghvsyn();    /* () auf den naechsten Bildwechsel warten */
+extern int ghvzahl();   /* () Statusabfragen bis zum Bildwechsel (grnd) */
 extern int ghmaus();    /* (befehl, char *block) K806 wie BIOS 68 */
 extern int ghton();     /* (h, l) -> 0 gesendet, 1 besetzt */
 extern int ghtast();    /* () -> Taste oder 0 */

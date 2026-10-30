@@ -35,3 +35,13 @@ char *b;
                 p += (*p & 0xFF) + 1;
         return gdirr(dseg, b + 2, m, p + 1);
 }
+
+/* ohne BIOS-Block gibt es unter CP/M-8000 keinen Betrieb */
+int ghdhw() { return -1; }
+int ghdgrf(an) int an; { return 0; }
+int ghdst() { return 0; }
+int ghdvs() { return 0; }
+int ghdms(c, b) int c; char *b; { return 1; }
+int ghdton(h, l) int h, l; { return 1; }
+int ghdvz() { return 0; }
+int ghdbok() { return 1; }   /* CP/M-8000: BIOS prueft die Nummer */
