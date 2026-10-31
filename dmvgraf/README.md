@@ -4,7 +4,7 @@
 
 ## English
 
-A graphics, image, mouse and sound library for the **NCR Decision Mate V**, linked into the program like NCRGRAF (CP/M-80, MS-BASIC) and TurboGraf (Turbo Pascal 3). It uses the same names and parameters wherever NCRGRAF or TurboGraf already had a function, so old programs carry over. It is K&R C for **CP/M-8000** (K238 Z8001 card, with a Z8000 assembler kernel) and **CP/M-68K** (K234 68008 card, compiled with gcc, also on NCR's own CP/M-68K 1.2 without the DMV BIOS block), with a simulation for the PC. Versions for MS-DOS and Turbo Pascal 3 follow.
+A graphics, image, mouse and sound library for the **NCR Decision Mate V**, linked into the program like NCRGRAF (CP/M-80, MS-BASIC) and TurboGraf (Turbo Pascal 3). It uses the same names and parameters wherever NCRGRAF or TurboGraf already had a function, so old programs carry over. It is K&R C for **CP/M-8000** (K238 Z8001 card, with a Z8000 assembler kernel) **CP/M-68K** (K234 68008 card, compiled with gcc, also on NCR's own CP/M-68K 1.2 without the DMV BIOS block) and **MS-DOS** (8088/V20, compiled with gcc-ia16), with a simulation for the PC. Ready-made libraries for all three are in [`lib/`](lib/); [`EINBINDEN.md`](EINBINDEN.md) explains how to call them from C and assembler. A Turbo Pascal 3 version follows.
 
 - Lines, rectangles, filled boxes with 16 patterns, circles and arcs drawn by the µPD7220 itself, in eight colours and four drawing modes
 - Text with the 8 × 16 font from HOPPLER (with German umlauts), in eight directions, zoom 1–16
@@ -13,13 +13,13 @@ A graphics, image, mouse and sound library for the **NCR Decision Mate V**, link
 - Mouse pointer with saved background (`GZEIG`): moving it reads and writes only the small box around old and new position
 - Mouse (K806), keyboard, frame wait, tone via the keyboard 8741
 
-Status 0.2: CP/M-8000 tested in MAME with Mahjongg (rfka01/dmv_games). CP/M-68K in a test bench (`tools/pruef68.py`, 68000 in Unicorn): the same screens as the PC simulation, with and without the BIOS block, colour and mono; in MAME Mahjongg and MTEST start under both CP/M-68Ks, the mouse in Mahjongg is still to be confirmed.
+Status 0.2: CP/M-8000 tested in MAME with Mahjongg (rfka01/dmv_games). CP/M-68K in a test bench (`tools/pruef68.py`, 68000 in Unicorn): the same screens as the PC simulation, with and without the BIOS block, colour and mono; in MAME Mahjongg and MTEST start under both CP/M-68Ks, the mouse in Mahjongg is still to be confirmed. MS-DOS (new) so far only in its test bench (`tools/pruefdos.py`, 8086 in Unicorn): the same screens as the PC simulation, colour and mono.
 
 ## Deutsch
 
-Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate V**, die ins Programm gebunden wird – wie NCRGRAF (CP/M-80, MS-BASIC) und TurboGraf (Turbo Pascal 3). Was es dort schon gibt, heißt und verhält sich wie dort; so laufen alte Programme mit wenig Aufwand weiter. Sie ist K&R-C für **CP/M-8000** (Z8001-Karte K238, mit einem Kern in Z8000-Assembler) und **CP/M-68K** (68008-Karte K234, mit gcc übersetzt, auch auf NCRs eigenem CP/M-68K 1.2 ohne DMV-BIOS-Block), dazu eine Simulation für den PC. MS-DOS und Turbo Pascal 3 folgen.
+Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate V**, die ins Programm gebunden wird – wie NCRGRAF (CP/M-80, MS-BASIC) und TurboGraf (Turbo Pascal 3). Was es dort schon gibt, heißt und verhält sich wie dort; so laufen alte Programme mit wenig Aufwand weiter. Sie ist K&R-C für **CP/M-8000** (Z8001-Karte K238, mit einem Kern in Z8000-Assembler) **CP/M-68K** (68008-Karte K234, mit gcc übersetzt, auch auf NCRs eigenem CP/M-68K 1.2 ohne DMV-BIOS-Block) und **MS-DOS** (8088/V20, mit gcc-ia16 übersetzt), dazu eine Simulation für den PC. Fertig übersetzte Bibliotheken für alle drei liegen in [`lib/`](lib/); wie man sie aus C und Assembler aufruft, steht in [`EINBINDEN.md`](EINBINDEN.md). Turbo Pascal 3 folgt.
 
-**Stand 0.2** (30.10.2026): CP/M-8000 mit Mahjongg (rfka01/dmv_games) in MAME getestet, direkt am 7220 und über BIOS 66/67; der Z8000-Kern erzeugt dieselben GDC-Listen wie die C-Fassung. CP/M-68K im Prüfstand (`tools/pruef68.py`, 68000 in Unicorn): dieselben Bilder wie die PC-Simulation, mit und ohne BIOS-Block, Farbe und mono. In MAME starten Mahjongg und MTEST unter beiden CP/M-68K, MTEST erkennt die Maus; die Maus in Mahjongg ist noch zu bestätigen.
+**Stand 0.2** (30.10.2026): CP/M-8000 mit Mahjongg (rfka01/dmv_games) in MAME getestet, direkt am 7220 und über BIOS 66/67; der Z8000-Kern erzeugt dieselben GDC-Listen wie die C-Fassung. CP/M-68K im Prüfstand (`tools/pruef68.py`, 68000 in Unicorn): dieselben Bilder wie die PC-Simulation, mit und ohne BIOS-Block, Farbe und mono. In MAME starten Mahjongg und MTEST unter beiden CP/M-68K, MTEST erkennt die Maus; die Maus in Mahjongg ist noch zu bestätigen. MS-DOS (neu) bisher nur im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn): dieselben Bilder wie die PC-Simulation, Farbe und mono; MTEST erkennt Farbe und Maus.
 
 ![Figuren](screenshots/figuren.png)
 ![Text](screenshots/text.png)
@@ -40,6 +40,11 @@ Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate 
 - Auf die Anschlüsse geht DMVGRAF im Supervisorzustand (BDOS 62, `GSUP68.S`), weil nicht gemessen ist, ob die K234 sie im Benutzerzustand durchlässt.
 - Bildspeicher: `GHPOOL.C` mit `-DGBPOOL=61440` (60 KB im Programm).
 
+### Voraussetzungen unter MS-DOS
+
+- 8088/V20 der K230/K231/K235, DOS ab 2.11. Das Programm spricht 7220 (A0h–A2h), K806 (30h) und den Tastatur-8741 (40h/41h) selbst an, mit denselben Abläufen wie unter NCRs CP/M-68K; Grafik ein und aus wie NCRs GRAPH-Bibliothek unter DOS (danach löscht die Konsole mit ^Z den Schirm). Tastatur, Text und Dateien über INT 21h.
+- Speichermodell small (64 KB Code, 64 KB Daten und Stapel); Bilder in Speicherblöcken von DOS (INT 21h/48h, bis zu zwei zu 64 KB).
+
 ### Dateien
 
 | Datei | Inhalt |
@@ -56,18 +61,26 @@ Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate 
 | `src/GHDIR.C`, `src/GDIR.8KN` | CP/M-8000: GDC-Listen direkt an den 7220 (Systemmodus über BDOS 62, zurück mit `LDCTL FCW`) |
 | `src/GHD68K.C`, `src/GSUP68.S` | CP/M-68K: 7220 direkt, ohne BIOS-Block auch Grafikbetrieb, Farbe, K806 und Ton; Supervisorzustand über BDOS 62 |
 | `src/GCRT68.S`, `src/GARG68.C` | CP/M-68K: Startstück, BDOS-Aufruf, Kommandozeile, 32-Bit-Rechnen (statt libgcc, die 68020-Befehle enthält) |
+| `src/GHWDOS.C`, `src/GCRTDOS.S` | MS-DOS: Hardwareschicht (7220, K806, 8741 direkt, Tastatur/Text/Dateien über INT 21h, Bildspeicher von DOS); Startstück, Anschlüsse, Kopieren in fremde Segmente, GDC-Liste |
 | `src/GHDNUL.C` | andere Systeme: kein direkter Weg, alles über BIOS 66/67 |
 | `src/GHWSIM.C` | Hardwareschicht für die Simulation am PC |
 | `src/GINTERN.H`, `src/GFONT.H` | intern; Schrift aus HOPPLER (`tools/mkfont.py`) |
 | `test/GTEST.C` | Prüf- und Vorführprogramm (drei Bilder, danach Mauszeiger) |
 | `tools/bau68.py`, `tools/elf2cpm.py` | CP/M-68K: mit `m68k-linux-gnu-gcc` übersetzen, `.68K` erzeugen (`elf2cpm.py` aus rfka01/dmv_os, um `.rodata` erweitert) |
 | `tools/pruef68.py`, `tools/simlib.c` | Prüfstand für `.68K`-Programme (Unicorn, GDC-Nachbildung aus `GHWSIM.C`) |
+| `tools/baudos.py`, `tools/pruefdos.py` | MS-DOS: mit gcc-ia16 übersetzen und EXE schreiben; Prüfstand (8086 in Unicorn, nachgebildetes INT 21h) |
+| `lib/` | fertige Bibliotheken für MS-DOS, CP/M-68K und CP/M-8000 (`lib/README.md`) |
+| `EINBINDEN.md`, `beispiele/` | Aufruf aus C und Assembler je System, Aufrufkonventionen, was für andere Sprachen gilt; dasselbe kleine Programm in C, NASM, GNU as (68000) und asz8k |
 
 ### Übersetzen
 
 Unter CP/M-8000 mit DRs `zcc`, `asz8k` und `ld8k` (Quellen, `STARTUP.O` und `LIBCPM.A` auf einer Diskette): `SUBMIT GTEST` (`test/GTEST.SUB`) baut `GTEST.Z8K`. Ein eigenes Programm bindet `GRAF.O GBILD.O GEIN.O GHWCPM.O GHSEG.O GHDIR.O GDIR.O GSC1.O GZ8K.O` dazu; wer keine Bilder braucht, lässt `GBILD.O` weg, sofern er keine Bildfunktion aufruft.
 
 Unter CP/M-68K: am PC mit `gcc-m68k-linux-gnu` und `binutils-m68k-linux-gnu` `make GTEST.68K` (`make MTEST.68K` für den Maustest); ein eigenes Programm übersetzt `tools/bau68.py` (`GCRT68.S` zuerst, dann Programm, `GRAF.C GBILD.C GEIN.C GKERN.C GHWCPM.C GHD68K.C GHPOOL.C GSUP68.S GARG68.C`). Prüfstand: `make simlib.so`, dann `python3 tools/pruef68.py GTEST.68K test/GTEST.TXT [--block] [--mono]`.
+
+Unter MS-DOS: am PC mit gcc-ia16 (`ia16-elf-gcc` in `/opt/ia16/bin`, sonst `IA16=…`) `make GTEST.EXE` und `make MTEST.EXE`; ein eigenes Programm wie in `lib/README.md`. Prüfstand: `make simlib.so`, dann `python3 tools/pruefdos.py GTEST.EXE test/GTEST.TXT [--mono]`.
+
+Fertige Bibliotheken: `make lib` (MS-DOS und CP/M-68K), Gebrauch in `lib/README.md`.
 
 Simulation am PC: `make gtest`, dann `GSKRIPT=test/GTEST.TXT ./gtest`. Die Simulation führt die GDC-Listen so aus wie der µPD7220 im Mischbetrieb (nach MAMEs `upd7220.cpp`) und schreibt auf Befehl Bildschirmabzüge (PPM). Skriptzeilen: `maus x y knopf` (Bildzeilen von oben), `taste c` oder `taste 0xNN`, `bild datei.ppm`. Umgebung: `GMONO=1` monochrom, `GMAUS=0` ohne Maus, `GPROT=1` jeden GDC-Befehl melden, `GSUMME=1` Prüfsumme der Listen.
 

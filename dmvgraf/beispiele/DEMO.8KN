@@ -1,0 +1,24 @@
+;* DEMO.8KN - DMVGRAF aus asz8k (CP/M-8000): Linie von (100,50) nach (500,300)
+;* Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT
+__text:	.sect
+	.global	_main
+	.global	_ginit
+	.global	_gexit
+	.global	_gpoint
+	.global	_gline
+	.global	_gkey
+_main:	call	_ginit
+	push	@r15,#50	;* gpoint(100, 50): Argumente von rechts
+	push	@r15,#100
+	call	_gpoint
+	inc	r15,#4
+	push	@r15,#300	;* gline(500, 300)
+	push	@r15,#500
+	call	_gline
+	inc	r15,#4
+WARTE:	call	_gkey		;* auf eine Taste warten
+	test	r7
+	jr	z,WARTE
+	call	_gexit
+	clr	r7		;* main liefert 0
+	ret
