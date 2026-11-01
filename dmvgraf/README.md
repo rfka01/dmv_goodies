@@ -13,13 +13,13 @@ A graphics, image, mouse and sound library for the **NCR Decision Mate V**, link
 - Mouse pointer with saved background (`GZEIG`): moving it reads and writes only the small box around old and new position
 - Mouse (K806), keyboard, frame wait, tone via the keyboard 8741
 
-Status 0.2: CP/M-8000 tested in MAME with Mahjongg (rfka01/dmv_games). CP/M-68K in a test bench (`tools/pruef68.py`, 68000 in Unicorn): the same screens as the PC simulation, with and without the BIOS block, colour and mono; in MAME Mahjongg and MTEST start under both CP/M-68Ks, the mouse in Mahjongg is still to be confirmed. MS-DOS (new) so far only in its test bench (`tools/pruefdos.py`, 8086 in Unicorn): the same screens as the PC simulation, colour and mono.
+Status 0.2: CP/M-8000 tested in MAME with Mahjongg (rfka01/dmv_games). CP/M-68K in a test bench (`tools/pruef68.py`, 68000 in Unicorn): the same screens as the PC simulation, with and without the BIOS block, colour and mono; Mahjongg tested in MAME under our CP/M-68K 1.3 v005 and NCR's 1.2. MS-DOS: the same screens as the PC simulation in its test bench (`tools/pruefdos.py`, 8086 in Unicorn), Mahjongg tested in MAME under MS-DOS 3.30.
 
 ## Deutsch
 
 Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate V**, die ins Programm gebunden wird – wie NCRGRAF (CP/M-80, MS-BASIC) und TurboGraf (Turbo Pascal 3). Was es dort schon gibt, heißt und verhält sich wie dort; so laufen alte Programme mit wenig Aufwand weiter. Sie ist K&R-C für **CP/M-8000** (Z8001-Karte K238, mit einem Kern in Z8000-Assembler) **CP/M-68K** (68008-Karte K234, mit gcc übersetzt, auch auf NCRs eigenem CP/M-68K 1.2 ohne DMV-BIOS-Block) und **MS-DOS** (8088/V20, mit gcc-ia16 übersetzt), dazu eine Simulation für den PC. Fertig übersetzte Bibliotheken für alle drei liegen in [`lib/`](lib/); wie man sie aus C und Assembler aufruft, steht in [`EINBINDEN.md`](EINBINDEN.md). Turbo Pascal 3 folgt.
 
-**Stand 0.2** (30.10.2026): CP/M-8000 mit Mahjongg (rfka01/dmv_games) in MAME getestet, direkt am 7220 und über BIOS 66/67; der Z8000-Kern erzeugt dieselben GDC-Listen wie die C-Fassung. CP/M-68K im Prüfstand (`tools/pruef68.py`, 68000 in Unicorn): dieselben Bilder wie die PC-Simulation, mit und ohne BIOS-Block, Farbe und mono. In MAME starten Mahjongg und MTEST unter beiden CP/M-68K, MTEST erkennt die Maus; die Maus in Mahjongg ist noch zu bestätigen. MS-DOS (neu) bisher nur im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn): dieselben Bilder wie die PC-Simulation, Farbe und mono; MTEST erkennt Farbe und Maus.
+**Stand 0.2** (1.11.2026): CP/M-8000 mit Mahjongg (rfka01/dmv_games) in MAME getestet, direkt am 7220 und über BIOS 66/67; der Z8000-Kern erzeugt dieselben GDC-Listen wie die C-Fassung. CP/M-68K im Prüfstand (`tools/pruef68.py`, 68000 in Unicorn): dieselben Bilder wie die PC-Simulation, mit und ohne BIOS-Block, Farbe und mono. Mahjongg in MAME getestet unter unserem CP/M-68K 1.3 v005 und unter NCRs 1.2. MS-DOS im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn) wie die PC-Simulation, Mahjongg in MAME unter MS-DOS 3.30 getestet.
 
 ![Figuren](screenshots/figuren.png)
 ![Text](screenshots/text.png)
@@ -178,7 +178,7 @@ Für Brettspiele und alles, wo sich Bilder überdecken: nichts flackert, und jed
 - **`gprint`** (p, l): Bildschirm drucken wie NCRGRAF, mit den Druckerarten von DMVSNAP (0 Epson FX, 1 IBM Proprinter, 2 HP PCL).
 - **Synthesizer:** `synavl`, `synon`, `synoff`, `synfrq`, `syninc`, `synnoi`, `synclk` (Namen wie `DMVSYN.INC` aus DMVTRAK). Die Synthesizer-Firmware für den Tastatur-8741 (`dmv_mb_8741_32678_synth.bin`, rfka01/dmv_firmware) ist **keine NCR-Firmware, sondern ein Eigenbau** auf Grundlage des Original-ROM 32678, und sie ist **optional**: in MAME eine eigene BIOS-Auswahl, auf einer echten DMV ein neu gebranntes 8741. DMVGRAF erkennt sie und fällt ohne sie auf `ton` zurück. Unter CP/M laufen die Aufrufe über BIOS 73.
 - **Covox** am Druckerausgang K210: `smplay`, `smstop` (unter MS-DOS mit K235 im Hintergrund, unter CP/M-8000 nur blockierend).
-- Fassungen für CP/M-68K, MS-DOS und Turbo Pascal 3.
+- Fassung für Turbo Pascal 3 (Include-Datei wie `DMVGFX.INC`) und ein Weg für die Microsoft-Werkzeuge (siehe `EINBINDEN.md`).
 
 ### Hardware
 

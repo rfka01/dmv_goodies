@@ -35,8 +35,8 @@ Der Bildspeicher ist ein Feld von 60 KB im Programm (`GHPOOL.C` mit `GBPOOL=6144
 
 ## Stand
 
-- MS-DOS: neu, bisher nur im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn): GTEST zeigt in Farbe und mono dieselben Bilder wie die PC-Simulation, MTEST erkennt Farbe und Maus. Noch nicht in MAME.
-- CP/M-68K: im Prüfstand wie die PC-Simulation; in MAME starten Mahjongg und MTEST.
+- MS-DOS: im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn) wie die PC-Simulation; Mahjongg in MAME unter MS-DOS 3.30 getestet.
+- CP/M-68K: im Prüfstand wie die PC-Simulation; Mahjongg in MAME unter unserem CP/M-68K 1.3 v005 und NCRs 1.2 getestet.
 - CP/M-8000: mit Mahjongg in MAME getestet.
 
 Neu bauen: `make lib` (DOS und CP/M-68K); das CP/M-8000-Archiv mit `ar8k rv dmvgraf.a graf.o gbild.o gein.o ghwcpm.o ghseg.o ghdir.o gdir.o gsc1.o gz8k.o`.
@@ -49,7 +49,7 @@ DMVGRAF 0.2, compiled for linking into your own programs. The interface is `src/
 - `cpm68k/` – CP/M-68K on the K234, with or without the DMV BIOS block: `GCRT68.O` and `DMVGRAF.A`, for `m68k-linux-gnu-gcc`. Link with `tools/bau68.py -I src -o PROG.68K lib/cpm68k/GCRT68.O prog.c lib/cpm68k/DMVGRAF.A`. Image store: a 60 KB array in the program (compile `src/GHPOOL.C` yourself for another size and put it before the archive).
 - `cpm8000/` – CP/M-8000 on the K238: `DMVGRAF.A` for DR's `ld8k`: `ld8k -w -s -o prog.z8k startup.o prog.o dmvgraf.a -lcpm`. DR's `STARTUP.O` and `LIBCPM.A` are not included; a program linked this way contains DR's C runtime.
 
-Status: MS-DOS is new and has only run in the test bench (`tools/pruefdos.py`): GTEST gives the same screens as the PC simulation in colour and mono, MTEST detects colour and mouse; not yet in MAME. CP/M-68K matches the PC simulation in its test bench and starts in MAME. CP/M-8000 is tested in MAME with Mahjongg.
+Status: MS-DOS and CP/M-68K match the PC simulation in their test benches; Mahjongg is tested in MAME under MS-DOS 3.30, our CP/M-68K 1.3 v005 and NCR's CP/M-68K 1.2. CP/M-8000 is tested in MAME with Mahjongg.
 
 Rebuild with `make lib` (DOS and CP/M-68K).
 
