@@ -34,21 +34,30 @@ a = ap.parse_args()
 mu = Uc(UC_ARCH_X86, UC_MODE_16)
 mu.mem_map(0, 0x100000)
 d = open(a.prog, 'rb').read()
-(mag, cblp, cp, crlc, cpar, mina, maxa, ss, sp, cs_, ip, cs, lfa, ov) = \
-    struct.unpack('<2sHHHHHHHHHHHHH', d[:28])
-assert mag == b'MZ' and crlc == 0
-gr = (cp - 1) * 512 + (cblp or 512) if cp else len(d)
-bild = d[cpar * 16:gr]
 PSP = 0x0FF0
 LAD = PSP + 0x10
-mu.mem_write(LAD * 16, bild)
+COM = d[:2] != b'MZ'
+if COM:         # .COM (etwa Turbo Pascal 3): alles in einem Segment ab 100h
+    mu.mem_write(PSP * 16 + 0x100, d)
+    bild = b'\0' * 0x10000; mina = 0
+    ss, sp, cs, ip = -0x10, 0xFFFE, -0x10, 0x100
+else:
+    (mag, cblp, cp, crlc, cpar, mina, maxa, ss, sp, cs_, ip, cs, lfa, ov) = \
+        struct.unpack('<2sHHHHHHHHHHHHH', d[:28])
+    assert crlc == 0
+    gr = (cp - 1) * 512 + (cblp or 512) if cp else len(d)
+    bild = d[cpar * 16:gr]
+    mu.mem_write(LAD * 16, bild)
 tail = (' ' + a.arg.upper()) if a.arg else ''
 psp = bytearray(0x100)
 psp[0:2] = b'\xcd\x20'
+struct.pack_into('<H', psp, 2, 0x9FFF)          # Ende des Speichers
 psp[0x80] = len(tail); psp[0x81:0x81 + len(tail)] = tail.encode()
 psp[0x81 + len(tail)] = 13
 mu.mem_write(PSP * 16, bytes(psp))
 frei = LAD + len(bild) // 16 + mina + 1
+if COM:         # DOS gibt einer .COM-Datei allen Speicher, bis sie ihn mit 4Ah kuerzt
+    frei = 0xA000
 mu.reg_write(UC_X86_REG_CS, LAD + cs); mu.reg_write(UC_X86_REG_IP, ip)
 mu.reg_write(UC_X86_REG_SS, LAD + ss); mu.reg_write(UC_X86_REG_SP, sp)
 mu.reg_write(UC_X86_REG_DS, PSP); mu.reg_write(UC_X86_REG_ES, PSP)
@@ -136,6 +145,8 @@ def stop():
 def lin(seg, off): return (seg << 4) + off
 
 def intr(uc, no, ud):
+    if no == 0x20:
+        stop(); return
     if no != 0x21:
         print('INT %02Xh bei %04X:%04X' % (no, R(UC_X86_REG_CS), R(UC_X86_REG_IP)))
         stop(); return
@@ -146,6 +157,33 @@ def intr(uc, no, ud):
         stop(); return
     elif ah == 0x02:
         out.append(chr(dx & 0xFF))
+    elif ah == 0x06 and dx & 0xFF != 0xFF:
+        out.append(chr(dx & 0xFF))
+    elif ah == 0x09:
+        q = lin(ds, dx)
+        while mu.mem_read(q, 1)[0] != 0x24:
+            out.append(chr(mu.mem_read(q, 1)[0])); q += 1
+    elif ah == 0x40 and bx in (1, 2):
+        out.append(bytes(mu.mem_read(lin(ds, dx), cx)).decode('latin-1')); W(UC_X86_REG_AX, cx)
+    elif ah == 0x0B:
+        W(UC_X86_REG_AX, ax & 0xFF00)
+    elif ah == 0x4A:            # Block des Programms kuerzen oder verlaengern
+        if R(UC_X86_REG_ES) == PSP and PSP + bx <= 0xA000:
+            st['frei'] = PSP + bx
+        else:
+            W(UC_X86_REG_AX, 8); W(UC_X86_REG_BX, 0xA000 - PSP); flag(0, 1)
+    elif ah in (0x25, 0x1A):
+        pass
+    elif ah == 0x35:
+        W(UC_X86_REG_BX, 0); mu.reg_write(UC_X86_REG_ES, 0)
+    elif ah == 0x30:
+        W(UC_X86_REG_AX, 0x1E03)
+    elif ah == 0x19:
+        W(UC_X86_REG_AX, ax & 0xFF00)
+    elif ah == 0x44:
+        W(UC_X86_REG_DX, 0x80 if bx < 3 else 0)
+    elif ah == 0x00:
+        stop(); return
     elif ah == 0x06 and dx & 0xFF == 0xFF:
         st['n2'] += 1
         if st['n2'] > a.max:
@@ -166,10 +204,10 @@ def intr(uc, no, ud):
         if bx in dateien:
             dateien.pop(bx).close()
     elif ah == 0x48:
-        if st['bl'] < a.speicher and bx <= 0x1000:
-            W(UC_X86_REG_AX, st['frei']); st['frei'] += 0x1000; st['bl'] += 1
+        if st['bl'] < a.speicher and st['frei'] + bx <= 0xA000:
+            W(UC_X86_REG_AX, st['frei']); st['frei'] += bx; st['bl'] += 1
         else:
-            W(UC_X86_REG_AX, 8); W(UC_X86_REG_BX, 0); flag(0, 1)
+            W(UC_X86_REG_AX, 8); W(UC_X86_REG_BX, max(0, 0xA000 - st['frei'])); flag(0, 1)
     else:
         print('INT 21h AH=%02Xh nicht nachgebildet' % ah)
         stop()

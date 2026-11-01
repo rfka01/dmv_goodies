@@ -12,7 +12,7 @@ DMVGRAF ist in C geschrieben und liegt für drei Systeme fertig übersetzt in [`
 | Assembler | GNU as (ia16), NASM (`-f elf32`) | GNU as (m68k) | DRs `asz8k` |
 | Microsoft-Werkzeuge (MASM, MS-C, Turbo C, BASCOM) | nicht direkt (OMF), siehe unten | – | – |
 | DRs C für CP/M-68K (Alcyon) | – | nicht direkt (16-Bit-`int`), siehe unten | – |
-| Turbo Pascal 3 | nicht direkt, eigene Fassung geplant | – | – |
+| Turbo Pascal 3 | eigene Fassung in `pascal/` | – | – |
 
 Geprüft im Prüfstand: die Beispiele in C und Assembler unter MS-DOS (gcc-ia16, GNU as, NASM) und CP/M-68K (gcc, GNU as). `DEMO.8KN` für CP/M-8000 ist mit `asz8k` assembliert und mit `ld8k` gebunden, aber noch nicht gelaufen.
 
@@ -106,7 +106,7 @@ Namen mit Unterstrich, jeder fremde Name als `.global` angemeldet, Argumente als
 
 - **Microsoft-Werkzeuge unter DOS (MASM, MS-C, Turbo C, BASCOM, LINK):** Sie arbeiten mit OMF-Objekten; `lib/dos/DMVGRAF.A` ist ein ELF-Archiv für den Binder von gcc-ia16. Mit MASM geschriebene Teile lassen sich darum nicht dazubinden; NASM oder GNU as sind der Ersatz. Für eine OMF-Fassung müsste DMVGRAF mit einem Compiler übersetzt werden, der OMF schreibt (etwa OpenWatcom), und `GCRTDOS.S` müsste in dessen Konvention neu entstehen.
 - **DRs C-Compiler für CP/M-68K (Alcyon):** Dort hat `int` 16 Bit, die Bibliothek erwartet 32 Bit je Argument. Ein Alcyon-Programm müsste jeden Aufruf über eine kleine Assembler-Zwischenstufe führen, die die Worte zu Langworten erweitert. Einfacher ist es, das Programm mit gcc zu übersetzen.
-- **Turbo Pascal 3:** TP3 hat keinen Binder; `external` lädt nur eine Binärdatei an eine feste Stelle. Dafür ist eine eigene Pascal-Fassung von DMVGRAF geplant, als Include-Datei wie HOPPLERs `DMVGFX.INC`, mit denselben Namen.
+- **Turbo Pascal 3:** TP3 hat keinen Binder; `external` lädt nur eine Binärdatei an eine feste Stelle. Dafür gibt es eine eigene Pascal-Fassung von DMVGRAF als Include-Dateien mit denselben Namen, siehe [`pascal/README.md`](pascal/README.md) (MS-DOS und CP/M-80; unter CP/M-80 mit kleiner Bildfassung).
 - **Ein Weg für alle diese Sprachen** wäre ein residenter DMVGRAF-Treiber unter DOS, der über einen Software-Interrupt gerufen wird (wie NCRs GSX). Den gibt es noch nicht; sag Bescheid, wenn er gebraucht wird.
 
 ## English summary
@@ -116,7 +116,7 @@ DMVGRAF is written in C and ships ready-built in [`lib/`](lib/) for MS-DOS (gcc-
 - **Entry:** the start-up module calls `main(argc, argv)`; all functions return `int` (0 = good).
 - **Calling conventions:** MS-DOS: arguments on the stack, last first, 2 bytes each, caller pops, result in `AX`, `SI`/`DI`/`BP`/`DS`/`SS`/`ES` preserved, `DS = SS` required. CP/M-68K: 4 bytes per argument (32-bit `int`), result in `d0`, `d2`–`d7`/`a2`–`a6` preserved. CP/M-8000: names with a leading underscore, 2 bytes per argument from `2(r15)`, result in `r7`, `r8`–`r14` preserved.
 - **Assembler:** NASM with `-f elf32` and `cpu 8086` or GNU as under MS-DOS, GNU as under CP/M-68K, asz8k under CP/M-8000.
-- **Not directly:** Microsoft OMF tools (MASM, MS-C, Turbo C, BASCOM), DR's Alcyon C on CP/M-68K (16-bit `int`), and Turbo Pascal 3, which has no linker. A Pascal include version is planned.
+- **Not directly:** Microsoft OMF tools (MASM, MS-C, Turbo C, BASCOM), DR's Alcyon C on CP/M-68K (16-bit `int`), and Turbo Pascal 3, which has no linker – for TP3 there is a Pascal include version in `pascal/`.
 - **Tested:** the C and assembler examples ran in the test benches under MS-DOS and CP/M-68K; `DEMO.8KN` assembles and links under CP/M-8000 but has not been run.
 
 Code: Claude (Anthropic), idea and prompts: rfka01. Licence: MIT.
