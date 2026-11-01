@@ -1,16 +1,12 @@
 # Build the printer test files for the DMV test disk.
-#   BILD.PRN     ASCII picture, plain text (all printers)
+#   BILD.PRN     ASCII picture (printer.txt), plain text (all printers)
 #   ZEILEN.PRN   100 numbered lines (all printers)
-#   FX80FONT.PRN fonts and attributes, Epson FX-80
-#   JX80FONT.PRN fonts and attributes plus colours, Epson JX-80
-#   NL10FONT.PRN fonts and attributes, Star NL-10 with IBM interface cartridge
-#   MD16FONT.PRN fonts and attributes, Nixdorf MD 16
-#   GRAFIK.PRN   bit image graphics, ESC L 120 dpi (all 9-pin printers)
-#   JX80GRAF.PRN colour bit image graphics, Epson JX-80
-#   LX800FNT.PRN, EX800FNT.PRN fonts and attributes, Epson LX-800 / EX-800
-#   MX80.PRN     basic command set, Epson MX-80
-#   MX80GTRX.PRN graphics and extended commands, Epson MX-80 Graftrax
-#   MX80DP.PRN   attributes and graphics, Epson MX-80 with Dots Perfect
+#   GRAFIK.PRN   bit image graphics, ESC L 120 dpi (9-pin Epson compatibles)
+#   FARBE.PRN    colour text and bars, Epson ESC r (JX-80, EX-800, Citizen 200GX)
+#   FARBGRAF.PRN colour bit image graphics, Epson ESC r
+#   ....FONT.PRN fonts and attributes per printer (see LIESMICH.TXT)
+#   MX80*.PRN    Epson MX-80 with the original, Graftrax and Dots Perfect ROMs
+#   FX880*.PRN, AP32*.PRN  Epson FX-880, ActionPrinter 3250
 #
 # usage: python3 mkprn.py <output directory>
 import math, os, sys
@@ -42,13 +38,15 @@ def picture():
 SAMPLE = 'The quick brown fox jumps over the lazy dog 0123456789'
 
 
-def fonts_epson(title, colour=False, nlq=False, italic_set=True):
+def fonts_epson(title, colour=False, nlq=False, italic_set=True, elite=True, prop=True, master=True, intl=True):
     d = E + b'@'
     d += E + b'E' + t(title) + E + b'F' + b'\r\n\r\n'
     d += t('Pica 10 cpi:      ' + SAMPLE + '\r\n')
-    d += E + b'M' + t('Elite 12 cpi:     ' + SAMPLE + '\r\n') + E + b'P'
+    if elite:
+        d += E + b'M' + t('Elite 12 cpi:     ' + SAMPLE + '\r\n') + E + b'P'
     d += b'\x0f' + t('Condensed 17 cpi: ' + SAMPLE + ' ABCDEFGHIJKLMNOPQRSTUVWXYZ\r\n') + b'\x12'
-    d += E + b'p\x01' + t('Proportional:     Illinois Minimum Wilhelm mmm iii\r\n') + E + b'p\x00'
+    if prop:
+        d += E + b'p\x01' + t('Proportional:     Illinois Minimum Wilhelm mmm iii\r\n') + E + b'p\x00'
     if nlq:
         d += E + b'x\x01' + t('NLQ:              ' + SAMPLE + '\r\n') + E + b'x\x00'
     d += b'\r\n'
@@ -61,13 +59,14 @@ def fonts_epson(title, colour=False, nlq=False, italic_set=True):
     d += E + b'E' + E + b'4' + E + b'-\x01' + t('Bold italic underlined') + E + b'-\x00' + E + b'5' + E + b'F' + b'\r\n'
     d += b'\r\n'
     # Epson master select ESC ! n
-    for n, name in ((0x00, 'Pica'), (0x01, 'Elite'), (0x04, 'Condensed'), (0x08, 'Emphasized'),
+    for n, name in () if not master else ((0x00, 'Pica'), (0x01, 'Elite'), (0x04, 'Condensed'), (0x08, 'Emphasized'),
                     (0x10, 'Double strike'), (0x20, 'Double width'), (0x40, 'Italic'), (0x80, 'Underline'),
                     (0x38, 'Emph+DStrike+Wide')):
         d += E + b'!' + bytes([n]) + t('ESC ! %02Xh %s' % (n, name)) + E + b'!\x00' + b'\r\n'
-    d += b'\r\n'
+    if master:
+        d += b'\r\n'
     # international character sets ESC R n
-    for n, name in enumerate(('USA', 'France', 'Germany', 'England', 'Denmark', 'Sweden', 'Italy', 'Spain')):
+    for n, name in () if not intl else enumerate(('USA', 'France', 'Germany', 'England', 'Denmark', 'Sweden', 'Italy', 'Spain')):
         d += t('ESC R %d %-8s: ' % (n, name)) + E + b'R' + bytes([n]) + t('#$@[\\]^`{|}~') + E + b'R\x00' + b'\r\n'
     if italic_set:
         d += b'\r\n' + t('Italic character set (A0h-FEh):\r\n') + bytes(range(0xa0, 0xff)) + b'\r\n'
@@ -201,7 +200,7 @@ def graphics_page(title_cmds):
 
 
 def jx80_colour_page():
-    W, H = 900, 360
+    W, H = 900, 240
     maxit = 64
     # colour Mandelbrot: palette of the JX-80 ribbon colours, mixed on paper
     pal = [  # (red, blue, yellow, black) planes
@@ -230,8 +229,8 @@ def jx80_colour_page():
                 if n > 6 or ((i + j) & 1) == 0:
                     for k in range(3):
                         planes[k][j][i] = p[k]
-    d = E + b'@' + E + b'E' + t('Epson JX-80 colour graphics') + E + b'F' + b'\r\n'
-    d += t('ESC L 120 dpi, one pass per ribbon colour: yellow, red, blue, black\r\n\r\n')
+    d = E + b'@' + E + b'E' + t('Colour graphics (Epson ESC r)') + E + b'F' + b'\r\n'
+    d += t('ESC L 120 dpi, one pass per ribbon colour: yellow, magenta, cyan, black\r\n\r\n')
     d += E + b'3\x18'
     order = ((2, 4), (0, 1), (1, 2), (3, 0))     # (plane, ESC r colour)
     for y in range(0, H, 8):
@@ -243,7 +242,7 @@ def jx80_colour_page():
         d += b'\n'
     d += E + b'r\x00' + E + b'2' + b'\r\n'
     d += t('Colour bars:\r\n')
-    for n, name in enumerate(('Black', 'Red', 'Blue', 'Violet', 'Yellow', 'Orange', 'Green')):
+    for n, name in enumerate(('Black', 'Magenta', 'Cyan', 'Violet', 'Yellow', 'Orange', 'Green')):
         d += E + b'r' + bytes([n]) + E + b'L' + bytes([120, 0]) + b'\xff' * 120 + E + b'r\x00' + t(' ' + name + '  ')
         if n % 3 == 2:
             d += b'\r\n'
@@ -274,7 +273,7 @@ def zeilen():
 
 save('ZEILEN.PRN', zeilen())
 save('GRAFIK.PRN', graphics_page(E + b'E' + t('Graphics test page') + E + b'F' + b'\r\n'))
-save('JX80GRAF.PRN', jx80_colour_page())
+save('FARBGRAF.PRN', jx80_colour_page())
 
 
 # ---------------------------------------------------------------- Epson MX-80
@@ -370,3 +369,176 @@ def mx80_dots_perfect():
 save('MX80.PRN', mx80_base())
 save('MX80GTRX.PRN', mx80_graftrax())
 save('MX80DP.PRN', mx80_dots_perfect())
+
+
+# ---------------------------------------------------------------- Epson FX-880, Citizen 200GX
+
+def line_art(w, h, period):
+    art = [[0] * w for _ in range(h)]
+    for x in range(w):
+        art[0][x] = art[h - 1][x] = 1
+        for ph in (0.0, 2.1, 4.2):
+            art[int((h - 1) / 2 + (h / 2 - 3) * math.sin(x / period + ph))][x] = 1
+    for y in range(h):
+        art[y][0] = art[y][w - 1] = 1
+    return art
+
+
+def bands_star(bitmap, m):
+    # ESC * m n1 n2: 8-pin bit image in mode m
+    h, w = len(bitmap), len(bitmap[0])
+    d = b''
+    for y0 in range(0, h, 8):
+        cols = []
+        for x in range(w):
+            v = 0
+            for b in range(8):
+                y = y0 + b
+                if y < h and bitmap[y][x]:
+                    v |= 0x80 >> b
+            cols.append(v)
+        d += E + b'*' + bytes([m, w & 255, w >> 8]) + bytes(cols) + b'\r\n'
+    return d
+
+
+def bands_caret(bitmap, m):
+    # ESC ^ m n1 n2: 9-pin bit image, two bytes per column (second byte bit 7 = pin 9)
+    h, w = len(bitmap), len(bitmap[0])
+    d = b''
+    for y0 in range(0, h, 9):
+        cols = b''
+        for x in range(w):
+            v = 0
+            for b in range(9):
+                y = y0 + b
+                if y < h and bitmap[y][x]:
+                    v |= 0x100 >> b
+            cols += bytes([v >> 1, (v & 1) << 7])
+        d += E + b'^' + bytes([m, w & 255, w >> 8]) + cols + b'\r\n'
+    return d
+
+
+def fx880_graphics():
+    d = E + b'@' + E + b'E' + t('Epson FX-880: bit image modes') + E + b'F' + b'\r\n\r\n'
+    # one inch wide line art in every ESC * density; modes 2 and 3 print no adjacent dots
+    modes = ((0, 60, 'single density'), (1, 120, 'double density'), (2, 120, 'high speed double density'),
+             (3, 240, 'quadruple density'), (4, 80, 'CRT I'), (5, 72, 'plotter 1:1'), (6, 90, 'CRT II'))
+    for m, dpi, name in modes:
+        d += t('ESC * %d  %3d dpi  %s:' % (m, dpi, name)) + b'\r\n'
+        d += E + b'3\x18' + bands_star(line_art(2 * dpi, 16, dpi / 12.0), m) + E + b'2' + b'\r\n'
+    d += t('ESC ^ 0  60 dpi, 9 pins:') + b'\r\n' + E + b'3\x1b' + bands_caret(line_art(240, 18, 10.0), 0) + E + b'2' + b'\r\n'
+    d += t('ESC ^ 1 120 dpi, 9 pins:') + b'\r\n' + E + b'3\x1b' + bands_caret(line_art(480, 18, 20.0), 1) + E + b'2'
+    d += b'\r\n'
+    # dithered picture at 120 dpi
+    W, H = 720, 240
+    d += t('ESC * 1, Floyd-Steinberg dithered:\r\n') + E + b'3\x18' + bands(dither(mandel_gray(W, H))) + E + b'2'
+    d += b'\r\n' + t('Bidirectional alignment (bars must line up):\r\n')
+    for k in range(6):
+        d += t(('|' + ' ' * 9) * 7 + '|') + b'\r\n'
+    d += b'\x0c'
+    return d
+
+
+save('FX880FNT.PRN', fonts_epson('Epson FX-880: fonts and print attributes', nlq=True)[:-1]
+     + E + b'x\x01' + E + b'k\x00' + t('LQ Roman:         ' + SAMPLE + '\r\n')
+     + E + b'k\x01' + t('LQ Sans Serif:    ' + SAMPLE + '\r\n') + E + b'k\x00' + E + b'x\x00' + b'\x0c')
+save('FX880GRF.PRN', fx880_graphics())
+save('C200FNT.PRN', fonts_epson('Citizen 200GX: fonts and print attributes', nlq=True)[:-1]
+     + E + b'x\x01' + E + b'k\x00' + t('NLQ Roman:        ' + SAMPLE + '\r\n')
+     + E + b'k\x01' + t('NLQ Sans Serif:   ' + SAMPLE + '\r\n')
+     + E + b'k\x02' + t('NLQ Courier:      ' + SAMPLE + '\r\n') + E + b'k\x00' + E + b'x\x00' + b'\x0c')
+
+
+# ---------------------------------------------------------------- Epson ActionPrinter 3250 / LQ-100 (ESC/P 2)
+
+def bands24(bitmap, m):
+    # 24-pin bit image ESC * m, three bytes per column, 24/180" per band
+    h, w = len(bitmap), len(bitmap[0])
+    d = b''
+    for y0 in range(0, h, 24):
+        cols = bytearray()
+        for x in range(w):
+            v = 0
+            for k in range(24):
+                y = y0 + k
+                v = (v << 1) | (1 if y < h and bitmap[y][x] else 0)
+            cols += bytes([(v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff])
+        d += E + b'*' + bytes([m, w & 0xff, w >> 8]) + bytes(cols) + b'\r\n'
+    return d
+
+
+def ap3250_fonts():
+    d = E + b'@' + E + b'x\x01' + E + b'E' + t('Epson ActionPrinter 3250 (LQ-100): ESC/P 2 fonts') + E + b'F' + b'\r\n\r\n'
+    for n, name in ((0, 'Roman'), (1, 'Sans Serif'), (2, 'Courier'), (3, 'Prestige'), (4, 'Script')):
+        d += E + b'k' + bytes([n]) + t('ESC k %d %-11s ' % (n, name + ':') + SAMPLE + '\r\n')
+    d += E + b'k\x00' + E + b'x\x00' + t('Draft:              ' + SAMPLE + '\r\n')
+    d += b'\x0f' + t('Draft condensed:    ' + SAMPLE + ' ABCDEFGHIJKLMNOPQRSTUVWXYZ\r\n') + b'\x12' + E + b'x\x01'
+    d += E + b'M' + t('LQ Roman 12 cpi:    ' + SAMPLE + '\r\n') + E + b'P'
+    d += E + b'g' + t('LQ Roman 15 cpi:    ' + SAMPLE + '\r\n') + E + b'P'
+    d += E + b'p\x01' + t('Proportional:       Illinois Minimum Wilhelm mmm iii\r\n') + E + b'p\x00'
+    d += b'\r\n'
+    # ESC/P 2 scalable fonts: ESC X m nL nH, size in half points; ESC ( - for scoring
+    d += t('Scalable fonts (ESC X, 8 to 32 point):\r\n')
+    for face, name in ((0, 'Roman'), (1, 'Sans Serif')):
+        d += E + b'k' + bytes([face])
+        for pt in (8, 10, 12, 16, 20, 24, 32):
+            d += E + b'+' + bytes([pt * 6]) + E + b'X\x01' + bytes([pt * 2, 0]) + t('%s %d pt  ' % (name, pt)) + b'\r\n'
+        d += E + b'X\x00\x00\x00' + E + b'P' + E + b'2'
+    d += E + b'k\x00' + b'\r\n'
+    d += E + b'E' + t('Emphasized') + E + b'F' + t('  ') + E + b'G' + t('Double strike') + E + b'H' + t('  ')
+    d += E + b'-\x01' + t('Underlined') + E + b'-\x00' + t('  ') + E + b'4' + t('Italic') + E + b'5' + t('  ')
+    d += E + b'q\x01' + t('Outline') + E + b'q\x02' + t('  Shadow') + E + b'q\x00' + b'\r\n'
+    d += E + b'W\x01' + t('Double width') + E + b'W\x00' + t('  ') + E + b'w\x01' + t('Double height') + E + b'w\x00' + b'\r\n'
+    d += t('H') + E + b'S\x01' + t('2') + E + b'T' + t('O, x') + E + b'S\x00' + t('2') + E + b'T' + t('   Sub- and superscript\r\n')
+    d += b'\x0c'
+    return d
+
+
+def ap3250_graphics():
+    d = E + b'@' + E + b'E' + t('Epson ActionPrinter 3250 (LQ-100): 24-pin bit image modes') + E + b'F' + b'\r\n\r\n'
+    for m, dpi, name in ((32, 60, 'single density'), (33, 120, 'double density'), (38, 90, 'CRT III'),
+                         (39, 180, 'triple density'), (40, 360, 'hex density')):
+        d += t('ESC * %d  %3d dpi  %s:' % (m, dpi, name)) + b'\r\n'
+        d += E + b'3\x18' + bands24(line_art(2 * dpi, 24, dpi / 12.0), m) + E + b'2' + b'\r\n'
+    W, H = 1080, 360
+    d += t('ESC * 39, 180 dpi, Floyd-Steinberg dithered:\r\n') + E + b'3\x18' + bands24(dither(mandel_gray(W, H)), 39) + E + b'2'
+    d += b'\r\n' + t('Bidirectional alignment (bars must line up):\r\n')
+    for k in range(6):
+        d += t(('|' + ' ' * 9) * 7 + '|') + b'\r\n'
+    d += b'\x0c'
+    return d
+
+
+save('AP32FNT.PRN', ap3250_fonts())
+save('AP32GRF.PRN', ap3250_graphics())
+
+
+# ---------------------------------------------------------------- additions November 2026
+
+save('FX85FONT.PRN', fonts_epson('Epson FX-85: fonts and print attributes', nlq=True))
+save('LX86FONT.PRN', fonts_epson('Epson LX-86: fonts and print attributes', nlq=True))
+save('RX80FONT.PRN', fonts_epson('Epson RX-80: fonts and print attributes', elite=False, prop=False, master=False))
+save('BX80FONT.PRN', fonts_epson('BMC BX-80: fonts and print attributes', elite=False, prop=False, master=False, intl=False))
+save('GEM10FNT.PRN', fonts_epson('Star Gemini-10X: fonts and print attributes', italic_set=False, elite=False, prop=False, master=False, intl=False))
+
+
+def colour_text():
+    # Epson ESC r: 0 black, 1 magenta (red), 2 cyan (blue), 3 violet, 4 yellow, 5 orange, 6 green
+    d = E + b'@' + E + b'E' + t('Colour printing (Epson ESC r)') + E + b'F' + b'\r\n\r\n'
+    names = ('Black', 'Magenta (red)', 'Cyan (blue)', 'Violet', 'Yellow', 'Orange', 'Green')
+    for n, name in enumerate(names):
+        d += E + b'r' + bytes([n]) + t('ESC r %d  %-14s ' % (n, name))
+        d += E + b'E' + t(SAMPLE[:30]) + E + b'F' + b'\r\n'
+    d += E + b'r\x00' + b'\r\n'
+    # rainbow line: one word per colour
+    for n, word in enumerate(('BLACK ', 'MAGENTA ', 'CYAN ', 'VIOLET ', 'YELLOW ', 'ORANGE ', 'GREEN')):
+        d += E + b'r' + bytes([n]) + E + b'E' + t(word.strip()) + E + b'F' + t(' ')
+    d += E + b'r\x00' + b'\r\n\r\n'
+    # colour bars, bit image ESC L
+    for n, name in enumerate(names):
+        d += E + b'r' + bytes([n]) + E + b'L' + bytes([240, 0]) + b'\xff' * 240 + E + b'r\x00' + t('  ' + name) + b'\r\n'
+    d += E + b'r\x00' + b'\x0c'
+    return d
+
+
+save('FARBE.PRN', colour_text())

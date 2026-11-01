@@ -23,13 +23,14 @@ The `.TXT` files are the German descriptions (DOS text, CRLF). · Die `.TXT`-Dat
 | `KERMIBM.EXE` | original Kermit-MS 2.32/A (Columbia University) for IBM-compatible PCs · für IBM-kompatible PCs |
 | `KERMIT.LIC` | licenses · Lizenzen |
 
-`DMVPRN.IMG` – printer test disk (20 Oct 2026) with the test files from [`printertst/`](../printertst/) · Druckertest-Diskette mit den Testdateien aus `printertst/`:
+`DMVPRN.IMG` – printer test disk (1 Nov 2026), built with [`printertst/mkdisk.sh`](../printertst/); runs on the DMV (MS-DOS 2.11) and on IBM compatibles · Druckertest-Diskette, gebaut mit `printertst/mkdisk.sh`; läuft auf der DMV und auf IBM-kompatiblen Rechnern:
 
 | File | |
 |---|---|
-| `BILD.PRN`, `ZEILEN.PRN`, `GRAFIK.PRN`, `PRNTEST.BAT` | all printers · alle Drucker |
-| `FX80FONT.PRN`, `JX80FONT.PRN`, `JX80GRAF.PRN` | Epson FX-80, JX-80 |
-| `LX800FNT.PRN`, `EX800FNT.PRN` | Epson LX-800, EX-800 |
-| `MX80.PRN`, `MX80GTRX.PRN`, `MX80DP.PRN` | Epson MX-80, Graftrax, Dots Perfect |
-| `NL10FONT.PRN`, `MD16FONT.PRN` | Star NL-10, Nixdorf MD 16 |
+| `DRUCKER.BAT` | list of the printers · Liste der Drucker |
+| `<printer>.BAT` | test for one printer, `<printer> FARBE` for the colour test · Test für einen Drucker, mit `FARBE` der Farbtest (MX80, MX80GT, MX80DP, RX80, FX80, JX80, FX85, LX86, LX800, LX810L, EX800, FX880, AP3250, C200GX, BX80, GEM10X, NL10, MD16) |
+| `TEXT.BAT`, `PRNTEST.BAT` | all printers · alle Drucker |
+| `BILD.PRN`, `ZEILEN.PRN`, `GRAFIK.PRN` | all printers · alle Drucker |
+| `FARBE.PRN`, `FARBGRAF.PRN` | colour printers (Epson `ESC r`) · Farbdrucker |
+| `*FONT.PRN`, `*FNT.PRN`, `*GRF.PRN`, `MX80*.PRN` | per printer · je Drucker |
 | `LIESMICH.TXT` | description (German) · Beschreibung |

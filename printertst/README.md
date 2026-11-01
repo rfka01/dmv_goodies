@@ -4,40 +4,59 @@
 
 ## English
 
-Test files for the printers that the [rfka01/mame](https://github.com/rfka01/mame) fork emulates on the **NCR Decision Mate V** (K210 Centronics module, K801 serial module for the EX-800). The ready-made disk is [`Images/DMVPRN.IMG`](../Images/) (360 KB, MS-DOS). Send every file with `COPY /B` (the graphics files contain the byte 1Ah):
+Test files for the printers that the [rfka01/mame](https://github.com/rfka01/mame) fork emulates on the **NCR Decision Mate V** (K210 Centronics module, K801 serial module for the EX-800). The ready-made disk is [`Images/DMVPRN.IMG`](../Images/) (360 KB FAT12). It works under MS-DOS 2.11 on the DMV and under MS-DOS/PC-DOS on IBM compatibles.
 
-    COPY /B MX80.PRN LPT1:
+### Use
 
-| File | Printer | Contents |
+    DRUCKER          list of the printers
+    <printer>        black-and-white test, e.g.  FX85
+    <printer> FARBE  colour test on colour printers, e.g.  JX80 FARBE
+    TEXT             BILD.PRN and ZEILEN.PRN (all printers)
+    PRNTEST          short test BILD.PRN and GRAFIK.PRN (9-pin printers)
+
+The batch files send the files with `COPY /B` to `LPT1:` and use only what MS-DOS 2.x already knows. By hand (the `/B` matters, the graphics files contain the byte 1Ah):
+
+    COPY /B FX85FONT.PRN LPT1:
+
+| Batch file | Printer | Files |
 |---|---|---|
-| `BILD.PRN` | all | ASCII picture, plain text |
-| `ZEILEN.PRN` | all | 100 numbered lines and a form feed: page breaks, single sheets, green bar paper |
-| `FX80FONT.PRN` | Epson FX-80 (LX-810L) | fonts and attributes, ESC !, international sets, italic set A0h–FEh |
-| `JX80FONT.PRN` | Epson JX-80 | as FX-80, plus seven colours |
-| `LX800FNT.PRN` | Epson LX-800 | as FX-80, plus NLQ |
-| `EX800FNT.PRN` | Epson EX-800 | as FX-80, plus NLQ Roman and Sans Serif |
-| `NL10FONT.PRN` | Star NL-10 (IBM cartridge) | fonts, NLQ, IBM character set 2 |
-| `MD16FONT.PRN` | Nixdorf MD 16 (Epson mode) | fonts, NLQ Roman/Script |
-| `MX80.PRN` | Epson MX-80 (all ROM sets) | basic command set: SI, SO, ESC E/G, ESC 0/1/2/A, characters, ruler |
-| `MX80GTRX.PRN` | Epson MX-80 Graftrax | bit image ESC L/K, bidirectional alignment, ESC A n, ESC R, ESC 4 |
-| `MX80DP.PRN` | Epson MX-80 Dots Perfect | attributes within a line, underline, italics, ESC W, super/subscript, bit image |
-| `GRAFIK.PRN` | 9-pin Epson compatibles | bit image ESC L (dithered Mandelbrot), grey wedge, ESC K line art |
-| `JX80GRAF.PRN` | Epson JX-80 | colour bit image graphics, colour bars |
-| `PRNTEST.BAT` | all | prints `BILD.PRN` and `GRAFIK.PRN` |
-| `LIESMICH.TXT` | | description (German, DOS text) |
+| `MX80` | Epson MX-80 | `MX80.PRN` |
+| `MX80GT` | Epson MX-80 Graftrax | `MX80.PRN`, `MX80GTRX.PRN` |
+| `MX80DP` | Epson MX-80 Dots Perfect | `MX80DP.PRN` |
+| `RX80` | Epson RX-80 | `RX80FONT.PRN`, `GRAFIK.PRN` |
+| `FX80` | Epson FX-80 | `FX80FONT.PRN`, `GRAFIK.PRN` |
+| `JX80` | Epson JX-80 | `FX80FONT.PRN`, `GRAFIK.PRN`; colour: `JX80FONT.PRN`, `FARBE.PRN`, `FARBGRAF.PRN` |
+| `FX85` | Epson FX-85 | `FX85FONT.PRN`, `GRAFIK.PRN` |
+| `LX86` | Epson LX-86 | `LX86FONT.PRN`, `GRAFIK.PRN` |
+| `LX800` | Epson LX-800 | `LX800FNT.PRN`, `GRAFIK.PRN` |
+| `LX810L` | Epson LX-810L / ActionPrinter 2000 | `FX80FONT.PRN`, `GRAFIK.PRN` |
+| `EX800` | Epson EX-800 | `EX800FNT.PRN`, `GRAFIK.PRN`; colour (colour option): `FARBE.PRN`, `FARBGRAF.PRN` |
+| `FX880` | Epson FX-880 | `FX880FNT.PRN`, `FX880GRF.PRN` |
+| `AP3250` | Epson ActionPrinter 3250 (LQ-100) | `AP32FNT.PRN`, `AP32GRF.PRN` |
+| `C200GX` | Citizen 200GX | `C200FNT.PRN`, `GRAFIK.PRN`; colour (colour kit, DIP SW2-8): `FARBE.PRN`, `FARBGRAF.PRN` |
+| `BX80` | BMC BX-80 | `BX80FONT.PRN`, `GRAFIK.PRN` |
+| `GEM10X` | Star Gemini-10X | `GEM10FNT.PRN`, `GRAFIK.PRN` |
+| `NL10` | Star NL-10 (IBM cartridge) | `NL10FONT.PRN` |
+| `MD16` | Nixdorf MD 16 | `MD16FONT.PRN`, `GRAFIK.PRN` |
 
-The MX-80 "Graftrax" ROMs in MAME know neither ESC 3 nor ESC 4 and apply the print mode to a whole line, so `MX80GTRX.PRN` uses ESC A 8 for the graphics. On the Dots Perfect, NLQ is selected with DIP switch SW2-2.
+The font pages only use commands the printer knows: the RX-80 has no `ESC !`, Elite or proportional spacing, the BX-80 and the Gemini-10X neither `ESC M`, `ESC p` nor `ESC R` (on the Gemini `ESC M` sets the left margin). The colour files select the colours with `ESC r n` (0 black, 1 magenta, 2 cyan, 3 violet, 4 yellow, 5 orange, 6 green).
 
-`mkprn.py` builds the `.PRN` files (`python3 mkprn.py <directory>`), `mkimg.py` the FAT12 disk image (`python3 mkimg.py DMVPRN.IMG DMVPRNTEST <files>`), `printer.txt` is the picture for `BILD.PRN`.
+### Building the disk
+
+    ./mkdisk.sh
+
+builds `../Images/DMVPRN.IMG` from `mkprn.py` (the `.PRN` files; `printer.txt` is the picture for `BILD.PRN`), `mkbat.py` (the batch files) and `LIESMICH.TXT` (DOS text, CRLF); `mkimg.py` writes the FAT12 image.
 
 ## Deutsch
 
-Testdateien für die Drucker, die der Fork [rfka01/mame](https://github.com/rfka01/mame) an der **NCR Decision Mate V** emuliert (Centronics-Modul K210, für den EX-800 auch das serielle Modul K801). Die fertige Diskette ist [`Images/DMVPRN.IMG`](../Images/) (360 KB, MS-DOS). Alle Dateien mit `COPY /B` an den Drucker schicken (die Grafikdateien enthalten das Byte 1Ah):
+Testdateien für die Drucker, die der Fork [rfka01/mame](https://github.com/rfka01/mame) an der **NCR Decision Mate V** emuliert (Centronics-Modul K210, für den EX-800 auch das serielle Modul K801). Die fertige Diskette ist [`Images/DMVPRN.IMG`](../Images/) (360 KB, FAT12). Sie läuft unter MS-DOS 2.11 auf der DMV und unter MS-DOS/PC-DOS auf IBM-kompatiblen Rechnern.
 
-    COPY /B MX80.PRN LPT1:
+    DRUCKER          Liste der Drucker
+    <Drucker>        Test in Schwarzweiß, z. B.  FX85
+    <Drucker> FARBE  Farbtest bei Farbdruckern, z. B.  JX80 FARBE
+    TEXT             BILD.PRN und ZEILEN.PRN (alle Drucker)
+    PRNTEST          Kurztest BILD.PRN und GRAFIK.PRN (9-Nadel-Drucker)
 
-Die Tabelle oben gilt sinngemäß; `LIESMICH.TXT` auf der Diskette beschreibt alle Dateien und die MAME-Optionen.
+Die Batchdateien schicken die Dateien mit `COPY /B` an `LPT1:` und kommen mit MS-DOS 2.x aus. Farbe gibt es beim JX-80, beim EX-800 mit Farboption und beim Citizen 200GX mit Farbkit (DIP-Schalter SW2-8). Die Tabelle oben gilt sinngemäß; `LIESMICH.TXT` auf der Diskette beschreibt alle Dateien und die MAME-Optionen.
 
-Die MX-80-„Graftrax“-ROMs in MAME kennen weder ESC 3 noch ESC 4 und wenden die Druckart auf die ganze Zeile an; `MX80GTRX.PRN` nimmt für die Grafik deshalb ESC A 8. Beim Dots Perfect wird NLQ mit DIP-Schalter SW2-2 eingeschaltet.
-
-`mkprn.py` erzeugt die `.PRN`-Dateien, `mkimg.py` das FAT12-Diskettenabbild, `printer.txt` ist das Bild für `BILD.PRN`.
+`./mkdisk.sh` baut die Diskette `../Images/DMVPRN.IMG` neu aus `mkprn.py`, `mkbat.py` und `LIESMICH.TXT`.
