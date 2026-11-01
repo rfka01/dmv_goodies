@@ -1,10 +1,10 @@
 # Build the printer test files for the DMV test disk.
-#   BILD.PRN     ASCII picture (printer.txt), plain text (all printers)
-#   ZEILEN.PRN   100 numbered lines (all printers)
-#   GRAFIK.PRN   bit image graphics, ESC L 120 dpi (9-pin Epson compatibles)
-#   FARBE.PRN    colour text and bars, Epson ESC r (JX-80, EX-800, Citizen 200GX)
-#   FARBGRAF.PRN colour bit image graphics, Epson ESC r
-#   ....FONT.PRN fonts and attributes per printer (see LIESMICH.TXT)
+#   PICTURE.PRN  ASCII picture (printer.txt), plain text (all printers)
+#   LINES.PRN    100 numbered lines (all printers)
+#   GRAPHICS.PRN bit image graphics, ESC L 120 dpi (9-pin Epson compatibles)
+#   COLOUR.PRN   colour text and bars, Epson ESC r (JX-80, EX-800, Citizen 200GX)
+#   COLGRAPH.PRN colour bit image graphics, Epson ESC r
+#   ....FONT.PRN fonts and attributes per printer (see README.TXT)
 #   MX80*.PRN    Epson MX-80 with the original, Graftrax and Dots Perfect ROMs
 #   FX880*.PRN, AP32*.PRN  Epson FX-880, ActionPrinter 3250
 #
@@ -250,7 +250,7 @@ def jx80_colour_page():
     return d
 
 
-save('BILD.PRN', picture())
+save('PICTURE.PRN', picture())
 save('FX80FONT.PRN', fonts_epson('Epson FX-80: fonts and print attributes'))
 save('JX80FONT.PRN', fonts_epson('Epson JX-80: fonts, print attributes and colours', colour=True))
 save('MD16FONT.PRN', fonts_epson('Nixdorf MD 16: fonts and print attributes', nlq=True, italic_set=False) [:-1]
@@ -263,17 +263,17 @@ save('EX800FNT.PRN', fonts_epson('Epson EX-800: fonts and print attributes', nlq
      + E + b'k\x01' + t('NLQ Sans Serif:   ' + SAMPLE + '\r\n') + E + b'k\x00' + E + b'x\x00' + b'\x0c')
 
 
-def zeilen():
+def lines_page():
     # 100 numbered lines and a form feed: page breaks, sheet changes, green bar paper
     d = E + b'@'
     for i in range(1, 101):
-        d += t('Zeile %03d  ' % i + SAMPLE + '\r\n')
+        d += t('Line %03d  ' % i + SAMPLE + '\r\n')
     return d + b'\x0c'
 
 
-save('ZEILEN.PRN', zeilen())
-save('GRAFIK.PRN', graphics_page(E + b'E' + t('Graphics test page') + E + b'F' + b'\r\n'))
-save('FARBGRAF.PRN', jx80_colour_page())
+save('LINES.PRN', lines_page())
+save('GRAPHICS.PRN', graphics_page(E + b'E' + t('Graphics test page') + E + b'F' + b'\r\n'))
+save('COLGRAPH.PRN', jx80_colour_page())
 
 
 # ---------------------------------------------------------------- Epson MX-80
@@ -541,4 +541,4 @@ def colour_text():
     return d
 
 
-save('FARBE.PRN', colour_text())
+save('COLOUR.PRN', colour_text())

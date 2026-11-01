@@ -8,21 +8,21 @@ PRINTERS = [
     ('MX80',   'Epson MX-80',                  ['MX80.PRN'], None),
     ('MX80GT', 'Epson MX-80 Graftrax',         ['MX80.PRN', 'MX80GTRX.PRN'], None),
     ('MX80DP', 'Epson MX-80 Dots Perfect',     ['MX80DP.PRN'], None),
-    ('RX80',   'Epson RX-80',                  ['RX80FONT.PRN', 'GRAFIK.PRN'], None),
-    ('FX80',   'Epson FX-80',                  ['FX80FONT.PRN', 'GRAFIK.PRN'], None),
-    ('JX80',   'Epson JX-80',                  ['FX80FONT.PRN', 'GRAFIK.PRN'], ['JX80FONT.PRN', 'FARBE.PRN', 'FARBGRAF.PRN']),
-    ('FX85',   'Epson FX-85',                  ['FX85FONT.PRN', 'GRAFIK.PRN'], None),
-    ('LX86',   'Epson LX-86',                  ['LX86FONT.PRN', 'GRAFIK.PRN'], None),
-    ('LX800',  'Epson LX-800',                 ['LX800FNT.PRN', 'GRAFIK.PRN'], None),
-    ('LX810L', 'Epson LX-810L / ActionPrinter 2000', ['FX80FONT.PRN', 'GRAFIK.PRN'], None),
-    ('EX800',  'Epson EX-800',                 ['EX800FNT.PRN', 'GRAFIK.PRN'], ['EX800FNT.PRN', 'FARBE.PRN', 'FARBGRAF.PRN']),
+    ('RX80',   'Epson RX-80',                  ['RX80FONT.PRN', 'GRAPHICS.PRN'], None),
+    ('FX80',   'Epson FX-80',                  ['FX80FONT.PRN', 'GRAPHICS.PRN'], None),
+    ('JX80',   'Epson JX-80',                  ['FX80FONT.PRN', 'GRAPHICS.PRN'], ['JX80FONT.PRN', 'COLOUR.PRN', 'COLGRAPH.PRN']),
+    ('FX85',   'Epson FX-85',                  ['FX85FONT.PRN', 'GRAPHICS.PRN'], None),
+    ('LX86',   'Epson LX-86',                  ['LX86FONT.PRN', 'GRAPHICS.PRN'], None),
+    ('LX800',  'Epson LX-800',                 ['LX800FNT.PRN', 'GRAPHICS.PRN'], None),
+    ('LX810L', 'Epson LX-810L / ActionPrinter 2000', ['FX80FONT.PRN', 'GRAPHICS.PRN'], None),
+    ('EX800',  'Epson EX-800',                 ['EX800FNT.PRN', 'GRAPHICS.PRN'], ['EX800FNT.PRN', 'COLOUR.PRN', 'COLGRAPH.PRN']),
     ('FX880',  'Epson FX-880',                 ['FX880FNT.PRN', 'FX880GRF.PRN'], None),
     ('AP3250', 'Epson ActionPrinter 3250 (LQ-100)', ['AP32FNT.PRN', 'AP32GRF.PRN'], None),
-    ('C200GX', 'Citizen 200GX',                ['C200FNT.PRN', 'GRAFIK.PRN'], ['C200FNT.PRN', 'FARBE.PRN', 'FARBGRAF.PRN']),
-    ('BX80',   'BMC BX-80',                    ['BX80FONT.PRN', 'GRAFIK.PRN'], None),
-    ('GEM10X', 'Star Gemini-10X',              ['GEM10FNT.PRN', 'GRAFIK.PRN'], None),
-    ('NL10',   'Star NL-10 (IBM-Kassette)',    ['NL10FONT.PRN'], None),
-    ('MD16',   'Nixdorf MD 16',                ['MD16FONT.PRN', 'GRAFIK.PRN'], None),
+    ('C200GX', 'Citizen 200GX',                ['C200FNT.PRN', 'GRAPHICS.PRN'], ['C200FNT.PRN', 'COLOUR.PRN', 'COLGRAPH.PRN']),
+    ('BX80',   'BMC BX-80',                    ['BX80FONT.PRN', 'GRAPHICS.PRN'], None),
+    ('GEM10X', 'Star Gemini-10X',              ['GEM10FNT.PRN', 'GRAPHICS.PRN'], None),
+    ('NL10',   'Star NL-10 (IBM cartridge)',    ['NL10FONT.PRN'], None),
+    ('MD16',   'Nixdorf MD 16',                ['MD16FONT.PRN', 'GRAPHICS.PRN'], None),
 ]
 
 
@@ -46,23 +46,23 @@ def copy(files):
 for name, title, mono, colour in PRINTERS:
     b = ['ECHO OFF']
     if colour:
-        for arg in ('FARBE', 'farbe', 'Farbe', 'F', 'f'):
-            b.append('IF "%%1"=="%s" GOTO FARBE' % arg)
-        b += ['ECHO ' + title + ', schwarzweiss (Farbe: ' + name + ' FARBE)'] + copy(mono)
-        b += ['GOTO ENDE', ':FARBE', 'ECHO ' + title + ', Farbe'] + copy(colour) + [':ENDE']
+        for arg in ('COLOUR', 'colour', 'Colour', 'COLOR', 'color', 'Color', 'C', 'c'):
+            b.append('IF "%%1"=="%s" GOTO COLOUR' % arg)
+        b += ['ECHO ' + title + ', black and white (colour: ' + name + ' COLOUR)'] + copy(mono)
+        b += ['GOTO END', ':COLOUR', 'ECHO ' + title + ', colour'] + copy(colour) + [':END']
     else:
-        b += ['IF "%1"=="" GOTO SW', 'ECHO ' + title + ' druckt nur schwarz.', ':SW',
+        b += ['IF "%1"=="" GOTO BW', 'ECHO ' + title + ' prints black only.', ':BW',
               'ECHO ' + title] + copy(mono)
-    b.append('ECHO Fertig.')
+    b.append('ECHO Done.')
     save(name + '.BAT', b)
 
 # overview
-d = ['ECHO OFF', 'ECHO Druckertest: Druckername eingeben, bei Farbdruckern',
-     'ECHO mit FARBE dahinter fuer den Farbtest, z.B.  JX80 FARBE']
+d = ['ECHO OFF', 'ECHO Printer test: type the printer name, on colour printers',
+     'ECHO add COLOUR for the colour test, e.g.  JX80 COLOUR']
 for name, title, mono, colour in PRINTERS:
-    d.append('ECHO   %-7s %s%s' % (name, title, '  (Farbe moeglich)' if colour else ''))
-d += ['ECHO   TEXT    alle Drucker: BILD.PRN und ZEILEN.PRN', ''
-      'ECHO Die Dateien gehen mit COPY /B an LPT1:.']
-save('DRUCKER.BAT', d)
-save('TEXT.BAT', ['ECHO OFF', 'ECHO Text fuer alle Drucker'] + copy(['BILD.PRN', 'ZEILEN.PRN']) + ['ECHO Fertig.'])
-save('PRNTEST.BAT', ['ECHO OFF', 'ECHO Kurztest fuer alle 9-Nadel-Drucker'] + copy(['BILD.PRN', 'GRAFIK.PRN']) + ['ECHO Fertig.'])
+    d.append('ECHO   %-7s %s%s' % (name, title, '  (colour possible)' if colour else ''))
+d += ['ECHO   TEXT    all printers: PICTURE.PRN and LINES.PRN',
+      'ECHO The files go to LPT1: with COPY /B.']
+save('PRINTERS.BAT', d)
+save('TEXT.BAT', ['ECHO OFF', 'ECHO Text for all printers'] + copy(['PICTURE.PRN', 'LINES.PRN']) + ['ECHO Done.'])
+save('PRNTEST.BAT', ['ECHO OFF', 'ECHO Short test for all 9-pin printers'] + copy(['PICTURE.PRN', 'GRAPHICS.PRN']) + ['ECHO Done.'])
