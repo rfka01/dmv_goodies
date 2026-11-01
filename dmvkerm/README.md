@@ -15,7 +15,7 @@
 - Finds the serial modules and their interrupt by itself, like the large Kermit port did: the module's slot IRQ on the K235, or IRQ2 on a K211/K212 modified after NCR's handbook. Without an interrupt it polls. A K215 is recognised like NCR's diagnostic V1K215 does it, by the echo command of its 8741, and is always polled since it buffers 2 KB itself.
 - Screen output goes through the DOS console with only what all three DOS versions understand. The keyboard is read from the 8741 directly.
 
-`DMVKERM.COM` and `DMVKERM.TXT` are on `../Images/GOODIES.IMG`, which is rebuilt with every change. `../Images/DMVKERM.IMG` is the last separate DMVKERM disk (16 Oct 2026, no longer updated); it also holds the original **Kermit-MS 2.32/A** from Columbia University for IBM-compatible PCs (`KERMIBM.EXE`), for the other end of the cable.
+`DMVKERM.COM` and `DMVKERM.TXT` are on `../Images/GOODIES.IMG`, which is rebuilt with every change. `../Images/DMVKERM.IMG` is the separate DMVKERM disk with the same version; it also holds the original **Kermit-MS 2.32/A** from Columbia University for IBM-compatible PCs (`KERMIBM.EXE`), for the other end of the cable.
 
 Files: `src/` the sources (`dmvkerm.asm` and its includes), `tools/build.sh` builds `DMVKERM.COM` with JWasm under Linux, `tools/mktab.py` generates `src/tabellen.inc` (character and keyboard tables), `tools/mkdisk.py` puts DMVKERM on `GOODIES.IMG`. `DMVKERM.TXT` is the description (German), `DMVKERM.INI` a sample start-up file.
 
@@ -34,7 +34,7 @@ Tested in MAME: DMV with K211 and K235 under MS-DOS 3.30 at 9600 baud against an
 - Findet die seriellen Module und ihren Interrupt selbst, wie schon der große Kermit-Port: den IRQ des Steckplatzes an der K235 oder IRQ2 bei einer K211/K212, die nach dem NCR-Handbuch geändert ist. Ohne Interrupt fragt es ab. Eine K215 erkennt es wie NCRs Diagnose V1K215 am Echo-Befehl ihres 8741; sie wird immer abgefragt, weil sie selbst 2 KB puffert.
 - Die Bildschirmausgabe läuft über die DOS-Konsole und benutzt nur, was alle drei DOS-Fassungen verstehen. Die Tastatur wird direkt am 8741 gelesen.
 
-`DMVKERM.COM` und `DMVKERM.TXT` stehen auf `../Images/GOODIES.IMG`, die bei jeder Änderung neu gebaut wird. `../Images/DMVKERM.IMG` ist der letzte Stand der eigenen DMVKERM-Diskette (16.10.2026, wird nicht mehr gepflegt); darauf liegt zusätzlich das originale **Kermit-MS 2.32/A** der Columbia University für IBM-kompatible PCs (`KERMIBM.EXE`), für die Gegenseite.
+`DMVKERM.COM` und `DMVKERM.TXT` stehen auf `../Images/GOODIES.IMG`, die bei jeder Änderung neu gebaut wird. `../Images/DMVKERM.IMG` ist die eigene DMVKERM-Diskette mit derselben Fassung; darauf liegt zusätzlich das originale **Kermit-MS 2.32/A** der Columbia University für IBM-kompatible PCs (`KERMIBM.EXE`), für die Gegenseite.
 
 Dateien: `src/` die Quellen (`dmvkerm.asm` mit seinen Include-Dateien), `tools/build.sh` baut `DMVKERM.COM` mit JWasm unter Linux, `tools/mktab.py` erzeugt `src/tabellen.inc` (Zeichen- und Tastaturtabellen), `tools/mkdisk.py` trägt DMVKERM in `GOODIES.IMG` ein. `DMVKERM.TXT` ist die Beschreibung, `DMVKERM.INI` eine Beispiel-Startdatei.
 

@@ -13,7 +13,7 @@
 
 The `.TXT` files are the German descriptions (DOS text, CRLF). · Die `.TXT`-Dateien sind die deutschen Beschreibungen.
 
-`DMVKERM.IMG` – last separate DMVKERM disk (16 Oct 2026, no longer updated; the current DMVKERM is on `GOODIES.IMG`) · letzter Stand der eigenen DMVKERM-Diskette (16.10.2026, wird nicht mehr gepflegt; das aktuelle DMVKERM steht auf `GOODIES.IMG`):
+`DMVKERM.IMG` – separate DMVKERM disk with DMVKERM 1.1 (same as on `GOODIES.IMG`) and Kermit-MS 2.32 for the other end · eigene DMVKERM-Diskette mit DMVKERM 1.1 (wie auf `GOODIES.IMG`) und Kermit-MS 2.32 für die Gegenseite:
 
 | File | |
 |---|---|
