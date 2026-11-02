@@ -11,7 +11,7 @@ var
   znr, bnblk: integer;
   mpa, mpb, mpm: array[0..15] of integer;
   mpok: boolean;
-  bpuf: array[0..1279] of byte;
+  bpuf: array[0..hwQB1] of byte;
   bm, bt, bt2, bein, bnul: array[0..79] of byte;
   bp: array[0..2, 0..79] of byte;
   ptab: array[0..1, 0..255] of byte;
@@ -475,9 +475,8 @@ begin
   gerr := bdef(nr, b, h, fmt);
 end;
 
-procedure gbload(nr0: integer; name: GStr; b, h, anz, fmt, kopf: integer);
-var i, r: integer;
-    c: byte;
+procedure gbload(nr0: integer; name: GStr; b, h, anz, fmt: integer; kopf: real);
+var i, r, n: integer;
 begin
   gerr := GE_HW;
   if qstart <> 0 then exit;
@@ -490,10 +489,10 @@ begin
   rdat := true;
   rpos := 128;
   r := 0;
-  i := 0;
-  while (i < kopf) and (r = 0) do begin
-    if brd(c, 1) then r := GE_KURZ;
-    i := i + 1;
+  while (kopf >= 0.5) and (r = 0) do begin   { Kopf ueberspringen, auch > 32 KB }
+    if kopf > 128 then n := 128 else n := Round(kopf);
+    if brd(bzr, n) then r := GE_KURZ;
+    kopf := kopf - n;
   end;
   i := 0;
   while (i < anz) and (r = 0) do begin
@@ -564,34 +563,26 @@ end;
 
 procedure bcut(var dd; var ss; off, n: integer);   { Bits off.. von s }
 begin
-  qzbits(dd, ss, off, n, 1);
+  ghzbits(dd, ss, off, n, 1);
 end;
 
 procedure bzoom(var dd; var ss; n, z1: integer);   { jedes Bit z1-mal }
 begin
-  qzbits(dd, ss, 0, n, z1);
+  ghzbits(dd, ss, 0, n, z1);
 end;
 
 { Zeile (bm, bp; nb Bit ab Punkt sx) auf den Schirm }
 procedure bzeig(sy, sx, nb, art: integer);
-var e, k, n: integer;
-    ganz: boolean;
+var e, ad: integer;
 begin
-  n := (nb + 7) shr 3;
-  ganz := (art = GB_DECK) and ((sx and 15) = 0) and ((nb and 15) = 0);
-  for e := 0 to qneb - 1 do
-    if ganz then qrow(sy, sx, bp[e, 0], nb, e, $20, 0)
-    else if art = GB_XOR then begin
-      for k := 0 to n - 1 do bt[k] := bm[k] and bp[e, k];
-      qrow(sy, sx, bt, nb, e, $21, 0);
-    end else begin
-      for k := 0 to n - 1 do begin
-        bt[k] := bm[k] and (not bp[e, k]) and $FF;
-        bt2[k] := bm[k] and bp[e, k];
-      end;
-      qrow(sy, sx, bt, nb, e, $22, 0);
-      qrow(sy, sx, bt2, nb, e, $23, 0);
-    end;
+  if (nb <= 0) or (sy < 0) or (sy > 399) then exit;
+  qplatz(48 + (nb shr 2));          { auch: Mauszeiger weg }
+  ad := qadr(0, sx, sy) - qebad[0];
+  e := 0;
+  repeat                            { alle Ebenen, wenn noetig in Stuecken }
+    e := ghbrow(ql, qn, qe, bp, bm, e, qneb, 80, ad, sx, nb, art, qebad);
+    if e < qneb then qflush;
+  until e >= qneb;
 end;
 
 function bvor(nr, art: integer): integer;
@@ -622,6 +613,21 @@ begin
   if sx + ww > 640 then c1 := 640 - sx else c1 := ww;
   if c0 >= c1 then exit;
   rs := bnp[nr] * bbpr[nr];
+  if qbsch and (z1 = 1) and ((sx and 15) = 0) and (c0 = 0) and (c1 = ww) and
+     (sy >= 0) and (sy + hh <= 400) and (art <> GB_SCHAT) and
+     ((art <> GB_DECK) or ((bw[nr] and 15) = 0)) and
+     ((bnp[nr] = 1) or (bnp[nr] = qneb + 1)) then begin
+    { schneller Weg wie HOPPLERs BlitAsm: ganze Worte, ohne Zoom und
+      Beschnitt, direkt aus dem Bildspeicher an den 7220 }
+    qplatz(0);                      { Mauszeiger weg }
+    qflush;
+    qbtupel(bnp[nr], bbpr[nr], art);
+    k := bw[nr] and 15;
+    if k = 0 then k := -1 else k := (1 shl k) - 1;
+    ghblit(bblk[nr], boff[nr], bh[nr], rs, (bbpr[nr] + 1) shr 1, k,
+           qadr(0, sx, sy) - qebad[0], qbtu, qbtn);
+    exit;
+  end;
   y := 0;
   while y < bh[nr] do begin
     n := QBUF div rs;

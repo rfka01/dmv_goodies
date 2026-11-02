@@ -30,7 +30,7 @@ const
 
 var
   zeig: array[0..127] of byte;      { Zeiger 16 x 16 im Format 4 }
-  streif: array[0..383] of byte;    { Format 3: 32 x 24 }
+  streif: array[0..STRN] of byte;   { Format 3: 32 x 24 (STRN im Programm) }
   f, m, s, c: integer;
 
 function warte: integer;
@@ -176,6 +176,7 @@ begin
       zeig[k + 4] := zeig[k + 2];
       zeig[k + 6] := zeig[k + 2];
     end;
+  if STRN >= 383 then
   for y := 0 to 23 do
     for x := 0 to 15 do begin
       if (y < 2) or (y > 21) then i := 0 else i := x;

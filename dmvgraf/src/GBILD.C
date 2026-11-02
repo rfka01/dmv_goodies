@@ -786,6 +786,25 @@ int nr, art;
         if (c0 >= c1)
                 return 0;
         rs = bnp[nr] * bbpr[nr];
+        /* schneller Weg wie HOPPLERs BlitAsm: ganze Worte, ohne Zoom und
+           Beschnitt, direkt aus dem Bildspeicher an den 7220 */
+        if (qbsch && z1 == 1 && !(sx & 15) && c0 == 0 && c1 == W &&
+            sy >= 0 && sy + H <= 400 && art != GB_SCHAT &&
+            (art != GB_DECK || !(bw[nr] & 15)) &&
+            (bnp[nr] == 1 || bnp[nr] == qneb + 1)) {
+                static int tu[36];
+                int nt, lm;
+
+                if (qzeig)
+                        qzhid();
+                qflush();
+                nt = qbtupel(bnp[nr], bbpr[nr], art, tu);
+                lm = (bw[nr] & 15) ? (1 << (bw[nr] & 15)) - 1 : 0xFFFF;
+                if (ghblit(bblk[nr], boff[nr], bh[nr], rs,
+                           (bbpr[nr] + 1) >> 1, lm,
+                           (UW)(sy * 40 + (sx >> 4)), tu, nt) == 0)
+                        return 0;
+        }
         for (y = 0; y < bh[nr]; y += n) {
                 n = QBUF / rs;
                 if (n > bh[nr] - y)

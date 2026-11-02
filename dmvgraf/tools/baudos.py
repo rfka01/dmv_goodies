@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """baudos.py - C-Programme mit DMVGRAF fuer MS-DOS auf der DMV uebersetzen
-(gcc-ia16, Speichermodell small) und als EXE-Datei schreiben.
+(gcc-ia16, Speichermodell small) und als EXE-Datei schreiben; mit --tiny
+im Speichermodell tiny als COM-Datei.
 
-  baudos.py [-I dir] [-D NAME=WERT] -o PROG.EXE GCRTDOS.S|GCRTDOS.O quelle.c ... [x.o ...] [DMVGRAF.A]
+  baudos.py [--tiny] [-I dir] [-D NAME=WERT] -o PROG.EXE|PROG.COM GCRTDOS.S|GCRTDOS.O quelle.c ... [x.o ...] [DMVGRAF.A]
+
+--tiny: alles in einem Segment ab 100h (CS = DS = ES = SS), Startstueck
+GCRTDOS.S mit -DTINY (fertig: lib/dos-tiny/GCRTCOM.O). Jede Funktion
+liegt in einem eigenen Abschnitt; der Binder laesst Ungebrauchtes weg
+(--gc-sections), in beiden Modellen.
 
 GCRTDOS.S muss als erste Quelle stehen ('start' vorn, Abschnitt
 .text.start). Gebunden wird mit einem eigenen Skript: Code ab 0 im
@@ -32,15 +38,28 @@ OBJCOPY = os.path.join(PFAD, 'ia16-elf-objcopy')
 NM = os.path.join(PFAD, 'ia16-elf-nm')
 AR = os.path.join(PFAD, 'ia16-elf-ar')
 CFLAGS = ['-march=i8086', '-mcmodel=small', '-Os', '-ffreestanding',
-          '-fno-builtin', '-fno-common', '-std=gnu89', '-w']
+          '-fno-builtin', '-fno-common', '-std=gnu89', '-w',
+          '-ffunction-sections', '-fdata-sections']
 
 SKRIPT = '''OUTPUT_FORMAT("elf32-i386")
 ENTRY(start)
 SECTIONS
 {
-  .text 0 : { *(.text.start) *(.text .text.*) }
+  .text 0 : { KEEP(*(.text.start)) *(.text .text.*) }
   .data 0 : AT(ALIGN(LOADADDR(.text) + SIZEOF(.text), 16))
   { *(.rodata .rodata.*) *(.data .data.*) . = ALIGN(2); }
+  .bss : { __bss_start = .; *(.bss .bss.*) *(COMMON) . = ALIGN(2); _end = .; }
+  /DISCARD/ : { *(.comment) *(.note*) *(.eh_frame*) }
+}
+'''
+
+
+SKRIPTT = '''OUTPUT_FORMAT("elf32-i386")
+ENTRY(start)
+SECTIONS
+{
+  .text 0x100 : { KEEP(*(.text.start)) *(.text .text.*)
+                  *(.rodata .rodata.*) *(.data .data.*) . = ALIGN(2); }
   .bss : { __bss_start = .; *(.bss .bss.*) *(COMMON) . = ALIGN(2); _end = .; }
   /DISCARD/ : { *(.comment) *(.note*) *(.eh_frame*) }
 }
@@ -76,8 +95,13 @@ def main():
     ap.add_argument('-D', action='append', default=[])
     ap.add_argument('-o', required=True)
     ap.add_argument('--map', action='store_true')
+    ap.add_argument('--tiny', action='store_true')
     ap.add_argument('quellen', nargs='+')
     a = ap.parse_args()
+    tiny = a.tiny or a.o.upper().endswith('.COM')
+    if tiny:
+        CFLAGS[1] = '-mcmodel=tiny'
+        a.D.append('TINY')
     with tempfile.TemporaryDirectory() as tmp:
         objs = []
         for i, q in enumerate(a.quellen):
@@ -86,7 +110,7 @@ def main():
                 continue
             o = os.path.join(tmp, os.path.splitext(os.path.basename(q))[0]
                              .upper() + '.O')
-            art = ['-x', 'assembler'] if q.upper().endswith('.S') \
+            art = ['-x', 'assembler-with-cpp'] if q.upper().endswith('.S') \
                 else ['-x', 'c']
             lauf([CC] + CFLAGS + ['-I' + d for d in a.I] +
                  ['-D' + d for d in a.D] + art + ['-c', q, '-o', o])
@@ -95,9 +119,9 @@ def main():
             return
         libgcc = lauf([CC] + CFLAGS + ['-print-libgcc-file-name']).strip()
         ld = os.path.join(tmp, 'p.ld')
-        open(ld, 'w').write(SKRIPT)
+        open(ld, 'w').write(SKRIPTT if tiny else SKRIPT)
         elf = os.path.join(tmp, 'p.elf')
-        cmd = [LD, '-T', ld, '-o', elf] + objs + \
+        cmd = [LD, '-T', ld, '--gc-sections', '-o', elf] + objs + \
             ([libgcc] if os.path.isabs(libgcc) else [])
         if a.map:
             cmd += ['-Map', a.o + '.map']
@@ -107,6 +131,17 @@ def main():
             t = z.split()
             if len(t) == 3:
                 sym[t[2]] = int(t[0], 16)
+        if tiny:
+            tb = os.path.join(tmp, 't.bin')
+            lauf([OBJCOPY, '-O', 'binary', '-j', '.text', elf, tb])
+            text = open(tb, 'rb').read()
+            ende = sym['_end']
+            if ende > 0xF000:
+                sys.exit('Programm %d Byte: zu wenig Platz fuer den Stapel' % ende)
+            open(a.o, 'wb').write(text)
+            print('%s: Code und Daten %d, BSS %d, Stapel %d' %
+                  (a.o, len(text), ende - 0x100 - len(text), 0x10000 - ende))
+            return
         tb = os.path.join(tmp, 't.bin')
         db = os.path.join(tmp, 'd.bin')
         lauf([OBJCOPY, '-O', 'binary', '-j', '.text', elf, tb])

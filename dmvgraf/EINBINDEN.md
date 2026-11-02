@@ -14,7 +14,7 @@ DMVGRAF ist in C geschrieben und liegt für drei Systeme fertig übersetzt in [`
 | DRs C für CP/M-68K (Alcyon) | – | nicht direkt (16-Bit-`int`), siehe unten | – |
 | Turbo Pascal 3 | eigene Fassung in `pascal/` | – | – |
 
-Geprüft im Prüfstand: die Beispiele in C und Assembler unter MS-DOS (gcc-ia16, GNU as, NASM) und CP/M-68K (gcc, GNU as). `DEMO.8KN` für CP/M-8000 ist mit `asz8k` assembliert und mit `ld8k` gebunden, aber noch nicht gelaufen.
+Geprüft im Prüfstand: die Beispiele in C und Assembler unter MS-DOS (gcc-ia16, GNU as, NASM; NASM auch im Speichermodell tiny) und CP/M-68K (gcc, GNU as). `DEMO.8KN` für CP/M-8000 ist mit `asz8k` assembliert und mit `ld8k` gebunden, aber noch nicht gelaufen.
 
 ## Was für alle Sprachen gilt
 
@@ -43,6 +43,8 @@ Die Kopfdatei `src/DMVGRAF.H` einbinden und gegen die Bibliothek binden (Befehle
 
     # MS-DOS
     python3 tools/baudos.py -I src -o DEMO.EXE lib/dos/GCRTDOS.O beispiele/DEMO.C lib/dos/DMVGRAF.A
+    # MS-DOS, Speichermodell tiny (.COM)
+    python3 tools/baudos.py --tiny -I src -o DEMO.COM lib/dos-tiny/GCRTCOM.O beispiele/DEMO.C lib/dos-tiny/DMVGRAF.A
     # CP/M-68K
     python3 tools/bau68.py -I src -o DEMO.68K lib/cpm68k/GCRT68.O beispiele/DEMO.C lib/cpm68k/DMVGRAF.A
     # CP/M-8000 (auf der DMV oder im Simulator)
@@ -70,6 +72,10 @@ NASM erzeugt mit `-f elf32` Objekte, die der Binder von gcc-ia16 versteht. `cpu 
 
     nasm -f elf32 beispiele/DEMO.ASM -o demo.o
     python3 tools/baudos.py -o DEMO.EXE lib/dos/GCRTDOS.O demo.o lib/dos/DMVGRAF.A
+    # oder tiny: Code, Daten und Stapel in einem Segment ab 100h
+    python3 tools/baudos.py --tiny -o DEMO.COM lib/dos-tiny/GCRTCOM.O demo.o lib/dos-tiny/DMVGRAF.A
+
+Im Speichermodell tiny gilt CS = DS = ES = SS; ein Programm, das sich selbst verschieben oder Briefkästen für Z80 und 68008 anlegen will, hat so alles in einem Segment. Der Binder nimmt in beiden Modellen nur die Funktionen, die gebraucht werden. Unter MS-DOS gibt es zusätzlich `ghinfo`, `ghcpu`, die Zeitbasis (`gtinit`, `gtus` …) und `gcorun` (siehe `README.md`); `ghcpu()` liefert das Ergebnis in AX und eignet sich für den Start eines Assemblerprogramms.
 
 Mit GNU as (`ia16-elf-as`) geht es genauso (`.code16`, `.intel_syntax noprefix`, `.arch i8086`); `baudos.py` assembliert eine Quelle mit der Endung `.S` selbst.
 
@@ -106,7 +112,7 @@ Namen mit Unterstrich, jeder fremde Name als `.global` angemeldet, Argumente als
 
 - **Microsoft-Werkzeuge unter DOS (MASM, MS-C, Turbo C, BASCOM, LINK):** Sie arbeiten mit OMF-Objekten; `lib/dos/DMVGRAF.A` ist ein ELF-Archiv für den Binder von gcc-ia16. Mit MASM geschriebene Teile lassen sich darum nicht dazubinden; NASM oder GNU as sind der Ersatz. Für eine OMF-Fassung müsste DMVGRAF mit einem Compiler übersetzt werden, der OMF schreibt (etwa OpenWatcom), und `GCRTDOS.S` müsste in dessen Konvention neu entstehen.
 - **DRs C-Compiler für CP/M-68K (Alcyon):** Dort hat `int` 16 Bit, die Bibliothek erwartet 32 Bit je Argument. Ein Alcyon-Programm müsste jeden Aufruf über eine kleine Assembler-Zwischenstufe führen, die die Worte zu Langworten erweitert. Einfacher ist es, das Programm mit gcc zu übersetzen.
-- **Turbo Pascal 3:** TP3 hat keinen Binder; `external` lädt nur eine Binärdatei an eine feste Stelle. Dafür gibt es eine eigene Pascal-Fassung von DMVGRAF als Include-Dateien mit denselben Namen, siehe [`pascal/README.md`](pascal/README.md) (MS-DOS und CP/M-80; unter CP/M-80 mit kleiner Bildfassung).
+- **Turbo Pascal 3:** TP3 hat keinen Binder; `external` lädt nur eine Binärdatei an eine feste Stelle. Dafür gibt es eine eigene Pascal-Fassung von DMVGRAF als Include-Dateien mit denselben Namen, siehe [`pascal/README.md`](pascal/README.md) (MS-DOS und CP/M-80; in Teilen einzubinden, die inneren Schleifen in Maschinensprache als `inline`).
 - **Ein Weg für alle diese Sprachen** wäre ein residenter DMVGRAF-Treiber unter DOS, der über einen Software-Interrupt gerufen wird (wie NCRs GSX). Den gibt es noch nicht; sag Bescheid, wenn er gebraucht wird.
 
 ## English summary

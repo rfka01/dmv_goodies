@@ -21,6 +21,7 @@ struct dosr {
 extern int gdos();              /* (struct dosr *) INT 21h -> Uebertrag */
 extern int inb();               /* (port) */
 extern int outb();              /* (port, wert) */
+extern int gromz();             /* () Kennbuchstabe der Firmware: C Farbe, M Mono */
 extern int gdlst();             /* (liste) wie BIOS 66 an den 7220 */
 extern int gfput();             /* (seg, off, char *quelle, n) */
 extern int gfget();             /* (char *ziel, seg, off, n) */
@@ -130,42 +131,98 @@ UW a, w;
         return 0;
 }
 
-/* Farbe: die Monochromkarte dekodiert nur A0-A13 und findet ihre gruene
-   Ebene bei 4000h und 8000h gespiegelt. Geprueft wird hinter dem
-   Textbereich. */
+/* Bildschirm nach HWA 3: die Farbkarte hat drei Ebenen zu 16 K Worten,
+   die Monokarte eine (sie spiegelt 4000h auf 0000h). Alte Worte sichern,
+   A5C3h nach 3FF0h und 3C5Ah nach 7FF0h, in der Reihenfolge 7FF0h,
+   3FF0h zuruecklesen, alte Worte zurueck. Bleiben beide stehen: Farbe.
+   Danach mit dem Kennbuchstaben der Firmware vergleichen (gromz). */
+int ghschirm;                  /* 1 Mono, 2 Farbe, 3 widerspruechlich */
+
 static int farbtest()
 {
-        UW v;
+        UW a3, a7, v3, v7;
+        int r, z;
 
-        wschr((UW)0x3FF0, (UW)0x1234);
-        wschr((UW)0x7FF0, (UW)0xA55A);
-        v = wlies((UW)0x3FF0);
-        wschr((UW)0x3FF0, (UW)0);
-        wschr((UW)0x7FF0, (UW)0);
-        return v == 0x1234;
+        a3 = wlies((UW)0x3FF0);
+        a7 = wlies((UW)0x7FF0);
+        wschr((UW)0x3FF0, (UW)0xA5C3);
+        wschr((UW)0x7FF0, (UW)0x3C5A);
+        v7 = wlies((UW)0x7FF0);
+        v3 = wlies((UW)0x3FF0);
+        wschr((UW)0x7FF0, a7);
+        wschr((UW)0x3FF0, a3);
+        if (v3 == 0xA5C3 && v7 == 0x3C5A)
+                r = 2;
+        else if (v3 == 0x3C5A && v7 == 0x3C5A)
+                r = 1;
+        else
+                r = 0;
+        z = gromz();
+        if (r == 0)                     /* Probe unklar: nach der Firmware */
+                ghschirm = 3, r = z == 'C' ? 2 : 1;
+        else if ((z == 'C' && r == 1) || (z == 'M' && r == 2))
+                ghschirm = 3;             /* Probe gilt, Abweichung merken */
+        else
+                ghschirm = r;
+        return r == 2;
 }
 
-/* K806 auf 2A (30h-33h): wie MSPROBE im BIOS von CP/M-8000 */
+/* Ist das eine DMV? Statusbits des 7220 an A0h: Bildwechsel (Bit 5) und
+   Zeilenruecklauf (Bit 6) wechseln, FIFO leer (Bit 2) kommt vor, nie FFh.
+   Liest nur. */
+static int dmvtest()
+{
+        int i, s, m;
+
+        m = 0;
+        for (i = 0; i < 30000 && m != 0x1F; i++) {
+                s = inb(GDCST);
+                if (s == 0xFF)
+                        return 0;
+                m |= s & 0x20 ? 1 : 2;
+                m |= s & 0x40 ? 4 : 8;
+                if (s & 0x04)
+                        m |= 0x10;
+        }
+        return m == 0x1F;
+}
+
+/* K806 auf 2A (30h-33h) nach HWA 5. Erst nur lesen: ein leerer Platz
+   liefert das untere Adressbyte zurueck (MAME: FFh). Dann Befehl 00h an
+   31h: Statusbit 3 (F1) zeigt Adressbit 0 des letzten Schreibens, also
+   1, und es kommen genau fuenf Datenbytes. Nichts sonst wird beschrieben. */
+#define MWART 20000
+
 static int maustest()
 {
-        int v, i;
+        int i, n, v, t;
 
-        v = 0xFF;
-        for (i = 0; i < 4; i++)
-                v &= inb(0x30 + i);
-        if (v == 0xFF)
-                return 0;
-        if (!(inb(0x33) & 0x80)) {
-                outb(0x36, 0x4E);
-                outb(0x36, 0x7E);
-                v = inb(0x32);
-                v = inb(0x32);
-                if (v == 0x7E || v == 0x3E)     /* 2661 (K801), 2651 */
-                        return 0;
+        n = 0;
+        for (i = 0; i < 4; i++) {
+                v = inb(0x30 + i);
+                if (v == 0x30 + i || v == 0xFF)
+                        n++;
         }
+        if (n == 4)
+                return 0;
         for (i = 0; i < 64 && (inb(0x31) & 1); i++)
-                v = inb(0x30);
-        return 0x30;
+                (void)inb(0x30);        /* alte Daten */
+        for (t = 0; t < MWART && (inb(0x31) & 2); t++)
+                ;
+        if (t >= MWART)
+                return 0;
+        outb(0x31, 0);
+        if (!(inb(0x31) & 8))           /* F1 */
+                return 0;
+        for (n = 0; n < 6; n++) {
+                for (t = 0; t < (n < 5 ? MWART : MWART / 8)
+                            && !(inb(0x31) & 1); t++)
+                        ;
+                if (!(inb(0x31) & 1))
+                        break;
+                (void)inb(0x30);
+        }
+        return n == 5 ? 0x30 : 0;
 }
 
 int ghinit()
@@ -173,6 +230,8 @@ int ghinit()
         static char ead[4];
         int a, n;
 
+        if (!dmvtest())
+                return -1;
         /* Die DOS-Konsole schreibt nach dem Farbtest an der alten Stelle
            weiter: Adresse (EAD) vorher mit CURD lesen, hinterher mit CURS
            zurueck, MASK FFFFh */
@@ -513,4 +572,24 @@ int b;
 UW z, q, n;
 {
         return gfmov(bseg[b], z, q, n);
+}
+
+/* Bild direkt an den 7220 wie HOPPLERs BlitAsm (gblit in GCRTDOS.S):
+   einmal MASK FFFF und FIGS, dann je Zeile und Eintrag der Tabelle tu
+   CURS ohne Punkt, WDAT und die Worte, aus dem Bildspeicherblock b ab o */
+extern int gblit();
+
+int ghblit(b, o, n, rs, nw, lm, ad, tu, nt)
+int b, n, rs, nw, lm, nt, *tu;
+UW o, ad;
+{
+        static UW p[44];
+        int i;
+
+        p[0] = bseg[b]; p[1] = o; p[2] = n; p[3] = rs; p[4] = nw;
+        p[5] = lm; p[6] = ad; p[7] = nt;
+        for (i = 0; i < nt * 6; i++)
+                p[8 + i] = tu[i];
+        gblit(p);
+        return 0;
 }

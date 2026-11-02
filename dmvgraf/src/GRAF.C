@@ -15,6 +15,7 @@ int qneb = 3;
 int qhw = -2;                   /* -2: noch nicht abgefragt */
 int qx, qy, qorig, qan;
 int qcol = 7, qmode = 1, qpatt, qzoom;
+int qbcol = -1;                 /* Hintergrundfarbe der Muster, -1 keine */
 UW qebad[3] = { 0x0000, 0x4000, 0x8000 };
 int qebit[3] = { 2, 4, 1 };
 
@@ -298,6 +299,7 @@ int ginit()
         qan = 1;
         qzs = 0;
         qpatt = 0;
+        qbcol = -1;
         qzoom = 0;
         qmode = 1;
         qcol = 7;
@@ -389,6 +391,31 @@ int p;
         return 0;
 }
 
+/* Eigenes Muster p (0-15) aus 8 Zeilen von oben, Bit 0 = links */
+int gpdef(p, m)
+int p;
+char *m;
+{
+        int i;
+
+        if (p < 0 || p > 15)
+                return GE_MUST;
+        for (i = 0; i < 8; i++)
+                qmust[p][i] = m[i];
+        return 0;
+}
+
+/* Hintergrundfarbe fuer Muster in Flaechen (gbox): 0-7, dann zweifarbig
+   und deckend; -1 (Vorgabe) wie bisher nur die Musterpunkte */
+int gbcol(c)
+int c;
+{
+        if (c < -1 || c > 7)
+                return GE_MODUS;
+        qbcol = c;
+        return 0;
+}
+
 int gzoom(z)
 int z;
 {
@@ -470,11 +497,29 @@ int m, n, d;
         return 0;
 }
 
+/* Muster am Schirm verankern: der 7220 beginnt GCHRD an der unteren
+   linken Ecke (sx, sb) mit PRAM 15 und zeichnet die Zeilen abwechselnd
+   von links und von rechts. Fuer Richtung 0 ohne Zoom die Musterzeilen
+   so drehen, dass Punkt (x, y) Bit x & 7 von Zeile y & 7 bekommt. */
+static int qmanker(mu, p, sx, sb, w)
+char *mu, *p;
+int sx, sb, w;
+{
+        int r, c, v;
+
+        for (r = 0; r < 8; r++) {
+                v = p[(sb - r) & 7] & 0xFF;
+                c = ((r & 1) ? sx + w : sx) & 7;
+                mu[7 - r] = ((v >> c) | (v << (8 - c))) & 0xFF;
+        }
+        return 0;
+}
+
 int gbox(m, n, d)
 int m, n, d;
 {
-        char fp[5];
-        int sx, sy, z;
+        char fp[5], mu[8], mz[8];
+        int sx, sy, z, e, i, f, h;
 
         z = qzoom + 1;
         if (d < 0 || d > 7) return GE_RICHT;
@@ -488,7 +533,32 @@ int m, n, d;
         qput(&fp[1], n - 1);
         fp[2] |= 0x40;
         qput(&fp[3], m);
-        qfig(sx, sy, qmust[qpatt], 8, fp, 5, 0x68);
+        if (d == 0 && qzoom == 0)
+                qmanker(mu, qmust[qpatt], sx, sy, m);
+        else
+                for (i = 0; i < 8; i++)
+                        mu[i] = qmust[qpatt][i];
+        if (qbcol < 0) {
+                qfig(sx, sy, mu, 8, fp, 5, 0x68);
+                qflush();
+                return 0;
+        }
+        for (e = 0; e < qneb; e++) {    /* zweifarbig: je Ebene ersetzen */
+                f = qebon(e, qcol);
+                h = qebon(e, qbcol);
+                for (i = 0; i < 8; i++)
+                        mz[i] = (f ? mu[i] : 0) | (h ? ~mu[i] : 0);
+                qplatz(48);
+                qcmd(0x20);
+                qcurs(qadr(e, sx, sy), sx & 15);
+                qcmd(0x78);
+                for (i = 0; i < 8; i++)
+                        qpar(mz[i] & 0xFF);
+                qcmd(0x4C);
+                for (i = 0; i < 5; i++)
+                        qpar(fp[i] & 0xFF);
+                qcmd(0x68);
+        }
         qflush();
         return 0;
 }
@@ -813,4 +883,169 @@ int d;
                 qy = quy(sy);
         }
         return 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Figuren ueber GCHRD ("Sprites"): Muster 8 x 8 im Parameter-RAM, der  */
+/* 7220 zeichnet und vergroessert sie selbst. Schneller als Bilder,     */
+/* gut fuer kleine bewegte Figuren.                                     */
+
+#define GSMAX 16
+static char *qspd[GSMAX];       /* Muster des Programms (bleibt dort) */
+static char qspb[GSMAX], qsph[GSMAX];
+
+/* Figur nr anlegen: b und h je 8 oder 16 Punkte; mu: je Ebene (gruen,
+   rot, blau) h Zeilen zu b/8 Byte, Bit 0 links. Die Daten bleiben im
+   Programm und muessen erhalten bleiben. */
+int gsprdef(nr, b, h, mu)
+int nr, b, h;
+char *mu;
+{
+        if (nr < 0 || nr >= GSMAX)
+                return GE_NR;
+        if ((b != 8 && b != 16) || (h != 8 && h != 16))
+                return GE_FORM;
+        qspd[nr] = mu;
+        qspb[nr] = b;
+        qsph[nr] = h;
+        return 0;
+}
+
+/* Ein 8 x 8-Feld auf Ebene e mit WDAT-Befehl w; x, y = untere linke Ecke
+   (Bildzeile), dort beginnt der 7220 */
+static int qkach(e, w, x, y, mu)
+int e, w, x, y;
+char *mu;
+{
+        int i;
+
+        qplatz(48);
+        qcmd(w);
+        qcurs(qadr(e, x, y), x & 15);
+        qcmd(0x78);
+        for (i = 0; i < 8; i++)
+                qpar(mu[i] & 0xFF);
+        qcmd(0x4C);
+        qpar(0x12); qpar(7); qpar(0x40); qpar(8); qpar(0);
+        qcmd(0x68);
+        return 0;
+}
+
+static int qleer(mu)
+char *mu;
+{
+        int i;
+
+        for (i = 0; i < 8; i++)
+                if (mu[i])
+                        return 0;
+        return 1;
+}
+
+/* Figur nr bei x, y (Ecke wie gbput) mit Zoom z (0-15) zeichnen; art:
+   GB_XOR umkehren (zweimal = weg), GB_DURCH nur die gesetzten Punkte in
+   ihrer Farbe, GB_DECK das ganze Rechteck. Die Figur muss ganz auf den
+   Schirm passen (sonst GE_LAGE). */
+int gspr(nr, x, y, z, art)
+int nr, x, y, z, art;
+{
+        char m[8], p[8], q[8];
+        register char *d;
+        int nc, z1, sx, sy, c, r, e, i, k, eb, xt, yt;
+
+        if (nr < 0 || nr >= GSMAX)
+                return GE_NR;
+        if (!qspd[nr])
+                return GE_LEER;
+        if (z < 0 || z > 15)
+                return GE_ZOOM;
+        if (art < 0 || art > 3 || art == GB_SCHAT)
+                return GE_FORM;
+        if (qstart())
+                return GE_HW;
+        d = qspd[nr];
+        nc = qspb[nr] >> 3;
+        z1 = z + 1;
+        sx = x;
+        sy = qsy(y);
+        if (!qorig)
+                sy -= qsph[nr] * z1 - 1;
+        if (sx < 0 || sy < 0 || sx + qspb[nr] * z1 > 640 ||
+            sy + qsph[nr] * z1 > 400)
+                return GE_LAGE;
+        eb = qsph[nr] * nc;             /* Byte je Ebene */
+        qzm(z);
+        for (r = 0; r < qsph[nr] >> 3; r++)
+                for (c = 0; c < nc; c++) {
+                        xt = sx + c * 8 * z1;
+                        yt = sy + (r + 1) * 8 * z1 - 1;
+                        for (i = 0; i < 8; i++) {
+                                k = (r * 8 + i) * nc + c;
+                                m[i] = d[k] | d[eb + k] | d[2 * eb + k];
+                        }
+                        for (e = 0; e < qneb; e++) {
+                                for (i = 0; i < 8; i++) {
+                                        k = (r * 8 + i) * nc + c;
+                                        p[i] = qneb == 1 ? m[i] : d[e * eb + k];
+                                        q[i] = m[i] & ~p[i];
+                                }
+                                if (art == GB_DECK)
+                                        qkach(e, 0x20, xt, yt, p);
+                                else if (art == GB_XOR) {
+                                        if (!qleer(p))
+                                                qkach(e, 0x21, xt, yt, p);
+                                } else {
+                                        if (!qleer(p))
+                                                qkach(e, 0x23, xt, yt, p);
+                                        if (!qleer(q))
+                                                qkach(e, 0x22, xt, yt, q);
+                                }
+                        }
+                }
+        qflush();
+        return 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tabelle fuer den schnellen Weg der Bilder (ghblit): je Ebene, was aus
+   einer gespeicherten Bildzeile (np = 1: Punkte in der Farbe, sonst Maske
+   und Ebenen zu je bb Byte) zu schreiben ist. Eintrag: Ebenenadresse,
+   WDAT-Befehl, Maske (0 aus der Zeile, 1 keine), XOR, Versatz, Nullen. */
+int qbsch = 1;
+
+static int *qbt;
+
+static int qbe(e, w, m, x, v, z)
+int e, w, m, x, v, z;
+{
+        *qbt++ = qebad[e]; *qbt++ = w; *qbt++ = m;
+        *qbt++ = x; *qbt++ = v; *qbt++ = z;
+        return 0;
+}
+
+int qbtupel(np, bb, art, tu)
+int np, bb, art, *tu;
+{
+        int e, an, v;
+
+        qbt = tu;
+        for (e = 0; e < qneb; e++) {
+                an = qebon(e, qcol);
+                v = (e + 1) * bb;
+                if (np == 1) {
+                        if (art == GB_DECK)
+                                an ? qbe(e, 0x20, 1, 0, 0, 0) : qbe(e, 0x20, 0, 0, 0, 1);
+                        else if (art == GB_DURCH)
+                                qbe(e, an ? 0x23 : 0x22, 0, 0, 0, 0);
+                        else if (an)
+                                qbe(e, 0x21, 0, 0, 0, 0);
+                } else if (art == GB_DECK)
+                        qbe(e, 0x20, 1, 0, v, 0);
+                else if (art == GB_DURCH) {
+                        qbe(e, 0x22, 0, -1, v, 0);
+                        qbe(e, 0x23, 0, 0, v, 0);
+                } else
+                        qbe(e, 0x21, 0, 0, v, 0);
+        }
+        return (int)(qbt - tu) / 6;
 }

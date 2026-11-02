@@ -218,3 +218,11 @@ int ghclos()
         __BDOS(16, (long)fcb);
         return 0;
 }
+
+/* Bild direkt an den 7220: hier kein eigener Weg */
+int ghblit(b, o, n, rs, nw, lm, ad, tu, nt)
+int b, n, rs, nw, lm, nt, *tu;
+UW o, ad;
+{
+        return -1;
+}

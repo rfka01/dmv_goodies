@@ -9,4 +9,7 @@ program GTest;
 {$I DMVFONT.INC}
 {$I DMVGRAF.INC}
 {$I DMVBILD.INC}
+{$I DMVFIG.INC}
+{$I DMVMAUS.INC}
+const STRN = 383;                   { Streifenbild (Format 3) }
 {$I GTESTK.INC}

@@ -20,6 +20,8 @@ extern int gbox();      /* (m, n, d)          gefuelltes Rechteck mit Muster */
 extern int gtext();     /* (s, d)             Text in Richtung d */
 extern int gmode();     /* (m)                0 ersetzen 1 umkehren 2 schwarz 3 Farbe */
 extern int gpatt();     /* (p)                Muster 0-15 */
+extern int gpdef();     /* (p, m)             Muster p aus 8 Zeilen m (Bit 0 links) */
+extern int gbcol();     /* (c)                Hintergrund der Muster, -1 keiner */
 extern int gzoom();     /* (z)                Zoom 0-15 fuer Text, Flaechen, Bilder */
 extern int gcolor();    /* (c)                Farbe 0-7 (1 blau 2 gruen 4 rot) */
 extern int gclear();    /* ()                 Schirm leer */
@@ -52,6 +54,36 @@ extern int grnd();      /* () Zufallszahl 0-32767 aus Bildlage und Maus */
 extern int gwait();     /* (n)                n Bildwechsel abwarten */
 extern int ton();       /* (h, l)             Ton h 1-42 (0 Pause), l x 20 ms */
 extern int gputs();     /* (s)                Text auf die Konsole (Textbetrieb) */
+
+/* Figuren ueber GCHRD ("Sprites", schnell, 8 oder 16 Punkte) */
+extern int gsprdef();   /* (nr, b, h, muster) je Ebene G, R, B: h Zeilen zu b/8 Byte */
+extern int gspr();      /* (nr, x, y, zoom, art) */
+
+/* Nur MS-DOS: Hardwareauskunft (GINFO.C), Zeitbasis (GZEIT.C). Unter
+   ifdef, weil der Binder von CP/M-8000 jede Vereinbarung aufloesen will. */
+#ifdef __ia16__
+extern int ghinfo();    /* (int r[16]) r[15] vorher GH_MIT... */
+extern int ghcpu();     /* () GH_CPU | GH_FPU << 2 | GH_KARTE << 4 */
+extern int gcorun();    /* (art, seg, start, len, long *us) Koprozessor (K235) */
+extern int gtinit();    /* () Kanal 2 kennenlernen, Kanal 0 und Bild eichen */
+extern long gtus();     /* () us seit gtinit */
+extern int gtbild();    /* () us je Bild */
+extern int gt0per();    /* () us je Takt von Kanal 0, 0 = steht */
+extern int gt0();       /* () Kanal 0 gelatcht */
+#endif
+#define GH_ROM    0     /* 1 M.07.00, 2 C.07.00, 3 M.05.00, 4 M.06.00, 5 C.06.00 */
+#define GH_SCHIRM 1     /* 1 Mono, 2 Farbe, 3 widerspruechlich */
+#define GH_KARTE  2     /* 1 K235, 2 K230/K231, 0 keine 16-Bit-Karte */
+#define GH_CPU    3     /* 1 8088, 2 V20, 3 die Proben widersprechen sich */
+#define GH_FPU    4     /* 0 keiner, 1 8087, 2 anderer */
+#define GH_COPRO  5     /* 0 nicht geprueft, 1 keiner, 2 K234, 3 K238, 4 Z80 kam nicht zurueck */
+#define GH_BAENKE 6     /* Erweiterungsbaenke */
+#define GH_SPUR_A 7     /* 40 oder 80 */
+#define GH_TAKT   8     /* CPU-Takt in 10 kHz */
+#define GH_BILD   9     /* Bildfrequenz in 1/100 Hz */
+#define GH_UHR    10    /* 1 K803 auf 4B laeuft */
+#define GH_MITCOPRO 1   /* r[15]: Koprozessor probieren (nur K235) */
+#define GH_MITUHR   2   /* r[15]: Uhr probieren (1,2 s) */
 
 /* Formate fuer gbdef/gbload */
 #define GB_BIT7  1      /* 1 Bit je Punkt, Bit 7 links */

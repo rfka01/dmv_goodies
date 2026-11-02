@@ -116,7 +116,7 @@ def io_r(uc, acc, addr, size, value, ud):
     v = 0xFF
     if p == 0xA0:
         gdc['vs'] += 1
-        v = 0x04 | (0x20 if (gdc['vs'] // 7) & 1 else 0) | (1 if gdc['lese'] else 0)
+        v = 0x04 | (0x20 if (gdc['vs'] // 7) & 1 else 0) | (0x40 if (gdc['vs'] // 2) & 1 else 0) | (1 if gdc['lese'] else 0)
     elif p == 0xA1:
         gdc_flush()
         v = gdc['lese'].pop(0) if gdc['lese'] else 0
@@ -128,7 +128,7 @@ def io_r(uc, acc, addr, size, value, ud):
         if p == 0x30:
             v = maus['aus'].pop(0) if maus['aus'] else 0
         elif p == 0x31:
-            v = 1 if maus['aus'] else 0
+            v = (1 if maus['aus'] else 0) | (8 if maus.get('f1') else 0)   # F1
         elif p == 0x33:
             v = 0x80
         else:
@@ -145,7 +145,10 @@ def io_w(uc, acc, addr, size, value, ud):
     elif p == 0xA0 or p == 0xA2:
         gdc['eintrag'].append(v)
     elif p == 0x31 and not a.nomaus:
+        maus['f1'] = 1
         maus_antwort(v)
+    elif p == 0x30:
+        maus['f1'] = 0
 
 def mem_hook(uc, acc, addr, size, value, ud):
     if acc == UC_MEM_READ:

@@ -101,12 +101,31 @@ def maus_antwort(c):
         y = 399 - st['sy']
         maus['aus'] = bytearray([st['sx'] & 0xFF, st['sx'] >> 8, y & 0xFF, y >> 8, st['sb']])
 
+# 8253 grob: jede Abfrage eines Anschlusses kostet 3 us. Kanal 2 wie
+# unter DOS 3.3 (Modus 3, 27463), nach Steuerwort B4h Modus 2 (2 us je
+# Schritt); Kanal 0 mit rund 56 Hz.
+pit = dict(t=0, m2=False, latch={0: 0, 2: 0}, lo={0: True, 2: True})
+def pit_wert(k):
+    t = pit['t']
+    if k == 0:
+        return (0x323 - t // 17825) & 0xFFFF
+    if pit['m2']:
+        return (65536 - (t // 2) % 65536) & 0xFFFF
+    return 27463 - t % 27463
+
 def port_in(uc, port, size, ud):
     p = port & 0xFF
     v = 0xFF
+    pit['t'] += 3
+    if p in (0x80, 0x82):
+        k = p - 0x80
+        w = pit['latch'][k]
+        v = w & 0xFF if pit['lo'][k] else w >> 8
+        pit['lo'][k] = not pit['lo'][k]
+        return v
     if p == 0xA0:
         gdc['vs'] += 1
-        v = 0x04 | (0x20 if (gdc['vs'] // 7) & 1 else 0) | (1 if gdc['lese'] else 0)
+        v = 0x04 | (0x20 if (gdc['vs'] // 7) & 1 else 0) | (0x40 if (gdc['vs'] // 2) & 1 else 0) | (1 if gdc['lese'] else 0)
     elif p == 0xA1:
         gdc_flush()
         v = gdc['lese'].pop(0) if gdc['lese'] else 0
@@ -116,7 +135,7 @@ def port_in(uc, port, size, ud):
         if p == 0x30:
             v = maus['aus'].pop(0) if maus['aus'] else 0
         elif p == 0x31:
-            v = 1 if maus['aus'] else 0
+            v = (1 if maus['aus'] else 0) | (8 if maus.get('f1') else 0)   # F1 = A0 des letzten Schreibens
         elif p == 0x33:
             v = 0x80
         else:
@@ -133,7 +152,21 @@ def port_out(uc, port, size, value, ud):
     elif p in (0xA0, 0xA2):
         gdc['eintrag'].append(v)
     elif p == 0x31 and not a.nomaus:
+        maus['f1'] = 1
         maus_antwort(v)
+    elif p == 0x30:
+        maus['f1'] = 0
+    elif p == 0x83:                     # 8253 Steuerwort
+        k = v >> 6
+        if k in (0, 2) and (v & 0x30) == 0:
+            pit['latch'][k] = pit_wert(k); pit['lo'][k] = True
+        elif v == 0xB4:
+            pit['m2'] = True
+    elif p == 0x11:                     # ROM ueber 0-1FFFh: Kennbuchstabe
+        st['rom'] = bytes(mu.mem_read(0x0FF9, 1))
+        mu.mem_write(0x0FF9, b'M' if a.mono else b'C')
+    elif p == 0x10 and 'rom' in st:
+        mu.mem_write(0x0FF9, st.pop('rom'))
 
 def R(r): return mu.reg_read(r)
 def W(r, v): mu.reg_write(r, v & 0xFFFF)

@@ -24,7 +24,7 @@ const
   GE_NR = 90;  GE_PLATZ = 91;  GE_DATEI = 92;  GE_KURZ = 93;
   GE_FORM = 94;  GE_LEER = 95;  GE_LAGE = 96;  GE_HW = 99;
 
-  QLMAX = hwQL;   GBMAX = 64;  GLMAX = 200;  BANDH = 8;  QBUF = 1280;
+  QLMAX = hwQL;   GBMAX = 64;  GLMAX = 200;  BANDH = 8;  QBUF = hwQB;
   EB = 640;                         { BANDH * 80: Abstand der Ebenen im Band }
   ZHMAX = 32;  ZKH = 48;  ZKB = 12;    { Mauszeiger }
 
@@ -43,21 +43,6 @@ const
     ($FF,$FF,$00,$00,$FF,$FF,$00,$00), ($33,$33,$33,$33,$33,$33,$33,$33),
     ($0F,$0F,$0F,$0F,$F0,$F0,$F0,$F0), ($00,$00,$00,$00,$00,$00,$00,$00));
 
-  { sin(t) * 256 fuer t = 0..45 Grad }
-  qsin: array[0..45] of integer = (
-      0,   4,   9,  13,  18,  22,  27,  31,  36,  40,  44,  49,
-     53,  58,  62,  66,  71,  75,  79,  83,  88,  92,  96, 100,
-    104, 108, 112, 116, 120, 124, 128, 132, 136, 139, 143, 147,
-    150, 154, 158, 161, 165, 168, 171, 175, 178, 181);
-
-  { Kreisachtel: 7220-Richtung, Startpunkt in Radien (y nach unten), DM,
-    Grundwinkel, Drehsinn }
-  qokt: array[0..7, 0..5] of integer = (
-    (4,  1,  0, 0,   0,  1), (7,  1,  0, 1,   0, -1),
-    (1,  0, -1, 0,  90, -1), (6,  0, -1, 1,  90,  1),
-    (0, -1,  0, 0, 180,  1), (3, -1,  0, 1, 180, -1),
-    (2,  0,  1, 0, 270,  1), (5,  0,  1, 1, 270, -1));
-
   bfa: array[0..15] of integer = (0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7);
   bfm: array[0..15] of integer = (0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 7);
   bnlo: array[0..15] of byte = (0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0);
@@ -69,6 +54,7 @@ type
 var
   gerr: integer;                    { Ergebnis des letzten Aufrufs }
   qneb, qhw, qx, qy, qorig, qan, qcol, qmode, qpatt, qzoom, qzs: integer;
+  qbcol: integer;                   { Hintergrund der Muster, -1 keiner }
   qebad: array[0..2] of integer;
   qebit: array[0..2] of integer;
   ql: array[0..QLMAX] of byte;
@@ -78,6 +64,13 @@ var
   grz: integer;                     { grnd }
   gmb: array[0..7] of byte;         { Mausblock }
 
+
+var
+  qth, qtl: array[0..31] of byte;   { Tonwarteschlange }
+  qtk, qtt, qtp: integer;           { Kopf, Ende, Stufe }
+  qbtu: array[0..35] of integer;    { Tabelle fuer ghblit }
+  qbtn: integer;
+  qbsch: boolean;                   { schneller Weg fuer Bilder an }
 
 procedure qzhid; forward;
 procedure qzwied; forward;
@@ -162,7 +155,7 @@ procedure qflush;
 begin
   if qn <> 0 then begin
     ql[qn] := 0;
-    if qan <> 0 then ghlist(ql);
+    if qan <> 0 then ghlist(ql) else hwWst := false;
     qn := 0;
   end;
   qe := -1;
@@ -177,6 +170,7 @@ end;
 procedure qcmd(c: integer);
 begin
   qplatz(24);
+  hwWst := false;                   { anderer Befehl: MASK/FIGS neu }
   qe := qn;
   ql[qn] := 1; ql[qn + 1] := c;
   qn := qn + 2;
@@ -192,6 +186,20 @@ end;
 procedure qwrd(w: integer);
 begin
   qpar(Lo(w)); qpar(Hi(w));
+end;
+
+procedure qpars(var ss; n: integer);   { n Parameter auf einmal }
+begin
+  Move(ss, ql[qn], n);
+  qn := qn + n;
+  ql[qe] := ql[qe] + n;
+end;
+
+procedure qpfill(v, n: integer);       { n gleiche Parameter }
+begin
+  FillChar(ql[qn], n, v);
+  qn := qn + n;
+  ql[qe] := ql[qe] + n;
 end;
 
 { Block von n Zeilen zu nc Worten ab Bildzeile sy, Wortspalte c auf den
@@ -225,8 +233,10 @@ end;
 procedure qcurs(adr, p: integer);
 begin
   qcmd($49);
-  qwrd(adr);
-  qpar((p and 15) shl 4);
+  ql[qn] := Lo(adr); ql[qn + 1] := Hi(adr);
+  ql[qn + 2] := (p and 15) shl 4;
+  qn := qn + 3;
+  ql[qe] := 4;
 end;
 
 procedure qzm(z: integer);          { GCHRD-Zoom }
@@ -305,10 +315,9 @@ begin
       qcmd(w);
       qcurs(qadr(e, sx, sy), sx and 15);
       qcmd($78);
-      for i := 0 to nm - 1 do
-        if k = 2 then qpar($FF) else qpar(mu[i]);
+      if k = 2 then qpfill($FF, nm) else qpars(mu, nm);
       qcmd($4C);
-      for i := 0 to nf - 1 do qpar(fp[i]);
+      qpars(fp, nf);
       qcmd(ende);
     end;
   end;
@@ -346,7 +355,7 @@ begin
   qflush;
   ghgraf(true);
   qan := 1;
-  qzs := 0; qpatt := 0; qzoom := 0; qmode := 1; qcol := 7;
+  qzs := 0; qpatt := 0; qzoom := 0; qmode := 1; qcol := 7; qbcol := -1;
   qx := 0; qy := 0;
   gerr := 0;
 end;
@@ -370,9 +379,9 @@ begin
     qcmd($22);
     qcurs(qadr(e, 0, 399), 0);
     qcmd($78);
-    for i := 1 to 8 do qpar($FF);
+    qpfill($FF, 8);
     qcmd($4C);
-    for i := 0 to 4 do qpar(fp[i]);
+    qpars(fp, 5);
     qcmd($68);
   end;
   qflush;
@@ -414,6 +423,26 @@ begin
   else begin qpatt := p; gerr := 0; end;
 end;
 
+{ Eigenes Muster p (0-15) aus 8 Zeilen von oben, Bit 0 = links }
+procedure gpdef(p: integer; var mm);
+var m: array[0..7] of byte absolute mm;
+    i: integer;
+begin
+  if (p < 0) or (p > 15) then gerr := GE_MUST
+  else begin
+    for i := 0 to 7 do qmust[p, i] := m[i];
+    gerr := 0;
+  end;
+end;
+
+{ Hintergrundfarbe fuer Muster in Flaechen (gbox): 0-7, dann zweifarbig
+  und deckend; -1 (Vorgabe) nur die Musterpunkte }
+procedure gbcol(c: integer);
+begin
+  if (c < -1) or (c > 7) then gerr := GE_MODUS
+  else begin qbcol := c; gerr := 0; end;
+end;
+
 procedure gzoom(z: integer);
 begin
   if (z < 0) or (z > 15) then gerr := GE_ZOOM
@@ -423,67 +452,26 @@ end;
 { ------------------------------------------------------------------ }
 { Linien, Rechtecke, Kreise                                          }
 
-procedure gline(x, y: integer);
-var fp: array[0..8] of byte;
-    x0, y0, x1, y1, dx, dy, ax, ay, dir, maj, min: integer;
+{ Muster am Schirm verankern: der 7220 beginnt GCHRD an der unteren
+  linken Ecke (sx, sb) mit PRAM 15 und zeichnet die Zeilen abwechselnd
+  von links und von rechts. Fuer Richtung 0 ohne Zoom die Musterzeilen
+  so drehen, dass Punkt (x, y) Bit x and 7 von Zeile y and 7 bekommt. }
+procedure qmanker(var mm; p, sx, sb, w: integer);
+var mu: array[0..7] of byte absolute mm;
+    r, c, v: integer;
 begin
-  if x < 0 then begin gerr := 5; exit; end;
-  if x > 639 then begin gerr := 6; exit; end;
-  if y < 0 then begin gerr := 7; exit; end;
-  if y > 399 then begin gerr := 8; exit; end;
-  x0 := qx; y0 := qsy(qy);
-  x1 := x;  y1 := qsy(y);
-  dx := x1 - x0; dy := y1 - y0;
-  ax := Abs(dx); ay := Abs(dy);
-  if dy >= 0 then begin
-    if dx >= 0 then begin if ay >= ax then dir := 0 else dir := 1; end
-    else begin if ay >= ax then dir := 7 else dir := 6; end;
-  end else begin
-    if dx > 0 then begin if ax >= ay then dir := 2 else dir := 3; end
-    else begin if ay >= ax then dir := 4 else dir := 5; end;
+  for r := 0 to 7 do begin
+    v := qmust[p, (sb - r) and 7];
+    if (r and 1) <> 0 then c := (sx + w) and 7 else c := sx and 7;
+    mu[7 - r] := ((v shr c) or (v shl (8 - c))) and $FF;
   end;
-  if (dir = 0) or (dir = 3) or (dir = 4) or (dir = 7) then begin
-    maj := ay; min := ax;
-  end else begin
-    maj := ax; min := ay;
-  end;
-  fp[0] := dir or $08;
-  fp[1] := Lo(maj);
-  fp[2] := (Hi(maj) and $3F) or $40;
-  qput(fp, 3, 2 * min - maj);
-  qput(fp, 5, 2 * (min - maj));
-  qput(fp, 7, 2 * min);
-  qfig(x0, y0, qmust[qpatt, 0], 2, fp, 9, $6C);
-  qflush;
-  qx := x; qy := y;
-  gerr := 0;
-end;
-
-procedure grect(m, n, d: integer);
-var fp: array[0..10] of byte;
-    sx, sy: integer;
-begin
-  if (d < 0) or (d > 7) then begin gerr := GE_RICHT; exit; end;
-  if m < 2 then begin gerr := 80; exit; end;
-  if m > 640 then begin gerr := 81; exit; end;
-  if n < 2 then begin gerr := 82; exit; end;
-  if n > 640 then begin gerr := 83; exit; end;
-  qank(qx, qsy(qy), d, n - 1, sx, sy);
-  fp[0] := $40 or qdir(d);
-  fp[1] := 3;
-  fp[2] := $40;
-  qput(fp, 3, m - 1);
-  qput(fp, 5, n - 1);
-  qput(fp, 7, $3FFF);
-  qput(fp, 9, m - 1);
-  qfig(sx, sy, qmust[qpatt, 0], 2, fp, 11, $6C);
-  qflush;
-  gerr := 0;
 end;
 
 procedure gbox(m, n, d: integer);
 var fp: array[0..4] of byte;
-    sx, sy, z: integer;
+    mu, mz: array[0..7] of byte;
+    sx, sy, z, e, i: integer;
+    f, h: boolean;
 begin
   z := qzoom + 1;
   if (d < 0) or (d > 7) then begin gerr := GE_RICHT; exit; end;
@@ -497,75 +485,65 @@ begin
   qput(fp, 1, n - 1);
   fp[2] := fp[2] or $40;
   qput(fp, 3, m);
-  qfig(sx, sy, qmust[qpatt, 0], 8, fp, 5, $68);
-  qflush;
-  gerr := 0;
-end;
-
-procedure qbog(cx, cy, r, k, t0, t1: integer);  { Achtel k von t0 bis t1 Grad }
-var fp: array[0..10] of byte;
-    dm, dc: integer;
-begin
-  dm := Trunc((1.0 * qsin[t0] * r + 255) / 256);
-  dc := Trunc((1.0 * qsin[t1] * r) / 256);
-  if t0 = 0 then dm := qokt[k, 3];
-  if dm > dc then exit;
-  fp[0] := $20 or qokt[k, 0];
-  fp[1] := Lo(dc);
-  fp[2] := (Hi(dc) and $3F) or $40;
-  qput(fp, 3, r - 1);
-  qput(fp, 5, 2 * (r - 1));
-  qput(fp, 7, $3FFF);
-  qput(fp, 9, dm);
-  qfig(cx + r * qokt[k, 1], cy + r * qokt[k, 2], qmust[qpatt, 0], 2, fp, 11, $6C);
-end;
-
-function qwink(a: integer): integer;   { auf 0..359 }
-begin
-  { mod nur mit nicht negativen Zahlen: TP3 fuer den Z80 rechnet sonst
-    anders als TP3 fuer den 8086 }
-  if a >= 0 then qwink := a mod 360
-  else qwink := 359 - ((-1 - a) mod 360);
-end;
-
-procedure garc(r, a, e: integer);
-var cx, cy, k, t, t0, w, l: integer;
-    voll, drin: boolean;
-begin
-  if (r < 1) or (r > 1000) then begin gerr := GE_RAD; exit; end;
-  cx := qx;
-  cy := qsy(qy);
-  voll := (e - a >= 360) or (a - e >= 360);
-  if qorig <> 0 then begin          { gespiegelt: Winkel umdrehen }
-    t := a; a := -e; e := -t;
-  end;
-  a := qwink(a);
-  l := qwink(e - a);
-  if (l = 0) and (e <> a) then voll := true;
-  for k := 0 to 7 do
-    if voll then qbog(cx, cy, r, k, 0, 45)
-    else begin
-      t0 := -1;
-      for t := 0 to 46 do begin
-        drin := false;
-        if t <= 45 then begin
-          w := qwink(qokt[k, 4] + qokt[k, 5] * t - a);
-          drin := w <= l;
-        end;
-        if drin and (t0 < 0) then t0 := t;
-        if (not drin) and (t0 >= 0) then begin
-          qbog(cx, cy, r, k, t0, t - 1);
-          t0 := -1;
-        end;
+  if (d = 0) and (qzoom = 0) then qmanker(mu, qpatt, sx, sy, m)
+  else Move(qmust[qpatt, 0], mu, 8);
+  if qbcol < 0 then qfig(sx, sy, mu, 8, fp, 5, $68)
+  else
+    for e := 0 to qneb - 1 do begin { zweifarbig: je Ebene ersetzen }
+      f := qebon(e, qcol);
+      h := qebon(e, qbcol);
+      for i := 0 to 7 do begin
+        mz[i] := 0;
+        if f then mz[i] := mu[i];
+        if h then mz[i] := mz[i] or ((not mu[i]) and $FF);
       end;
+      qplatz(48);
+      qcmd($20);
+      qcurs(qadr(e, sx, sy), sx and 15);
+      qcmd($78);
+      qpars(mz, 8);
+      qcmd($4C);
+      qpars(fp, 5);
+      qcmd($68);
     end;
   qflush;
   gerr := 0;
 end;
 
-procedure gcircl(r: integer);
+{ Tabelle fuer ghblit: je Ebene, was aus einer gespeicherten Bildzeile
+  (np = 1: nur Punkte in der Farbe, sonst Maske und Ebenen zu je bb Byte)
+  zu schreiben ist. art: deckend, durchsichtig, umkehren. }
+procedure qbe(e, w, m, x, v, z: integer);
 begin
-  garc(r, 0, 360);
+  qbtu[qbtn * 6] := qebad[e]; qbtu[qbtn * 6 + 1] := w;
+  qbtu[qbtn * 6 + 2] := m; qbtu[qbtn * 6 + 3] := x;
+  qbtu[qbtn * 6 + 4] := v; qbtu[qbtn * 6 + 5] := z;
+  qbtn := qbtn + 1;
+end;
+
+procedure qbtupel(np, bb, art: integer);
+var e, v, ff: integer;
+    an: boolean;
+begin
+  qbtn := 0;
+  ff := hwAdrI(hwFF);
+  for e := 0 to qneb - 1 do begin
+    an := qebon(e, qcol);
+    if np = 1 then begin            { Punkte in der Farbe }
+      case art of
+        0: if an then qbe(e, $20, ff, 0, 0, 0) else qbe(e, $20, 0, 0, 0, 1);
+        1: if an then qbe(e, $23, 0, 0, 0, 0) else qbe(e, $22, 0, 0, 0, 0);
+        3: if an then qbe(e, $21, 0, 0, 0, 0);
+      end;
+    end else begin                  { Maske und Ebenen }
+      v := (e + 1) * bb;
+      case art of
+        0: qbe(e, $20, ff, 0, v, 0);
+        1: begin qbe(e, $22, 0, -1, v, 0); qbe(e, $23, 0, 0, v, 0); end;
+        3: qbe(e, $21, 0, 0, v, 0);
+      end;
+    end;
+  end;
 end;
 
 { ------------------------------------------------------------------ }
@@ -573,60 +551,20 @@ end;
 
 { Eine Bitzeile (Bit 0 = Punkt sx) in Ebene e mit WDAT-Befehl w.
   a: 0 Bits, 1 Bits umgekehrt, 2 lauter Einsen, 3 lauter Nullen }
-const qrkopf: array[0..13] of byte =
-        (4, $49, 0, 0, 0, 3, $4A, $FF, $FF, 4, $4C, 2, 0, 0);
-      qletzt: array[0..7] of byte = ($FF, 1, 3, 7, 15, 31, 63, 127);
-
 procedure qrow(sy, sx: integer; var bb; nb, e, w, a: integer);
-var b: GBytes absolute bb;
-    j, v, alt, nw, sh, n8, k, letzt, i, adr, p: integer;
-    leer: boolean;
 begin
   if (nb <= 0) or (sy < 0) or (sy > 399) then exit;
-  sh := sx and 15;
-  nw := (sh + nb + 15) shr 4;
-  n8 := (nb + 7) shr 3;
-  letzt := qletzt[nb and 7];
-  qplatz(40 + 2 * nw);              { kein Ausgeben mittendrin }
-  adr := qadr(e, sx, sy);
-  Move(qrkopf, ql[qn], 14);         { CURS, MASK, FIGS }
-  ql[qn + 2] := Lo(adr); ql[qn + 3] := Hi(adr);
-  k := nw + nw;
-  ql[qn + 14] := 1 + k; ql[qn + 15] := w;
-  qe := qn + 14;
-  qn := qn + 16;
-  p := qn;
-  if (sh = 0) and (a = 0) and ((nb and 15) = 0) then begin   { ganze Worte }
-    Move(b, ql[p], k);
-    qn := qn + k;
-    exit;
-  end;
-  ql[qe] := 1;
-  i := -(sh shr 3);
-  sh := sh and 7;
-  alt := 0;
-  leer := true;
-  j := 0;
-  if i < 0 then begin ql[p] := 0; j := 1; end;
-  v := n8;
-  if v > k - j then v := k - j;
-  if v > 0 then begin
-    if v = n8 then i := letzt else i := $FF;
-    ghschieb(b, ql[p + j], v, sh, a, i, alt, leer);
-    j := j + v;
-  end;
-  if j < k then begin               { Rest: Uebertrag, dann Nullen }
-    ql[p + j] := alt;
-    if alt <> 0 then leer := false;
-    if k - j > 1 then FillChar(ql[p + j + 1], k - j - 1, 0);
-  end;
-  if leer and (w <> $20) then begin  { nichts zu tun: Eintrag zurueck }
-    qn := qe - 14;
-    qe := -1;
-    exit;
-  end;
-  qn := qn + k;
-  ql[qe] := ql[qe] + k;
+  qplatz(50 + (nb shr 3));          { kein Ausgeben mittendrin }
+  ghrow(ql, qn, qe, qadr(e, sx, sy), sx, nb, w, a, bb, bb);
+end;
+
+{ Wie qrow mit Maske mm: a = 4 zeichnet mm and not pp, a = 5 mm and pp,
+  a = 6 erst mm and not pp mit w, dann mm and pp mit w + 1 }
+procedure qrowm(sy, sx: integer; var pp; var mm; nb, e, w, a: integer);
+begin
+  if (nb <= 0) or (sy < 0) or (sy > 399) then exit;
+  if a = 6 then qplatz(48 + (nb shr 2)) else qplatz(50 + (nb shr 3));
+  ghrow(ql, qn, qe, qadr(e, sx, sy), sx, nb, w, a, pp, mm);
 end;
 
 { Bitzeile in der aktuellen Farbe und Betriebsart auf alle Ebenen }
@@ -667,39 +605,8 @@ begin
       if fntuml[k] = c then qglyph := 95 + k;
 end;
 
-{ n Bits ab Bit off von ss nach dd, jedes z1-mal (hoechstens 640 Bit).
-  Bit fuer Bit mit wanderndem Maskenbit statt 1 shl k: auf dem Z80
-  ist ein Schieben um k Stellen eine Schleife. }
-procedure qzbits(var dd; var ss; off, n, z1: integer);
-var d: GBytes absolute dd;
-    s: GBytes absolute ss;
-    m, si, im, sv, di, om, ov, i, c, j: integer;
-    an: boolean;
-begin
-  m := n * z1;
-  if m > 640 then m := 640;
-  si := off shr 3;
-  im := 1 shl (off and 7);
-  sv := s[si];
-  di := 0; om := 1; ov := 0; j := 0; i := 0;
-  while (i < n) and (j < m) do begin
-    an := (sv and im) <> 0;
-    c := z1;
-    while (c > 0) and (j < m) do begin
-      if an then ov := ov or om;
-      om := om + om;
-      if om = 256 then begin d[di] := ov; di := di + 1; ov := 0; om := 1; end;
-      j := j + 1; c := c - 1;
-    end;
-    im := im + im;
-    if im = 256 then begin im := 1; si := si + 1; sv := s[si]; end;
-    i := i + 1;
-  end;
-  if om <> 1 then d[di] := ov;
-end;
-
 var qtz, qtz2: array[0..79] of byte;
-    qgi: array[0..79] of integer;
+    qgi: array[0..79] of byte;
 
 procedure qtxt0(var s: GStr; n: integer);   { waagrecht, wortweise }
 var z1, gr, zr, i, sy, nb: integer;
@@ -708,13 +615,13 @@ begin
   nb := n * 8 * z1;
   sy := qsy(qy);
   if qorig = 0 then sy := sy - (16 * z1 - 1);
-  for i := 0 to n - 1 do qgi[i] := qglyph(Ord(s[i + 1])) * 16;
+  for i := 0 to n - 1 do qgi[i] := qglyph(Ord(s[i + 1]));
   for gr := 0 to 15 do begin
-    for i := 0 to n - 1 do qtz[i] := fntbit[qgi[i] + gr];
+    for i := 0 to n - 1 do qtz[i] := fntbit[qgi[i] * 16 + gr];
     if z1 = 1 then
       qbits(sy + gr, qx, qtz, nb)
     else begin
-      qzbits(qtz2, qtz, 0, n * 8, z1);
+      ghzbits(qtz2, qtz, 0, n * 8, z1);
       for zr := 0 to z1 - 1 do qbits(sy + gr * z1 + zr, qx, qtz2, nb);
     end;
   end;
@@ -723,7 +630,7 @@ end;
 procedure qtxtd(var s: GStr; n, d: integer);  { je Zeichen zwei 8x8-Muster }
 var fp: array[0..4] of byte;
     mu: array[0..7] of byte;
-    z1, td, ud, sx, sy, i, h, r, g, x, y: integer;
+    z1, td, ud, sx, sy, i, g, st, dxi, dyi, dxh, dyh: integer;
 begin
   z1 := qzoom + 1;
   td := qdir(d);
@@ -731,16 +638,17 @@ begin
   qank(qx, qsy(qy), d, 16 * z1 - 1, sx, sy);
   qzm(qzoom);
   fp[0] := $10 or td; fp[1] := 7; fp[2] := $40; fp[3] := 8; fp[4] := 0;
+  st := 8 * z1;                     { Schritt je Zeichen und Haelfte }
+  dxi := st * qdx[td]; dyi := st * qdy[td];
+  dxh := st * qdx[ud]; dyh := st * qdy[ud];
   for i := 0 to n - 1 do begin
     g := qglyph(Ord(s[i + 1])) * 16;
-    for h := 0 to 1 do begin
-      { PRAM 8 = oberste Zeile, 15 = unterste: untere Haelfte zuerst }
-      for r := 0 to 7 do
-        if h = 0 then mu[r] := fntbit[g + 8 + r] else mu[r] := fntbit[g + r];
-      x := sx + i * 8 * z1 * qdx[td] + h * 8 * z1 * qdx[ud];
-      y := sy + i * 8 * z1 * qdy[td] + h * 8 * z1 * qdy[ud];
-      qfig(x, y, mu, 8, fp, 5, $68);
-    end;
+    { PRAM 8 = oberste Zeile, 15 = unterste: untere Haelfte zuerst }
+    Move(fntbit[g + 8], mu, 8);
+    qfig(sx, sy, mu, 8, fp, 5, $68);
+    Move(fntbit[g], mu, 8);
+    qfig(sx + dxh, sy + dyh, mu, 8, fp, 5, $68);
+    sx := sx + dxi; sy := sy + dyi;
   end;
 end;
 
@@ -767,6 +675,12 @@ end;
 { ------------------------------------------------------------------ }
 { Maus, Tastatur, Zeit, Auskunft, Ton (GEIN.C)                       }
 
+{ Ist das eine DMV? Liest nur die Statusbits des 7220 (vor ginit). }
+function gdmv: boolean;
+begin
+  gdmv := hwDMV;
+end;
+
 procedure ginfo(var f, m, s, c: integer);
 var r: integer;
 begin
@@ -781,55 +695,88 @@ begin
   gerr := r;
 end;
 
-{ K806 Befehl 00h: X low, X high, Y low, Y high, Schalter; Y zaehlt wie
-  NCRGRAF nach oben (0 = unten) }
-function mpos(var x, y, k: integer): boolean;
-var v: integer;
+{ ---- Ton: Warteschlange fuer den Tastatur-8741 (Befehl 06h, Ton + 20h,
+  Laenge + 1Fh). Der 8741 spielt einen Ton selbst; der naechste Befehl
+  wartet in seinem Eingangspuffer, bis der laufende fertig ist. tpump
+  schickt, was geht, und wartet nie; gwait und gkey rufen es auf. }
+
+procedure tpump;
+var i, k: integer;
 begin
-  mpos := false;
-  if qstart <> 0 then exit;
-  if (qhw and GH_MAUS) = 0 then exit;
-  qzwied;
-  gmb[0] := 0; gmb[1] := 5;
-  if ghmaus(0, gmb) <> 0 then exit;
-  x := gmb[2] + 256 * gmb[3];
-  v := gmb[4] + 256 * gmb[5];
-  if v < 0 then v := 0;
-  if v > 399 then v := 399;
-  if qorig <> 0 then y := 399 - v else y := v;
-  k := gmb[6] and 7;
-  mpos := true;
+  for i := 1 to 4 do begin
+    if qtp = 0 then begin
+      if qtk = qtt then exit;
+      if not ghkfrei then exit;
+      ghkaus(true, 6);
+      qtp := 1;
+    end;
+    if qtp = 1 then begin
+      if not ghkfrei then exit;     { voriger Ton laeuft noch }
+      ghkaus(false, qth[qtk] + $20);
+      qtp := 2;
+    end;
+    k := 0;
+    while (not ghkfrei) and (k < 200) do k := k + 1;
+    if not ghkfrei then exit;
+    ghkaus(false, qtl[qtk] + $1F);
+    qtk := (qtk + 1) and 31;
+    qtp := 0;
+  end;
 end;
 
-procedure mset(x, y: integer);
+{ Ton h (1-42, 0 Pause) fuer l * 20 ms in die Warteschlange; voll: GE_PLATZ }
+procedure tonq(h, l: integer);
 begin
-  gerr := GE_HW;
-  if qstart <> 0 then exit;
-  if (qhw and GH_MAUS) = 0 then exit;
-  if qorig <> 0 then y := 399 - y;
-  gmb[0] := 4; gmb[1] := Lo(x); gmb[2] := Hi(x);
-  gmb[3] := Lo(y); gmb[4] := Hi(y); gmb[5] := 0;
-  if ghmaus(4, gmb) <> 0 then gerr := GE_HW else gerr := 0;
+  gerr := GE_FORM;
+  if (h < 0) or (h > 42) or (l < 1) or (l > 224) then exit;
+  gerr := GE_PLATZ;
+  if ((qtt + 1) and 31) = qtk then exit;
+  qth[qtt] := h; qtl[qtt] := l;
+  qtt := (qtt + 1) and 31;
+  gerr := 0;
+  tpump;
+end;
+
+{ Wie tonq (frueher: sofort spielen und dabei warten) }
+procedure ton(h, l: integer);
+begin
+  tonq(h, l);
+end;
+
+procedure tonclr;                   { Wartendes verwerfen }
+begin
+  if qtp = 0 then qtt := qtk
+  else qtt := (qtk + 1) and 31;     { angefangenen Ton zu Ende senden }
+end;
+
+{ Alles an den 8741 geschickt? (Ob der letzte Ton noch klingt, sieht man
+  ihm nicht an.) }
+function tonidle: boolean;
+begin
+  tpump;
+  tonidle := (qtk = qtt) and (qtp = 0);
 end;
 
 function gkey: integer;
 begin
   qzwied;
+  tpump;
   gkey := ghtast;
 end;
 
 procedure gwait(n: integer);
+var k: integer;
 begin
   qzwied;
   qflush;
-  while n > 0 do begin ghvsyn; n := n - 1; end;
+  while n > 0 do begin              { Bildwechsel, dabei Toene schicken }
+    k := 0;
+    while ((ghstat and $20) <> 0) and (k < 30000) do begin tpump; k := k + 1; end;
+    k := 0;
+    while ((ghstat and $20) = 0) and (k < 30000) do begin tpump; k := k + 1; end;
+    n := n - 1;
+  end;
   gerr := 0;
-end;
-
-procedure ton(h, l: integer);
-begin
-  if (h < 0) or (h > 42) or (l < 1) or (l > 224) then gerr := GE_FORM
-  else gerr := ghton(h, l);
 end;
 
 function gdirekt(an: integer): integer;
@@ -868,6 +815,7 @@ end;
 procedure gstart;
 begin
   qhw := -2; qneb := 3; qcol := 7; qmode := 1; qpatt := 0; qzoom := 0;
+  qbcol := -1; qtk := 0; qtt := 0; qtp := 0; qbsch := true;
   qorig := 0; qan := 0; qx := 0; qy := 0; qzs := 0;
   qn := 0; qe := -1; qzeig := false;
   gbstart;

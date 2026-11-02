@@ -48,6 +48,11 @@ extern long ghsgro();   /* (blk) -> Groesse in Byte */
 extern int ghsput();    /* (blk, UW ziel, char *quelle, n) */
 extern int ghsget();    /* (char *ziel, blk, UW quelle, n) */
 extern int ghsmov();    /* (blk, UW ziel, UW quelle, UW n), ziel < quelle */
+/* Bild direkt an den 7220 wie HOPPLERs BlitAsm (nur MS-DOS):
+   (blk, UW o, n, rs, nw, lm, UW ad, int *tu, nt) -> 0, -1 kein Weg */
+extern int ghblit();
+extern int qbsch;       /* schneller Weg fuer Bilder an */
+extern int qbtupel();   /* (np, bb, art, int *tu) -> Zahl der Eintraege */
 
 /* ---- GRAF.C ---- */
 extern int qneb;        /* Ebenen 1 oder 3 */

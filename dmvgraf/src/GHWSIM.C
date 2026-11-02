@@ -492,3 +492,11 @@ UW z, q, n;
         memmove(&spei[b][z], &spei[b][q], n);
         return 0;
 }
+
+/* Bild direkt an den 7220: hier kein eigener Weg */
+int ghblit(b, o, n, rs, nw, lm, ad, tu, nt)
+int b, n, rs, nw, lm, nt, *tu;
+UW o, ad;
+{
+        return -1;
+}

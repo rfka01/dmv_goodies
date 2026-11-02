@@ -305,7 +305,7 @@ def ein(port):
     v = 0xFF
     if p == 0xA0:
         gdc['vs'] += 1
-        v = 0x04 | (0x20 if (gdc['vs'] // 7) & 1 else 0) | (1 if gdc['lese'] else 0)
+        v = 0x04 | (0x20 if (gdc['vs'] // 7) & 1 else 0) | (0x40 if (gdc['vs'] // 2) & 1 else 0) | (1 if gdc['lese'] else 0)
     elif p == 0xA1:
         gdc_flush()
         v = gdc['lese'].pop(0) if gdc['lese'] else 0
@@ -313,7 +313,7 @@ def ein(port):
         v = 0
     elif 0x30 <= p <= 0x33 and not a.nomaus and a.skript:
         if p == 0x30: v = maus['aus'].pop(0) if maus['aus'] else 0
-        elif p == 0x31: v = 1 if maus['aus'] else 0
+        elif p == 0x31: v = (1 if maus['aus'] else 0) | (8 if maus.get('f1') else 0)   # F1
         elif p == 0x33: v = 0x80
         else: v = 0
     return v
@@ -329,7 +329,16 @@ def aus(port, v):
         gdc['eintrag'].append(v)
     elif p == 0xFE and a.zeit:          # Messpunkt: OUT (FEh),n
         print('Messpunkt %d: %d Takte (%.2f s bei 4 MHz)' % (v, st['takte'], st['takte'] / 4e6))
-    elif p == 0x31 and v == 0 and not a.nomaus:
+    elif p == 0x30:
+        maus['f1'] = 0
+    elif p == 0x11:                     # ROM ueber 0-1FFFh: Kennbuchstabe
+        st['rom'] = m.memory[0x0FF9]
+        m.memory[0x0FF9] = ord('M' if a.mono else 'C')
+    elif p == 0x10 and 'rom' in st:
+        m.memory[0x0FF9] = st.pop('rom')
+    elif p == 0x31 and not a.nomaus:
+        maus['f1'] = 1
+    if p == 0x31 and v == 0 and not a.nomaus:
         y = 399 - st['sy']
         maus['aus'] = bytearray([st['sx'] & 0xFF, st['sx'] >> 8, y & 0xFF, y >> 8, st['sb']])
 

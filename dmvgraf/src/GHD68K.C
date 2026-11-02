@@ -200,42 +200,62 @@ UW a, w;
         return 0;
 }
 
-/* Farbe: die Monochromkarte dekodiert nur A0-A13 und findet ihre gruene
-   Ebene bei 4000h und 8000h gespiegelt (MAME dmv.cpp, an echter
-   Hardware bestaetigt). Geprueft wird hinter dem Textbereich. */
+/* Bildschirm nach HWA 3: die Farbkarte hat drei Ebenen zu 16 K Worten,
+   die Monokarte eine (sie spiegelt 4000h auf 0000h). Alte Worte sichern,
+   A5C3h nach 3FF0h und 3C5Ah nach 7FF0h, in der Reihenfolge 7FF0h,
+   3FF0h zuruecklesen, alte Worte zurueck. Bleiben beide stehen: Farbe.
+   Den Kennbuchstaben der Firmware kann der 68008 nicht lesen. */
 static int farbtest()
 {
-        UW v;
+        UW a3, a7, v3, v7;
 
-        wschr((UW)0x3FF0, (UW)0x1234);
-        wschr((UW)0x7FF0, (UW)0xA55A);
-        v = wlies((UW)0x3FF0);
-        wschr((UW)0x3FF0, (UW)0);
-        wschr((UW)0x7FF0, (UW)0);
-        return v == 0x1234;
+        a3 = wlies((UW)0x3FF0);
+        a7 = wlies((UW)0x7FF0);
+        wschr((UW)0x3FF0, (UW)0xA5C3);
+        wschr((UW)0x7FF0, (UW)0x3C5A);
+        v7 = wlies((UW)0x7FF0);
+        v3 = wlies((UW)0x3FF0);
+        wschr((UW)0x7FF0, a7);
+        wschr((UW)0x3FF0, a3);
+        return v3 == 0xA5C3 && v7 == 0x3C5A;
 }
 
-/* K806 auf 2A (30h-33h), wie MSPROBE im BIOS von CP/M-8000 */
+/* K806 auf 2A (30h-33h) nach HWA 5. Erst nur lesen: ein leerer Platz
+   liefert das untere Adressbyte zurueck (MAME: FFh). Dann Befehl 00h an
+   31h: Statusbit 3 (F1) zeigt Adressbit 0 des letzten Schreibens, also
+   1, und es kommen genau fuenf Datenbytes. Nichts sonst wird beschrieben. */
+#define MWART 20000
+
 static int maustest()
 {
-        int v, i;
+        int i, n, v, t;
 
-        v = 0xFF;
-        for (i = 0; i < 4; i++)
-                v &= IO(0x30 + i);
-        if (v == 0xFF)
-                return 0;
-        if (!(IO(0x33) & 0x80)) {
-                IO(0x36) = 0x4E;
-                IO(0x36) = 0x7E;
-                v = IO(0x32);
-                v = IO(0x32);
-                if (v == 0x7E || v == 0x3E)     /* 2661 (K801), 2651 */
-                        return 0;
+        n = 0;
+        for (i = 0; i < 4; i++) {
+                v = IO(0x30 + i) & 0xFF;
+                if (v == 0x30 + i || v == 0xFF)
+                        n++;
         }
+        if (n == 4)
+                return 0;
         for (i = 0; i < 64 && (IO(0x31) & 1); i++)
+                v = IO(0x30);           /* alte Daten */
+        for (t = 0; t < MWART && (IO(0x31) & 2); t++)
+                ;
+        if (t >= MWART)
+                return 0;
+        IO(0x31) = 0;
+        if (!(IO(0x31) & 8))            /* F1 */
+                return 0;
+        for (n = 0; n < 6; n++) {
+                for (t = 0; t < (n < 5 ? MWART : MWART / 8)
+                            && !(IO(0x31) & 1); t++)
+                        ;
+                if (!(IO(0x31) & 1))
+                        break;
                 v = IO(0x30);
-        return 0x30;
+        }
+        return n == 5 ? 0x30 : 0;
 }
 
 int ghdhw()

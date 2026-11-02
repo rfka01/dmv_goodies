@@ -2,11 +2,12 @@
 
 *English below.*
 
-DMVGRAF 0.2, übersetzt zum Einbinden in eigene Programme. Die Schnittstelle ist `src/DMVGRAF.H`; was die Funktionen tun, steht in `../README.md`.
+DMVGRAF 0.3, übersetzt zum Einbinden in eigene Programme. Die Schnittstelle ist `src/DMVGRAF.H`; was die Funktionen tun, steht in `../README.md`.
 
 | Verzeichnis | System | Inhalt | Werkzeuge zum Binden |
 |---|---|---|---|
-| `dos/` | MS-DOS auf der DMV (8088/V20), Speichermodell small | `GCRTDOS.O` (Startstück), `DMVGRAF.A` | gcc-ia16 (`ia16-elf-gcc`, binutils-ia16), `tools/baudos.py` |
+| `dos/` | MS-DOS auf der DMV (8088/V20), Speichermodell small (`.EXE`) | `GCRTDOS.O` (Startstück), `DMVGRAF.A` | gcc-ia16 (`ia16-elf-gcc`, binutils-ia16), `tools/baudos.py` |
+| `dos-tiny/` | MS-DOS, Speichermodell tiny (`.COM`, Code, Daten und Stapel in einem Segment) | `GCRTCOM.O` (Startstück), `DMVGRAF.A` | wie `dos/`, `baudos.py --tiny` |
 | `cpm68k/` | CP/M-68K auf der K234 (mit und ohne DMV-BIOS-Block) | `GCRT68.O` (Startstück), `DMVGRAF.A` | `m68k-linux-gnu-gcc`, `tools/bau68.py` |
 | `cpm8000/` | CP/M-8000 auf der K238 (DMV-BIOS-Block, Bilder in der K208) | `DMVGRAF.A` (Archiv für `ld8k`) | DRs `zcc`, `ld8k`, `STARTUP.O`, `LIBCPM.A` |
 
@@ -19,6 +20,12 @@ Aufruf aus Assembler, Aufrufkonventionen und andere Sprachen: [`../EINBINDEN.md`
     python3 tools/baudos.py -I src -o PROG.EXE lib/dos/GCRTDOS.O prog.c lib/dos/DMVGRAF.A
 
 Das Programm beginnt mit `main(argc, argv)`. Die EXE-Datei hat 64 KB Daten und Stapel; die Bilder legt DMVGRAF in Speicherblöcken ab, die es bei DOS anfordert (bis zu zwei zu 64 KB).
+
+Im Speichermodell tiny:
+
+    python3 tools/baudos.py --tiny -I src -o PROG.COM lib/dos-tiny/GCRTCOM.O prog.c lib/dos-tiny/DMVGRAF.A
+
+Alles liegt in einem Segment ab 100h (CS = DS = ES = SS); das Startstück kürzt den Speicher des Programms auf 64 KB, damit DOS Bildspeicher hergibt. In beiden Modellen liegt jede Funktion in einem eigenen Abschnitt, und `baudos.py` bindet mit `--gc-sections`: ins Programm kommt nur, was es aufruft (`GTEST.COM` etwa 23 KB, ein Programm nur mit `ghinfo` gut 5 KB).
 
 **CP/M-68K** (am PC):
 
@@ -35,22 +42,23 @@ Der Bildspeicher ist ein Feld von 60 KB im Programm (`GHPOOL.C` mit `GBPOOL=6144
 
 ## Stand
 
-- MS-DOS: im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn) wie die PC-Simulation; Mahjongg in MAME unter MS-DOS 3.30 getestet.
+- MS-DOS: im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn) wie die PC-Simulation, small und tiny; Mahjongg (0.2) in MAME unter MS-DOS 3.30 getestet. `gcorun` und die Koprozessorprobe in `ghinfo` sind noch nicht gelaufen.
 - CP/M-68K: im Prüfstand wie die PC-Simulation; Mahjongg in MAME unter unserem CP/M-68K 1.3 v005 und NCRs 1.2 getestet.
 - CP/M-8000: mit Mahjongg in MAME getestet.
 
-Neu bauen: `make lib` (DOS und CP/M-68K); das CP/M-8000-Archiv mit `ar8k rv dmvgraf.a graf.o gbild.o gein.o ghwcpm.o ghseg.o ghdir.o gdir.o gsc1.o gz8k.o`.
+Neu bauen: `make lib` (DOS small und tiny, CP/M-68K); das CP/M-8000-Archiv mit `ar8k rv dmvgraf.a graf.o gbild.o gein.o ghwcpm.o ghseg.o ghdir.o gdir.o gsc1.o gz8k.o`.
 
 ## English
 
-DMVGRAF 0.2, compiled for linking into your own programs. The interface is `src/DMVGRAF.H`; the functions are described in `../README.md`.
+DMVGRAF 0.3, compiled for linking into your own programs. The interface is `src/DMVGRAF.H`; the functions are described in `../README.md`.
 
 - `dos/` – MS-DOS on the DMV (8088/V20), small model: `GCRTDOS.O` start-up and `DMVGRAF.A`, for gcc-ia16. Link with `tools/baudos.py -I src -o PROG.EXE lib/dos/GCRTDOS.O prog.c lib/dos/DMVGRAF.A`. Images go into memory blocks requested from DOS (up to two of 64 KB).
+- `dos-tiny/` – MS-DOS, tiny model (.COM, everything in one segment): `GCRTCOM.O` and `DMVGRAF.A`. Link with `tools/baudos.py --tiny -I src -o PROG.COM lib/dos-tiny/GCRTCOM.O prog.c lib/dos-tiny/DMVGRAF.A`. In both DOS models every function sits in its own section and the linker drops what the program does not call.
 - `cpm68k/` – CP/M-68K on the K234, with or without the DMV BIOS block: `GCRT68.O` and `DMVGRAF.A`, for `m68k-linux-gnu-gcc`. Link with `tools/bau68.py -I src -o PROG.68K lib/cpm68k/GCRT68.O prog.c lib/cpm68k/DMVGRAF.A`. Image store: a 60 KB array in the program (compile `src/GHPOOL.C` yourself for another size and put it before the archive).
 - `cpm8000/` – CP/M-8000 on the K238: `DMVGRAF.A` for DR's `ld8k`: `ld8k -w -s -o prog.z8k startup.o prog.o dmvgraf.a -lcpm`. DR's `STARTUP.O` and `LIBCPM.A` are not included; a program linked this way contains DR's C runtime.
 
 Status: MS-DOS and CP/M-68K match the PC simulation in their test benches; Mahjongg is tested in MAME under MS-DOS 3.30, our CP/M-68K 1.3 v005 and NCR's CP/M-68K 1.2. CP/M-8000 is tested in MAME with Mahjongg.
 
-Rebuild with `make lib` (DOS and CP/M-68K).
+Rebuild with `make lib` (DOS small and tiny, CP/M-68K). `gcorun` and the coprocessor probe in `ghinfo` have not run yet.
 
 Code: Claude (Anthropic), idea and prompts: rfka01. Licence: MIT.
