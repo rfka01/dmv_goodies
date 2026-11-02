@@ -170,8 +170,8 @@ static int zrand[16] = {
         0x0003, 0x0005, 0x0009, 0x0011, 0x0021, 0x0041, 0x0081, 0x0101,
         0x0201, 0x03C1, 0x0049, 0x0095, 0x0091, 0x0120, 0x0120, 0x00C0 };
 
-/* Hopplers Frosch (SprLibF) im Format 5 */
-static int frosch[3 * 2 * 16] = {
+/* Hopplers Drachenlibelle (SprLibF) im Format 5 */
+static int libelle[3 * 2 * 16] = {
         0x0000,0x0000,0x0540,0x0FF0,0x0BD0,0x0FF0,0x6FF6,0x2BD4,
         0x2C34,0x0FF0,0x0560,0x07E0,0x0140,0x0000,0x0000,0x0000,
         0x1818,0x0FF0,0x0AB0,0x1008,0x342C,0xF00F,0x9009,0x542A,
@@ -212,7 +212,7 @@ static int bilder()
                         streif[y * 16 + x] = (i << 4) | i;
                 }
         gbdef(0, 16, 16, GB_EBN, zeig);
-        gbdef(1, 16, 16, GB_SETR, (char *)frosch);
+        gbdef(1, 16, 16, GB_SETR, (char *)libelle);
         gbdef(2, 16, 8, GB_BIT7, wagen);
         gbdef(3, 32, 24, GB_NIB, streif);
         gmode(3);
@@ -235,7 +235,7 @@ static int bilder()
                 gbput(1, k);
                 gzoom(0);
         }
-        /* Zoom 3 und GBGET: Frosch vergroessert, dann kopiert */
+        /* Zoom 3 und GBGET: Drachenlibelle vergroessert, dann kopiert */
         gpoint(20, 120);
         gzoom(3);
         gbput(1, GB_DURCH);
@@ -248,9 +248,9 @@ static int bilder()
         gpoint(180, 160);
         gmode(3);
         gcolor(7);
-        gtext("Frosch sichtbar ", 0);
+        gtext("gbinfo: Drachenlibelle sichtbar von ", 0);
         gtext(zahl(r[2]), 0); gtext(",", 0); gtext(zahl(r[3]), 0);
-        gtext("-", 0);
+        gtext(" bis ", 0);
         gtext(zahl(r[4]), 0); gtext(",", 0); gtext(zahl(r[5]), 0);
         /* Zusammensetzen: zwoelf Streifenbilder ueberlappend + Zeiger */
         glayer(180, 20, 639, 140);
