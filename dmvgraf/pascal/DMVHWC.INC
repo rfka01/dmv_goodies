@@ -14,14 +14,15 @@
 
 type
   GBytes  = array[0..32767] of byte;
-  GStr    = string[255];
+  GStr    = string[80];            { CP/M-80: eine Bildzeile, spart Platz }
   GBZeiger = ^GBytes;
 
 const
   GH_FARBE = 1;  GH_MAUS = 2;  GH_SYN = 4;  GH_COVOX = 8;
   hwZEIT   = 30000;
   hwPMAX   = 16384;                 { Bildspeicher hoechstens }
-  hwPRES   = 2048;                  { so viel Heap bleibt frei }
+  hwPRES   = 1024;                  { so viel Heap bleibt frei }
+  hwQL     = 256;                   { GDC-Liste }
 
 var
   hwK806, hwFarbe: integer;
@@ -30,6 +31,9 @@ var
   hwEad: array[0..3] of byte;
   hwWb: array[0..1] of byte;
   hwFcb: array[0..35] of byte;
+  hwSrc, hwDst, hwN: integer;       { fuer die Maschinenbefehle }
+  hwK: array[0..6] of byte;
+  hwT: array[0..79] of byte;
 
 { ---- 7220 ---- }
 
@@ -68,24 +72,255 @@ begin
   end;
 end;
 
+{ GDC-Liste ausgeben (n, Befehl, n-1 Parameter; 0 = Ende). In
+  Maschinensprache, sonst bremst der Z80 hier alles aus. }
 procedure ghlist(var l);
-var b: GBytes absolute l;
-    i, n: integer;
 begin
-  i := 0;
-  while b[i] <> 0 do begin
-    n := b[i];
-    while (Port[$A0] and 2) <> 0 do ;
-    Port[$A1] := b[i + 1];
-    i := i + 2;
-    n := n - 1;
-    while n > 0 do begin
-      while (Port[$A0] and 2) <> 0 do ;
-      Port[$A0] := b[i];
-      i := i + 1;
-      n := n - 1;
-    end;
+  hwSrc := Addr(l);
+  inline(
+    $2A/>hwSrc/                       { LD HL,(hwSrc) }
+    { satz: }
+    $7E/                              { LD A,(HL)      Anzahl }
+    $B7/                              { OR A }
+    $28/$1D/                          { JR Z,ende }
+    $47/                              { LD B,A }
+    $23/                              { INC HL }
+    { w1: }
+    $DB/$A0/                          { IN A,(A0h) }
+    $E6/$02/                          { AND 2          FIFO voll? }
+    $20/$FA/                          { JR NZ,w1 }
+    $7E/                              { LD A,(HL) }
+    $D3/$A1/                          { OUT (A1h),A    Befehl }
+    $23/                              { INC HL }
+    $05/                              { DEC B }
+    $28/$ED/                          { JR Z,satz }
+    { w2: }
+    $DB/$A0/                          { IN A,(A0h) }
+    $E6/$02/                          { AND 2 }
+    $20/$FA/                          { JR NZ,w2 }
+    $7E/                              { LD A,(HL) }
+    $D3/$A0/                          { OUT (A0h),A    Parameter }
+    $23/                              { INC HL }
+    $10/$F4/                          { DJNZ w2 }
+    $18/$DF                           { JR satz }
+    { ende: }
+  );
+end;
+
+{ n Byte aus bb um sh (0-7) Bit nach links in zz schieben, alt ist der
+  Uebertrag vom vorigen Byte. a: 0 Bits, 1 umgekehrt, 2 lauter Einsen,
+  3 lauter Nullen; das letzte Byte wird mit letzt maskiert. leer wird
+  false, wenn ein Byte ungleich 0 herauskommt. In Maschinensprache, je
+  eine Schleife fuer mit und ohne Umkehren und Schieben. }
+procedure ghschieb(var bb; var zz; n, sh, a, letzt: integer;
+                   var alt: integer; var leer: boolean);
+begin
+  if n > 80 then n := 80;
+  hwSrc := Addr(bb); hwDst := Addr(zz); hwN := n;
+  if a >= 2 then begin                  { lauter Einsen oder Nullen }
+    if a = 2 then FillChar(hwT, n, $FF) else FillChar(hwT, n, 0);
+    hwSrc := Addr(hwT);
+    a := 0;
   end;
+  if sh = 0 then alt := 0;
+  hwK[3] := letzt; hwK[4] := sh; hwK[6] := alt;
+  if a = 0 then begin
+    if sh = 0 then
+      inline(
+        $DD/$E5/                          { PUSH IX }
+        $DD/$2A/>hwSrc/                   { LD IX,(hwSrc) }
+        $ED/$5B/>hwDst/                   { LD DE,(hwDst) }
+        $3A/>hwN/                         { LD A,(hwN) }
+        $47/                              { LD B,A }
+        $3A/>hwK+6/                       { LD A,(hwK+6)   Uebertrag }
+        $4F/                              { LD C,A }
+        $05/                              { DEC B }
+        $28/$09/                          { JR Z,letzt }
+        { lp: }
+        $DD/$7E/$00/                      { LD A,(IX+0) }
+        $DD/$23/                          { INC IX }
+        $12/                              { LD (DE),A }
+        $13/                              { INC DE }
+        $10/$F7/                          { DJNZ lp }
+        { letzt: }
+        $DD/$7E/$00/                      { LD A,(IX+0) }
+        $DD/$23/                          { INC IX }
+        $21/>hwK+3/                       { LD HL,hwK+3 }
+        $A6/                              { AND (HL)       letzt }
+        $12/                              { LD (DE),A }
+        $13/                              { INC DE }
+        $79/                              { LD A,C }
+        $32/>hwK+6/                       { LD (hwK+6),A }
+        $2A/>hwDst/                       { LD HL,(hwDst)   leer? }
+        $3A/>hwN/                         { LD A,(hwN) }
+        $47/                              { LD B,A }
+        $AF/                              { XOR A }
+        { or: }
+        $B6/                              { OR (HL) }
+        $23/                              { INC HL }
+        $10/$FC/                          { DJNZ or }
+        $32/>hwK+5/                       { LD (hwK+5),A }
+        $DD/$E1                           { POP IX }
+      )
+    else
+      inline(
+        $DD/$E5/                          { PUSH IX }
+        $DD/$2A/>hwSrc/                   { LD IX,(hwSrc) }
+        $ED/$5B/>hwDst/                   { LD DE,(hwDst) }
+        $3A/>hwN/                         { LD A,(hwN) }
+        $47/                              { LD B,A }
+        $3A/>hwK+6/                       { LD A,(hwK+6)   Uebertrag }
+        $4F/                              { LD C,A }
+        $05/                              { DEC B }
+        $28/$16/                          { JR Z,letzt }
+        { lp: }
+        $DD/$7E/$00/                      { LD A,(IX+0) }
+        $DD/$23/                          { INC IX }
+        $6F/                              { LD L,A }
+        $26/$00/                          { LD H,0 }
+        $3A/>hwK+4/                       { LD A,(hwK+4)   sh }
+        { s0: }
+        $29/                              { ADD HL,HL }
+        $3D/                              { DEC A }
+        $20/$FC/                          { JR NZ,s0 }
+        $7D/                              { LD A,L }
+        $B1/                              { OR C }
+        $4C/                              { LD C,H }
+        $12/                              { LD (DE),A }
+        $13/                              { INC DE }
+        $10/$EA/                          { DJNZ lp }
+        { letzt: }
+        $DD/$7E/$00/                      { LD A,(IX+0) }
+        $DD/$23/                          { INC IX }
+        $21/>hwK+3/                       { LD HL,hwK+3 }
+        $A6/                              { AND (HL)       letzt }
+        $6F/                              { LD L,A }
+        $26/$00/                          { LD H,0 }
+        $3A/>hwK+4/                       { LD A,(hwK+4)   sh }
+        { s1: }
+        $29/                              { ADD HL,HL }
+        $3D/                              { DEC A }
+        $20/$FC/                          { JR NZ,s1 }
+        $7D/                              { LD A,L }
+        $B1/                              { OR C }
+        $4C/                              { LD C,H }
+        $12/                              { LD (DE),A }
+        $13/                              { INC DE }
+        $79/                              { LD A,C }
+        $32/>hwK+6/                       { LD (hwK+6),A }
+        $2A/>hwDst/                       { LD HL,(hwDst)   leer? }
+        $3A/>hwN/                         { LD A,(hwN) }
+        $47/                              { LD B,A }
+        $AF/                              { XOR A }
+        { or: }
+        $B6/                              { OR (HL) }
+        $23/                              { INC HL }
+        $10/$FC/                          { DJNZ or }
+        $32/>hwK+5/                       { LD (hwK+5),A }
+        $DD/$E1                           { POP IX }
+      )
+  end else begin
+    if sh = 0 then
+      inline(
+        $DD/$E5/                          { PUSH IX }
+        $DD/$2A/>hwSrc/                   { LD IX,(hwSrc) }
+        $ED/$5B/>hwDst/                   { LD DE,(hwDst) }
+        $3A/>hwN/                         { LD A,(hwN) }
+        $47/                              { LD B,A }
+        $3A/>hwK+6/                       { LD A,(hwK+6)   Uebertrag }
+        $4F/                              { LD C,A }
+        $05/                              { DEC B }
+        $28/$0A/                          { JR Z,letzt }
+        { lp: }
+        $DD/$7E/$00/                      { LD A,(IX+0) }
+        $DD/$23/                          { INC IX }
+        $2F/                              { CPL }
+        $12/                              { LD (DE),A }
+        $13/                              { INC DE }
+        $10/$F6/                          { DJNZ lp }
+        { letzt: }
+        $DD/$7E/$00/                      { LD A,(IX+0) }
+        $DD/$23/                          { INC IX }
+        $2F/                              { CPL }
+        $21/>hwK+3/                       { LD HL,hwK+3 }
+        $A6/                              { AND (HL)       letzt }
+        $12/                              { LD (DE),A }
+        $13/                              { INC DE }
+        $79/                              { LD A,C }
+        $32/>hwK+6/                       { LD (hwK+6),A }
+        $2A/>hwDst/                       { LD HL,(hwDst)   leer? }
+        $3A/>hwN/                         { LD A,(hwN) }
+        $47/                              { LD B,A }
+        $AF/                              { XOR A }
+        { or: }
+        $B6/                              { OR (HL) }
+        $23/                              { INC HL }
+        $10/$FC/                          { DJNZ or }
+        $32/>hwK+5/                       { LD (hwK+5),A }
+        $DD/$E1                           { POP IX }
+      )
+    else
+      inline(
+        $DD/$E5/                          { PUSH IX }
+        $DD/$2A/>hwSrc/                   { LD IX,(hwSrc) }
+        $ED/$5B/>hwDst/                   { LD DE,(hwDst) }
+        $3A/>hwN/                         { LD A,(hwN) }
+        $47/                              { LD B,A }
+        $3A/>hwK+6/                       { LD A,(hwK+6)   Uebertrag }
+        $4F/                              { LD C,A }
+        $05/                              { DEC B }
+        $28/$17/                          { JR Z,letzt }
+        { lp: }
+        $DD/$7E/$00/                      { LD A,(IX+0) }
+        $DD/$23/                          { INC IX }
+        $2F/                              { CPL }
+        $6F/                              { LD L,A }
+        $26/$00/                          { LD H,0 }
+        $3A/>hwK+4/                       { LD A,(hwK+4)   sh }
+        { s0: }
+        $29/                              { ADD HL,HL }
+        $3D/                              { DEC A }
+        $20/$FC/                          { JR NZ,s0 }
+        $7D/                              { LD A,L }
+        $B1/                              { OR C }
+        $4C/                              { LD C,H }
+        $12/                              { LD (DE),A }
+        $13/                              { INC DE }
+        $10/$E9/                          { DJNZ lp }
+        { letzt: }
+        $DD/$7E/$00/                      { LD A,(IX+0) }
+        $DD/$23/                          { INC IX }
+        $2F/                              { CPL }
+        $21/>hwK+3/                       { LD HL,hwK+3 }
+        $A6/                              { AND (HL)       letzt }
+        $6F/                              { LD L,A }
+        $26/$00/                          { LD H,0 }
+        $3A/>hwK+4/                       { LD A,(hwK+4)   sh }
+        { s1: }
+        $29/                              { ADD HL,HL }
+        $3D/                              { DEC A }
+        $20/$FC/                          { JR NZ,s1 }
+        $7D/                              { LD A,L }
+        $B1/                              { OR C }
+        $4C/                              { LD C,H }
+        $12/                              { LD (DE),A }
+        $13/                              { INC DE }
+        $79/                              { LD A,C }
+        $32/>hwK+6/                       { LD (hwK+6),A }
+        $2A/>hwDst/                       { LD HL,(hwDst)   leer? }
+        $3A/>hwN/                         { LD A,(hwN) }
+        $47/                              { LD B,A }
+        $AF/                              { XOR A }
+        { or: }
+        $B6/                              { OR (HL) }
+        $23/                              { INC HL }
+        $10/$FC/                          { DJNZ or }
+        $32/>hwK+5/                       { LD (hwK+5),A }
+        $DD/$E1                           { POP IX }
+      );
+  end;
+  alt := hwK[6];
+  if hwK[5] <> 0 then leer := false;
 end;
 
 function ghrdat(var bl): integer;

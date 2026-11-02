@@ -563,32 +563,13 @@ begin
 end;
 
 procedure bcut(var dd; var ss; off, n: integer);   { Bits off.. von s }
-var d: GBytes absolute dd;
-    s: GBytes absolute ss;
-    i, j: integer;
 begin
-  for i := 0 to ((n + 7) shr 3) - 1 do d[i] := 0;
-  for i := 0 to n - 1 do begin
-    j := off + i;
-    if (s[j shr 3] and (1 shl (j and 7))) <> 0 then
-      d[i shr 3] := d[i shr 3] or (1 shl (i and 7));
-  end;
+  qzbits(dd, ss, off, n, 1);
 end;
 
 procedure bzoom(var dd; var ss; n, z1: integer);   { jedes Bit z1-mal }
-var d: GBytes absolute dd;
-    s: GBytes absolute ss;
-    i, k, j, m: integer;
 begin
-  m := n * z1;
-  if m > 640 then m := 640;
-  for i := 0 to ((m + 7) shr 3) - 1 do d[i] := 0;
-  for i := 0 to n - 1 do
-    if (s[i shr 3] and (1 shl (i and 7))) <> 0 then
-      for k := 0 to z1 - 1 do begin
-        j := i * z1 + k;
-        if j < m then d[j shr 3] := d[j shr 3] or (1 shl (j and 7));
-      end;
+  qzbits(dd, ss, 0, n, z1);
 end;
 
 { Zeile (bm, bp; nb Bit ab Punkt sx) auf den Schirm }
@@ -627,6 +608,7 @@ end;
 
 procedure gbput(nr, art: integer);
 var z1, ww, hh, sx, sy, y, n, zr, rs, k, e, c0, c1, ys, nb, zo: integer;
+    fertig: boolean;
 begin
   gerr := bvor(nr, art);
   if gerr <> 0 then exit;
@@ -647,9 +629,15 @@ begin
     bhol(nr, y, n, bpuf);
     for k := 0 to n - 1 do begin
       zo := k * rs;
+      fertig := false;
       for zr := 0 to z1 - 1 do begin
         ys := sy + (y + k) * z1 + zr;
         if (ys >= 0) and (ys <= 399) then begin
+          { die Zeile nur einmal aufbereiten, ausser fuer den Schatten,
+            dessen Raster von ys abhaengt }
+          if fertig and (art <> GB_SCHAT) then
+          else begin
+          fertig := true;
           if bdirekt(nr, art) then bkopz(bpuf[zo], bbpr[nr])
           else begin
             bzei(nr, bpuf[zo], art, sx, ys);
@@ -672,6 +660,7 @@ begin
               bcut(bt, bp[e, 0], c0, c1 - c0);
               Move(bt, bp[e, 0], 80);
             end;
+          end;
           end;
           bzeig(ys, sx + c0, c1 - c0, art);
         end;

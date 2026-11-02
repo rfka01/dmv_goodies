@@ -24,7 +24,7 @@ const
   GE_NR = 90;  GE_PLATZ = 91;  GE_DATEI = 92;  GE_KURZ = 93;
   GE_FORM = 94;  GE_LEER = 95;  GE_LAGE = 96;  GE_HW = 99;
 
-  QLMAX = 1024;  GBMAX = 64;  GLMAX = 200;  BANDH = 8;  QBUF = 1280;
+  QLMAX = hwQL;   GBMAX = 64;  GLMAX = 200;  BANDH = 8;  QBUF = 1280;
   EB = 640;                         { BANDH * 80: Abstand der Ebenen im Band }
   ZHMAX = 32;  ZKH = 48;  ZKB = 12;    { Mauszeiger }
 
@@ -285,7 +285,10 @@ end;
 
 function qadr(e, sx, sy: integer): integer;
 begin
-  qadr := qebad[e] + sy * 40 + (sx shr 4);
+  sy := sy + sy + sy + sy + sy;      { sy * 40 ohne Multiplikation }
+  sy := sy + sy;
+  sy := sy + sy;
+  qadr := qebad[e] + sy + sy + (sx shr 4);
 end;
 
 { Figur auf allen Ebenen: Startpunkt, Muster (nm Byte ab PRAM 8),
@@ -570,25 +573,25 @@ end;
 
 { Eine Bitzeile (Bit 0 = Punkt sx) in Ebene e mit WDAT-Befehl w.
   a: 0 Bits, 1 Bits umgekehrt, 2 lauter Einsen, 3 lauter Nullen }
+const qrkopf: array[0..13] of byte =
+        (4, $49, 0, 0, 0, 3, $4A, $FF, $FF, 4, $4C, 2, 0, 0);
+      qletzt: array[0..7] of byte = ($FF, 1, 3, 7, 15, 31, 63, 127);
+
 procedure qrow(sy, sx: integer; var bb; nb, e, w, a: integer);
 var b: GBytes absolute bb;
-    j, v, alt, nw, sh, n8, k, letzt, rest, i, adr, p: integer;
+    j, v, alt, nw, sh, n8, k, letzt, i, adr, p: integer;
     leer: boolean;
 begin
   if (nb <= 0) or (sy < 0) or (sy > 399) then exit;
   sh := sx and 15;
   nw := (sh + nb + 15) shr 4;
   n8 := (nb + 7) shr 3;
-  rest := nb and 7;
-  if rest <> 0 then letzt := (1 shl rest) - 1 else letzt := $FF;
+  letzt := qletzt[nb and 7];
   qplatz(40 + 2 * nw);              { kein Ausgeben mittendrin }
   adr := qadr(e, sx, sy);
-  ql[qn] := 4; ql[qn + 1] := $49;
-  ql[qn + 2] := Lo(adr); ql[qn + 3] := Hi(adr); ql[qn + 4] := 0;
-  ql[qn + 5] := 3; ql[qn + 6] := $4A; ql[qn + 7] := $FF; ql[qn + 8] := $FF;
-  ql[qn + 9] := 4; ql[qn + 10] := $4C; ql[qn + 11] := 2; ql[qn + 12] := 0;
-  ql[qn + 13] := 0;
-  k := 2 * nw;
+  Move(qrkopf, ql[qn], 14);         { CURS, MASK, FIGS }
+  ql[qn + 2] := Lo(adr); ql[qn + 3] := Hi(adr);
+  k := nw + nw;
   ql[qn + 14] := 1 + k; ql[qn + 15] := w;
   qe := qn + 14;
   qn := qn + 16;
@@ -603,21 +606,19 @@ begin
   sh := sh and 7;
   alt := 0;
   leer := true;
-  for j := 0 to k - 1 do begin
-    v := 0;
-    if (i >= 0) and (i < n8) then begin
-      case a of
-        0: v := b[i];
-        1: v := (not b[i]) and $FF;
-        2: v := $FF;
-      end;
-      if i = n8 - 1 then v := v and letzt;
-    end;
-    ql[p] := ((v shl sh) or alt) and $FF;
-    if ql[p] <> 0 then leer := false;
-    p := p + 1;
-    if sh <> 0 then alt := v shr (8 - sh) else alt := 0;
-    i := i + 1;
+  j := 0;
+  if i < 0 then begin ql[p] := 0; j := 1; end;
+  v := n8;
+  if v > k - j then v := k - j;
+  if v > 0 then begin
+    if v = n8 then i := letzt else i := $FF;
+    ghschieb(b, ql[p + j], v, sh, a, i, alt, leer);
+    j := j + v;
+  end;
+  if j < k then begin               { Rest: Uebertrag, dann Nullen }
+    ql[p + j] := alt;
+    if alt <> 0 then leer := false;
+    if k - j > 1 then FillChar(ql[p + j + 1], k - j - 1, 0);
   end;
   if leer and (w <> $20) then begin  { nichts zu tun: Eintrag zurueck }
     qn := qe - 14;
@@ -666,31 +667,56 @@ begin
       if fntuml[k] = c then qglyph := 95 + k;
 end;
 
-var qtz: array[0..79] of byte;
+{ n Bits ab Bit off von ss nach dd, jedes z1-mal (hoechstens 640 Bit).
+  Bit fuer Bit mit wanderndem Maskenbit statt 1 shl k: auf dem Z80
+  ist ein Schieben um k Stellen eine Schleife. }
+procedure qzbits(var dd; var ss; off, n, z1: integer);
+var d: GBytes absolute dd;
+    s: GBytes absolute ss;
+    m, si, im, sv, di, om, ov, i, c, j: integer;
+    an: boolean;
+begin
+  m := n * z1;
+  if m > 640 then m := 640;
+  si := off shr 3;
+  im := 1 shl (off and 7);
+  sv := s[si];
+  di := 0; om := 1; ov := 0; j := 0; i := 0;
+  while (i < n) and (j < m) do begin
+    an := (sv and im) <> 0;
+    c := z1;
+    while (c > 0) and (j < m) do begin
+      if an then ov := ov or om;
+      om := om + om;
+      if om = 256 then begin d[di] := ov; di := di + 1; ov := 0; om := 1; end;
+      j := j + 1; c := c - 1;
+    end;
+    im := im + im;
+    if im = 256 then begin im := 1; si := si + 1; sv := s[si]; end;
+    i := i + 1;
+  end;
+  if om <> 1 then d[di] := ov;
+end;
+
+var qtz, qtz2: array[0..79] of byte;
+    qgi: array[0..79] of integer;
 
 procedure qtxt0(var s: GStr; n: integer);   { waagrecht, wortweise }
-var z1, gr, zr, i, j, k, v, sy, bit, nb: integer;
+var z1, gr, zr, i, sy, nb: integer;
 begin
   z1 := qzoom + 1;
   nb := n * 8 * z1;
   sy := qsy(qy);
   if qorig = 0 then sy := sy - (16 * z1 - 1);
+  for i := 0 to n - 1 do qgi[i] := qglyph(Ord(s[i + 1])) * 16;
   for gr := 0 to 15 do begin
-    FillChar(qtz, 80, 0);
-    for i := 0 to n - 1 do begin
-      v := fntbit[qglyph(Ord(s[i + 1])) * 16 + gr];
-      if z1 = 1 then qtz[i] := v
-      else
-        for j := 0 to 7 do
-          if (v and (1 shl j)) <> 0 then begin
-            bit := (i * 8 + j) * z1;
-            for k := 1 to z1 do begin
-              qtz[bit shr 3] := qtz[bit shr 3] or (1 shl (bit and 7));
-              bit := bit + 1;
-            end;
-          end;
+    for i := 0 to n - 1 do qtz[i] := fntbit[qgi[i] + gr];
+    if z1 = 1 then
+      qbits(sy + gr, qx, qtz, nb)
+    else begin
+      qzbits(qtz2, qtz, 0, n * 8, z1);
+      for zr := 0 to z1 - 1 do qbits(sy + gr * z1 + zr, qx, qtz2, nb);
     end;
-    for zr := 0 to z1 - 1 do qbits(sy + gr * z1 + zr, qx, qtz, nb);
   end;
 end;
 

@@ -13,6 +13,8 @@ unter einem nachgebildeten CP/M 2.2.
   je Abfrage der Konsole ohne Warten eine Zeile.
 - 7220 an A0h/A1h/A2h ueber simlib.so (make simlib.so), K806 an 30h-33h,
   8741 an 40h/41h.
+- --zeit: Takte zaehlen; das Programm kann mit Port[$FE] := n Messpunkte
+  setzen. --profil datei: Haeufigkeit der Befehlsadressen.
 - --bdos: Lage des BDOS (Hex, Vorgabe E406 wie ein 56-KB-System); die TPA
   reicht bis dorthin.
 
@@ -35,6 +37,8 @@ ap.add_argument('--arg', default='')
 ap.add_argument('--bdos', default='E406')
 ap.add_argument('--max', type=int, default=4000)
 ap.add_argument('--log', action='store_true')
+ap.add_argument('--zeit', action='store_true')
+ap.add_argument('--profil')
 a = ap.parse_args()
 
 sim = None
@@ -93,6 +97,7 @@ def zeile():
         w = z[1]; taste = int(w, 16) if w.startswith('0x') else ord(w[0])
     elif z and z[0] == 'bild':
         gdc_flush(); sim.w_bild(z[1].encode())
+        if a.zeit: print('Takte bis %s: %d (%.2f s bei 4 MHz)' % (z[1], st['takte'], st['takte'] / 4e6))
     return taste
 
 def frage():            # Konsole ohne Warten -> Taste oder 0
@@ -322,6 +327,8 @@ def aus(port, v):
             gdc_flush()
     elif p in (0xA0, 0xA2):
         gdc['eintrag'].append(v)
+    elif p == 0xFE and a.zeit:          # Messpunkt: OUT (FEh),n
+        print('Messpunkt %d: %d Takte (%.2f s bei 4 MHz)' % (v, st['takte'], st['takte'] / 4e6))
     elif p == 0x31 and v == 0 and not a.nomaus:
         y = 399 - st['sy']
         maus['aus'] = bytearray([st['sx'] & 0xFF, st['sx'] >> 8, y & 0xFF, y >> 8, st['sb']])
@@ -333,10 +340,16 @@ if sim:
     sim.w_graf(1)
 
 n = 0
-while not st['ende'] and n < 20000:
-    m.ticks_to_stop = 2000000
+st['takte'] = 0
+prof = {}
+SCHEIBE = 200 if a.profil else 2000000
+while not st['ende'] and n < 20000 * (2000000 // SCHEIBE):
+    m.ticks_to_stop = SCHEIBE
     ev = m.run()
+    st['takte'] += SCHEIBE - m.ticks_to_stop
     n += 1
+    if a.profil:
+        prof[m.pc] = prof.get(m.pc, 0) + 1
     pc = m.pc
     if pc == BDOS or BIOS <= pc < BIOS + 51:
         if pc == BDOS:
@@ -356,3 +369,9 @@ s = re.sub(r'\x1b.', '', s)
 print(s[-3000:] if a.skript else s)
 if a.skript:
     print('GDC-Eintraege:', gdc['n'])
+if a.zeit:
+    print('Takte gesamt: %d (%.2f s bei 4 MHz)' % (st['takte'], st['takte'] / 4e6))
+if a.profil:
+    with open(a.profil, 'w') as f:
+        for pc, k in sorted(prof.items(), key=lambda x: -x[1]):
+            f.write('%04X %d\n' % (pc, k))

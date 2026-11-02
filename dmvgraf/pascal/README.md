@@ -11,7 +11,7 @@ Dieselbe Bibliothek wie die C-Fassung, nach Pascal übersetzt, als Include-Datei
 | `DMVFONT.INC` | Schrift (8 × 16, mit Umlauten), erzeugt von `tools/mkfont.py` |
 | `DMVGRAF.INC` | die Bibliothek: Figuren, Text, Muster, Maus, Tastatur, Zeit, Ton |
 | `DMVBILD.INC` | Bilder vollständig: alle Formate, `gbmap`, `gbget`, Zusammensetzen (`glayer`, `glput`, `gldraw`), Mauszeiger (`gzeig`) |
-| `DMVBKL.INC` | Bilder, kleine Fassung für CP/M-80: Formate 1, 2, 4 und 5 mit `gbdef`, `gbload`, `gbput`, `gbfree`, `gbinfo`; die übrigen Bildfunktionen setzen `gerr` (`GE_FORM`, `GE_LAGE`) |
+| `DMVBKL.INC` | Bilder, kleine Fassung für CP/M-80: Bilder 0–15, Formate 1, 2, 4 und 5 mit `gbdef`, `gbload`, `gbput`, `gbfree`, `gbinfo`; die übrigen Bildfunktionen setzen `gerr` (`GE_FORM`, `GE_LAGE`) |
 | `GTEST.PAS`, `GTESTZ.PAS`, `GTESTK.INC` | Prüf- und Vorführprogramm (wie `test/GTEST.C`) für MS-DOS bzw. CP/M-80, gemeinsamer Hauptteil |
 
 ## Einbinden
@@ -35,11 +35,15 @@ Unterschiede zur C-Fassung, weil Turbo Pascal 3 keine Funktion als Anweisung auf
 - **`gstart`** muss als Erstes aufgerufen werden.
 - Was in C einen Fehlercode liefert, ist eine **Prozedur**; der Code steht danach in **`gerr`** (0 = gut). Funktionen sind nur `gkey`, `grnd`, `gdirekt` und `mpos` (`boolean`: gelesen).
 - `ginfo(f, m, s, c)` ist eine Prozedur; `gbinfo(nr, r)` füllt ein `GBInfoArr` (`array[0..5] of integer`).
-- Zeichenketten sind `GStr` (`string[255]`), Bilddaten für `gbdef` beliebige Variablen (untypisierter `var`-Parameter). Format 5 erwartet `integer`-Worte, wie Turbo Pascal sie ablegt.
+- Zeichenketten sind `GStr` (`string[255]`, unter CP/M-80 `string[80]`), Bilddaten für `gbdef` beliebige Variablen (untypisierter `var`-Parameter). Format 5 erwartet `integer`-Worte, wie Turbo Pascal sie ablegt.
 
 **Wichtig beim Übersetzen:** Unter *Options* den Wert **„mAximum free dynamic memory“** herabsetzen, etwa auf `0400` (16 KB für Heap und Stapel). Sonst nimmt das Programm allen Speicher und DMVGRAF bekommt von DOS keinen Bildspeicher (`gbdef`, `gbload` und `gzeig` melden dann `GE_PLATZ`). Das Programm als `.COM` übersetzen (*Options* → *Com-file*).
 
-GTEST belegt unter MS-DOS 41 KB Code und 12 KB Daten. Unter CP/M-80 (mit `DMVBKL.INC`) reicht der Code bis 9F75h, die Daten belegen 10 KB; bei einem 56-KB-System (BDOS ab E406h) bleiben knapp 7 KB frei.
+GTEST belegt unter MS-DOS 41 KB Code und 12 KB Daten. Unter CP/M-80 (mit `DMVBKL.INC`) reicht der Code bis 9FD4h, die Daten belegen gut 7 KB; beim CP/M 2.2 von NCR (BDOS ab D006h) bleiben 4,3 KB frei, davon gehen gut 3 KB an den Bildspeicher. TP3 legt die Daten unter das obere Ende des Systems, auf dem übersetzt wird; ein auf einem größeren System übersetztes Programm meldet auf einem kleineren „Not enough memory“. Darum auf dem Zielsystem übersetzen oder unter *Options* die *End address* passend setzen.
+
+Damit es auf dem Z80 nicht zu langsam wird, gibt `DMVHWC.INC` die GDC-Liste (`ghlist`) und schiebt die Bitzeilen (`ghschieb`) in Maschinensprache (`inline`); `DMVHWD.INC` macht dasselbe in Pascal. Die Titelzeile von GTEST braucht so im Prüfstand 0,7 statt 4,4 Sekunden (4 MHz, ohne die Zeit des 7220). Die Maus kostet beim Zeichnen nichts; abgefragt wird sie nur in `mpos`.
+
+Damit es unter CP/M-80 passt, ist dort `GStr` nur `string[80]` (eine Bildzeile), die GDC-Liste 256 Byte lang und die kleine Bildfassung auf die Bilder 0–15 beschränkt.
 
 **Unterschiede zwischen den Turbo-Pascal-Fassungen:** TP3 für den Z80 rechnet `mod` mit negativen Zahlen anders als die 8086-Fassung; die Bibliothek benutzt `mod` darum nur mit nicht negativen Zahlen. `Addr` liefert unter CP/M eine Zahl, unter DOS einen Zeiger; die Hardwareschicht stellt dafür `hwAdr` bereit.
 

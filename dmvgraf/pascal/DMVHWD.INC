@@ -20,6 +20,7 @@ const
   GH_FARBE = 1;  GH_MAUS = 2;  GH_SYN = 4;  GH_COVOX = 8;
   hwZEIT   = 30000;                 { Wartegrenze in Abfragen }
   hwGBBLK  = 2;                     { hoechstens so viele 64-KB-Bloecke }
+  hwQL     = 1024;                  { GDC-Liste }
 
 var
   hwK806, hwFarbe: integer;
@@ -89,6 +90,31 @@ begin
 end;
 
 { Block wie BIOS 67/2: Wortzahl (hoch, niedrig), Liste, dahinter Platz }
+{ n Byte aus bb um sh (0-7) Bit nach links in zz schieben, alt ist der
+  Uebertrag vom vorigen Byte. a: 0 Bits, 1 umgekehrt, 2 lauter Einsen,
+  3 lauter Nullen; das letzte Byte wird mit letzt maskiert. leer wird
+  false, wenn ein Byte ungleich 0 herauskommt. }
+procedure ghschieb(var bb; var zz; n, sh, a, letzt: integer;
+                   var alt: integer; var leer: boolean);
+var b: GBytes absolute bb;
+    z: GBytes absolute zz;
+    j, v, o: integer;
+begin
+  for j := 0 to n - 1 do begin
+    case a of
+      0: v := b[j];
+      1: v := (not b[j]) and $FF;
+      2: v := $FF;
+    else v := 0;
+    end;
+    if j = n - 1 then v := v and letzt;
+    o := ((v shl sh) or alt) and $FF;
+    z[j] := o;
+    if o <> 0 then leer := false;
+    if sh <> 0 then alt := v shr (8 - sh) else alt := 0;
+  end;
+end;
+
 function ghrdat(var bl): integer;
 var b: GBytes absolute bl;
     m, p: integer;
