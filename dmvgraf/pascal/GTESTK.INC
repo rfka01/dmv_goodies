@@ -48,12 +48,12 @@ begin
   zahl := t;
 end;
 
-procedure titel(t: GStr);
+procedure titel(t: GStr; y: integer);
 begin
   gmode(0); gcolor(7); gzoom(0);
   gpoint(0, 399);
   gorig(1);
-  gpoint(8, 0);
+  gpoint(8, y);
   gtext(t, 0);
   gorig(0);
 end;
@@ -63,7 +63,7 @@ procedure figuren;
 var i, x, y: integer;
 begin
   gclear;
-  titel('DMVGRAF - Figuren: Linien, Rechtecke, Fl'#132'chen, Kreise, B'#148'gen');
+  titel('DMVGRAF - Figuren: Linien, Rechtecke, Fl'#132'chen, Kreise, B'#148'gen', 0);
   gmode(3);
   for i := 0 to 15 do begin                 { Faecher }
     gcolor(1 + i mod 7);
@@ -124,7 +124,7 @@ procedure texte;
 var i: integer;
 begin
   gclear;
-  titel('DMVGRAF - Text in acht Richtungen, Zoom, Betriebsarten');
+  titel('DMVGRAF - Text in acht Richtungen, Zoom, Betriebsarten', 0);
   gmode(3);
   for i := 1 to 7 do begin
     gcolor(i);
@@ -166,7 +166,7 @@ var i, k, x, y: integer;
     r: GBInfoArr;
 begin
   gclear;
-  titel('DMVGRAF - Bilder: Formate 1/3/4/5, Arten, Zoom, GBGET, Ebenen');
+  titel('DMVGRAF - Bilder: Formate 1/3/4/5, Arten, Zoom, GBGET, Ebenen', 0);
   for y := 0 to 15 do
     for i := 0 to 1 do begin
       k := y * 8 + i;
@@ -274,6 +274,8 @@ begin
       if warte = 27 then gexit
       else begin
         bilder;
+        if m <> 0 then titel('Letzter Test: Mauszeiger folgt der Maus, Ende mit ESC', 385)
+        else titel('Letzter Test, Ende mit einer Taste', 385);
         if m <> 0 then zeiger
         else if warte = 0 then ;
         gexit;

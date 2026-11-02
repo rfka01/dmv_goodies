@@ -65,7 +65,10 @@ int main()
                 gspr(0, 280, 150 + k * 80, 2, i);
         }
         gspr(1, 400, 60, 2, GB_XOR);            /* zweimal: wieder weg */
+        gwait(50);
         gspr(1, 400, 60, 2, GB_XOR);
+        gpoint(460, 76);
+        gtext("XOR 2x: weg = gut", 0);
         k = gspr(1, 630, 60, 0, GB_DURCH);      /* ragt hinaus: GE_LAGE */
         gpoint(400, 120);
         gtext(k == GE_LAGE ? "Rand: GE_LAGE gut" : "Rand: FALSCH", 0);

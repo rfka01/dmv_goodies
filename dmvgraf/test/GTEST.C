@@ -33,15 +33,16 @@ int v;
         return &b[i];
 }
 
-static int titel(s)
+static int titel(s, y)
 char *s;
+int y;
 {
         gmode(0);
         gcolor(7);
         gzoom(0);
         gpoint(0, 399);
         gorig(1);
-        gpoint(8, 0);
+        gpoint(8, y);
         gtext(s, 0);
         gorig(0);
         return 0;
@@ -53,7 +54,7 @@ static int figuren()
         int i, x, y;
 
         gclear();
-        titel("DMVGRAF - Figuren: Linien, Rechtecke, Fl\204chen, Kreise, B\224gen");
+        titel("DMVGRAF - Figuren: Linien, Rechtecke, Fl\204chen, Kreise, B\224gen", 0);
         gmode(3);
         for (i = 0; i < 16; i++) {          /* Faecher */
                 gcolor(1 + i % 7);
@@ -116,7 +117,7 @@ static int texte()
         int i;
 
         gclear();
-        titel("DMVGRAF - Text in acht Richtungen, Zoom, Betriebsarten");
+        titel("DMVGRAF - Text in acht Richtungen, Zoom, Betriebsarten", 0);
         gmode(3);
         for (i = 1; i < 8; i++) {
                 gcolor(i);
@@ -197,7 +198,7 @@ static int bilder()
         int i, k, x, y, r[6];
 
         gclear();
-        titel("DMVGRAF - Bilder: Formate 1/3/4/5, Arten, Zoom, GBGET, Ebenen");
+        titel("DMVGRAF - Bilder: Formate 1/3/4/5, Arten, Zoom, GBGET, Ebenen", 0);
         for (y = 0; y < 16; y++)
                 for (i = 0; i < 2; i++) {
                         k = (y * 4 + 0) * 2 + i;
@@ -302,6 +303,8 @@ int main()
         if (warte() == 27)
                 return gexit();
         bilder();
+        titel(m ? "Letzter Test: Mauszeiger folgt der Maus, Ende mit ESC"
+                : "Letzter Test, Ende mit einer Taste", 385);
         if (m)
                 zeiger();
         else

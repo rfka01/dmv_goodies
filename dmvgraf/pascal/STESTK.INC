@@ -41,8 +41,10 @@ begin
     gspr(1, 240, 150 + k * 80, 0, a);
     gspr(0, 280, 150 + k * 80, 2, a);
   end;
+  gspr(1, 400, 60, 2, GB_XOR);              { zweimal XOR: wieder weg }
+  gwait(50);
   gspr(1, 400, 60, 2, GB_XOR);
-  gspr(1, 400, 60, 2, GB_XOR);
+  gpoint(460, 76); gtext('XOR 2x: weg = gut', 0);
   gspr(1, 630, 60, 0, GB_DURCH);
   a := gerr;
   gpoint(400, 120);

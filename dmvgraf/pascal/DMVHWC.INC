@@ -1001,7 +1001,7 @@ begin
     if f < 0 then f := f + 65536.0;
     f := f - hwPRES;
     if f > hwPMAX then f := hwPMAX;
-    if f >= 256 then begin
+    if f >= 128 then begin
       hwPn := Trunc(f);
       GetMem(hwPool, hwPn);
       hwBn := 1;
