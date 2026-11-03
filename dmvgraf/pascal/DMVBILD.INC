@@ -19,6 +19,7 @@ var
   rmem: GBZeiger;
   rmpos: integer;
   rdat: boolean;                    { Quelle Datei (sonst Speicher) }
+  gbanz: integer;                   { gbldv: geladene Bilder }
   rbuf: array[0..127] of byte;
   rpos: integer;
   rraw: array[0..319] of byte;
@@ -475,25 +476,22 @@ begin
   gerr := bdef(nr, b, h, fmt);
 end;
 
+{ Bilder aus einer Datei. b = 0: Bildsammlung (gbldv), jedes Bild mit
+  eigenem Kopf: Breite, Hoehe (je 2 Byte), Format, 0; dann die Daten wie
+  bei gbdef. anz <= 0: bis zum Ende der Datei. gbanz: geladene Bilder.
+  Format 5: je Bild alle Worte in einen Heap-Puffer, dann wie gbdef. }
 procedure gbload(nr0: integer; name: GStr; b, h, anz, fmt: integer; kopf: real);
-var i, r, n, m: integer;
+var i, r, n, m, w: integer;
     p: GBZeiger;
 begin
+  gbanz := 0;
   gerr := GE_HW;
   if qstart <> 0 then exit;
   bmini;
-  m := 0;                           { Format 5: je Bild alle Worte in }
-  if fmt = GB_SETR then begin       { einen Heap-Puffer, dann wie gbdef }
-    gerr := GE_PLATZ;
-    if (b < 1) or (b > 64) or (h < 1) or (h > 85) then exit;
-    m := 12 * h * ((b + 15) shr 4);
-    n := ghsnum;                    { Bildspeicher zuerst anlegen }
-    if (MaxAvail >= 0) and (MaxAvail <= m shr hwHSH) then exit;
-  end;
-  if fmt = GB_NIB then ptbau;
+  n := ghsnum;                      { Bildspeicher zuerst anlegen }
+  if (fmt = GB_NIB) or (b = 0) then ptbau;
   gerr := GE_DATEI;
   if ghopen(name) <> 0 then exit;
-  if m > 0 then GetMem(p, m);
   rdat := true;
   rpos := 128;
   r := 0;
@@ -503,18 +501,43 @@ begin
     kopf := kopf - n;
   end;
   i := 0;
-  while (i < anz) and (r = 0) do begin
-    if m > 0 then
-      if brd(p^, m) then r := GE_KURZ
-      else begin rdat := false; rmem := p; rmpos := 0; end;
-    if r = 0 then r := bdef(nr0 + i, b, h, fmt);
+  while (r = 0) and ((i < anz) or ((anz <= 0) and (b = 0))) do begin
+    w := b;
+    if b = 0 then begin                     { Kopf des Bildes }
+      w := 0;
+      if not brd(bzr, 6) then begin
+        w := bzr[0] + 256 * bzr[1]; h := bzr[2] + 256 * bzr[3]; fmt := bzr[4];
+      end;
+      if (w < 1) or (w > 640) then r := -1; { Ende (auch ^Z am Satzende) }
+    end;
+    m := 0;
+    if (r = 0) and (fmt = GB_SETR) then begin
+      r := GE_PLATZ;
+      if (w >= 1) and (w <= 64) and (h >= 1) and (h <= 85) then begin
+        m := 12 * h * ((w + 15) shr 4);
+        if (MaxAvail < 0) or (MaxAvail > m shr hwHSH) then r := 0;
+      end;
+      if r = 0 then begin
+        GetMem(p, m);
+        if brd(p^, m) then r := GE_KURZ
+        else begin rdat := false; rmem := p; rmpos := 0; end;
+      end else m := 0;
+    end;
+    if r = 0 then r := bdef(nr0 + i, w, h, fmt);
     rdat := true;
+    if m > 0 then FreeMem(p, m);
+    if r = 0 then gbanz := gbanz + 1;
     i := i + 1;
   end;
-  if m > 0 then FreeMem(p, m);
+  if r = -1 then if anz > 0 then r := GE_KURZ else r := 0;
   ghclos;
   rdat := false;
   gerr := r;
+end;
+
+procedure gbldv(nr0: integer; name: GStr; anz: integer; kopf: real);
+begin
+  gbload(nr0, name, 0, 0, anz, 0, kopf);
 end;
 
 procedure gbinfo(nr: integer; var r: GBInfoArr);

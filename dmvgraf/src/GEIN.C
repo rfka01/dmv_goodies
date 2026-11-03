@@ -58,9 +58,93 @@ int x, y;
         return ghmaus(4, blk) ? GE_HW : 0;
 }
 
+/* Tonwarteschlange wie in der Pascal-Fassung: 31 Toene, gepumpt in
+   gkey, gwait, tonq und tonidle; ein Ton geht an den 8741, sobald er
+   wieder etwas annimmt */
+#define QTN 32
+static char qth[QTN], qtl[QTN];
+static int qtk, qtt;            /* Kopf (naechster zu senden), Ende */
+static int qtp;                 /* MS-DOS: Schritt im laufenden Ton (0-2) */
+
+#ifdef __ia16__
+extern int ghkfrei(), ghkaus();
+
+/* Wie HOPPLERs SndPump und die Pascal-Fassung: Befehl 06h, Hoehe, Laenge
+   einzeln, je sobald der 8741 wieder liest (waehrend eines Tons liest er
+   nicht; ein ganzer Ton auf einmal wuerde so lange warten) */
+static int tpump()
+{
+        int i, k;
+
+        for (i = 0; i < 4 && (qtp || qtk != qtt); i++) {
+                if (qtp == 0) {
+                        if (!ghkfrei())
+                                return 0;
+                        ghkaus(1, 6);
+                        qtp = 1;
+                }
+                if (qtp == 1) {
+                        if (!ghkfrei())
+                                return 0;
+                        ghkaus(0, (qth[qtk] & 0xFF) + 0x20);
+                        qtp = 2;
+                }
+                for (k = 0; k < 200 && !ghkfrei(); k++)
+                        ;
+                if (!ghkfrei())
+                        return 0;
+                ghkaus(0, (qtl[qtk] & 0xFF) + 0x1F);
+                qtk = (qtk + 1) & (QTN - 1);
+                qtp = 0;
+        }
+        return 0;
+}
+#else
+static int tpump()              /* ueber den BIOS: ein Ton je Aufruf */
+{
+        int i;
+
+        for (i = 0; i < 4 && qtk != qtt; i++) {
+                if (ghton(qth[qtk] & 0xFF, qtl[qtk] & 0xFF))
+                        break;          /* 8741 besetzt */
+                qtk = (qtk + 1) & (QTN - 1);
+        }
+        return 0;
+}
+#endif
+
+/* Ton h (1-42, 0 Pause) fuer l * 20 ms in die Warteschlange; voll:
+   GE_PLATZ */
+int tonq(h, l)
+int h, l;
+{
+        if (h < 0 || h > 42 || l < 1 || l > 224)
+                return GE_FORM;
+        if (((qtt + 1) & (QTN - 1)) == qtk)
+                return GE_PLATZ;
+        qth[qtt] = h;
+        qtl[qtt] = l;
+        qtt = (qtt + 1) & (QTN - 1);
+        tpump();
+        return 0;
+}
+
+int tonclr()                    /* Wartendes verwerfen */
+{
+        qtt = qtp ? (qtk + 1) & (QTN - 1) : qtk;  /* angefangenen zu Ende */
+        return 0;
+}
+
+int tonidle()                   /* 1: alles an den 8741 geschickt */
+{
+        tpump();
+        return qtk == qtt && !qtp;
+}
+
 int gkey()
 {
         qzwied();
+        tpump();
         return ghtast();
 }
 
@@ -69,8 +153,11 @@ int n;
 {
         qzwied();
         qflush();
-        while (n-- > 0)
+        while (n-- > 0) {
+                tpump();
                 ghvsyn();
+        }
+        tpump();
         return 0;
 }
 

@@ -572,46 +572,91 @@ char *daten;
 #define B5MAX 384
 static int b5w[B5MAX];
 
-int gbload(nr0, name, b, h, anz, fmt, kopf)
-int nr0, b, h, anz, fmt, kopf;
+/* Bilder aus einer Datei. b = 0: Bildsammlung (gbldv), jedes Bild mit
+   eigenem Kopf: Breite, Hoehe (je 2 Byte, niederwertiges zuerst), Format,
+   0; dann die Daten wie bei gbdef. anz <= 0: bis zum Ende der Datei.
+   gbanz: geladene Bilder (bei einem Fehler bleiben sie erhalten). */
+int gbanz;
+
+static int qbld(nr0, name, b, h, anz, fmt, kopf)
+int nr0, b, h, anz, fmt;
+unsigned kopf;
 char *name;
 {
-        int i, k, n, r;
-        char c, *u;
+        int i, k, n, r, w;
+        char *u, kb[6];
 
+        gbanz = 0;
         if (qstart())
                 return GE_HW;
         bmini();
-        n = 0;
-        if (fmt == GB_SETR) {
-                n = 6 * h * ((b + 15) >> 4);
-                if (b < 1 || h < 1 || n > B5MAX)
-                        return GE_PLATZ;
-        }
-        if (fmt == GB_NIB)
+        if (fmt == GB_NIB || !b)
                 ptbau();
         if (ghopen(name))
                 return GE_DATEI;
         rmem = 0;
         rpos = 128;
         r = 0;
-        for (i = 0; i < kopf && !r; i++)
-                if (brd(&c, 1))
+        while (kopf > 0 && !r) {        /* Kopf ueberspringen, auch > 32 KB */
+                k = kopf > 128 ? 128 : kopf;
+                if (brd((char *)b5w, k))
                         r = GE_KURZ;
-        for (i = 0; i < anz && !r; i++)
-                if (n) {
+                kopf -= k;
+        }
+        for (i = 0; !r && (i < anz || (!b && anz <= 0)); i++) {
+                w = b;
+                if (!b) {                       /* Kopf des Bildes */
+                        w = 0;
+                        if (!brd(kb, 6)) {
+                                w = (kb[0] & 0xFF) | (kb[1] & 0xFF) << 8;
+                                h = (kb[2] & 0xFF) | (kb[3] & 0xFF) << 8;
+                                fmt = kb[4] & 0xFF;
+                        }
+                        if (w < 1 || w > 640) { /* Ende, auch ^Z im Satz */
+                                if (anz > 0)
+                                        r = GE_KURZ;
+                                break;
+                        }
+                }
+                if (fmt == GB_SETR) {
+                        n = 6 * h * ((w + 15) >> 4);
+                        if (w < 1 || h < 1 || n > B5MAX) {
+                                r = GE_PLATZ;
+                                break;
+                        }
                         u = (char *)&b5w[B5MAX] - 2 * n;  /* Bytes ans Ende */
-                        if (brd(u, 2 * n))
+                        if (brd(u, 2 * n)) {
                                 r = GE_KURZ;
-                        for (k = 0; k < n && !r; k++)
+                                break;
+                        }
+                        for (k = 0; k < n; k++)
                                 b5w[k] = (u[2 * k] & 0xFF)
                                         | (u[2 * k + 1] & 0xFF) << 8;
-                        if (!r)
-                                r = bdef(nr0 + i, b, h, fmt, b5w);
+                        r = bdef(nr0 + i, w, h, fmt, b5w);
                 } else
-                        r = bdef(nr0 + i, b, h, fmt, (int *)0);
+                        r = bdef(nr0 + i, w, h, fmt, (int *)0);
+                if (!r)
+                        gbanz++;
+        }
         ghclos();
         return r;
+}
+
+int gbload(nr0, name, b, h, anz, fmt, kopf)
+int nr0, b, h, anz, fmt, kopf;
+char *name;
+{
+        if (b < 1)
+                return GE_FORM;
+        return qbld(nr0, name, b, h, anz, fmt, (unsigned)kopf);
+}
+
+int gbldv(nr0, name, anz, kopf)
+int nr0, anz;
+unsigned kopf;
+char *name;
+{
+        return qbld(nr0, name, 0, 0, anz, 0, kopf);
 }
 
 int gbinfo(nr, r)

@@ -427,6 +427,21 @@ static int kw()
         return 1;
 }
 
+/* Tonwarteschlange (GEIN.C): 8741 nimmt etwas an? Byte als Befehl (an
+   41h) oder Daten (40h), ohne zu warten - der 8741 liest waehrend eines
+   Tons nicht, darum Schritt fuer Schritt */
+int ghkfrei()
+{
+        return !(inb(KBDCTL) & 2);
+}
+
+int ghkaus(bef, v)
+int bef, v;
+{
+        outb(bef ? KBDCTL : KBDDAT, v);
+        return 0;
+}
+
 int ghton(h, l)
 int h, l;
 {

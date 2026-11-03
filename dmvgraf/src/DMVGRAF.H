@@ -31,6 +31,8 @@ extern int gorig();     /* (o)                0 y nach oben, 1 y nach unten */
 /* Bilder */
 extern int gbdef();     /* (nr, b, h, format, daten) */
 extern int gbload();    /* (nr0, datei, b, h, anz, format, kopf) */
+extern int gbldv();     /* (nr0, datei, anz, kopf) Bildsammlung: je Bild Kopf b, h, Format, 0 */
+extern int gbanz;       /* gbldv: geladene Bilder */
 extern int gbmap();     /* (farbe, a, b, muster)  Farbnummer 0-15 umsetzen */
 extern int gbput();     /* (nr, art)          am Zeichenpunkt zeichnen */
 extern int gbget();     /* (nr, b, h)         Schirmausschnitt als Bild */
@@ -53,6 +55,9 @@ extern int gkey();      /* () -> Taste oder 0 (wartet nicht) */
 extern int grnd();      /* () Zufallszahl 0-32767 aus Bildlage und Maus */
 extern int gwait();     /* (n)                n Bildwechsel abwarten */
 extern int ton();       /* (h, l)             Ton h 1-42 (0 Pause), l x 20 ms */
+extern int tonq();      /* (h, l) in die Warteschlange (31), gepumpt in gkey/gwait */
+extern int tonclr();    /* () Wartendes verwerfen */
+extern int tonidle();   /* () 1 = alles an den 8741 geschickt */
 extern int gputs();     /* (s)                Text auf die Konsole (Textbetrieb) */
 
 /* Figuren ueber GCHRD ("Sprites", schnell, 8 oder 16 Punkte) */

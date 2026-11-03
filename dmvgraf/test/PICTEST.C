@@ -4,7 +4,7 @@
 
    Zeigt die Dateien (.PIC) nacheinander an Wortspalte xw, Zeile y; art
    wie gpic (1 dunkel, 2 mono, 4 Farbe), mit angehaengtem S wird die Datei
-   erst in den Speicher gelesen (bis 16 KB) und mit gpicm gezeigt (etwa
+   erst in den Speicher gelesen (bis 32000 Byte) und mit gpicm gezeigt (etwa
    "4S"). Eine Taste beendet; danach stehen die Rueckgaben auf der Konsole
    (0 gut, sonst Fehlernummer).
 
@@ -12,7 +12,7 @@
 #include "GINTERN.H"
 #include "DMVPIC.H"
 
-static char sp[16384];
+static char sp[32000];
 static char zb[8];
 
 static int zahl(s)

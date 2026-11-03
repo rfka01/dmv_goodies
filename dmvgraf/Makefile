@@ -16,6 +16,9 @@ ptest: test/PTEST.C $(LIB) src/*.H
 pictest: test/PICTEST.C $(LIB) src/*.H
 	$(CC) $(CFLAGS) -o $@ test/PICTEST.C $(LIB)
 
+gltest: test/GLTEST.C $(LIB) src/*.H
+	$(CC) $(CFLAGS) -o $@ test/GLTEST.C $(LIB)
+
 btest: test/BTEST.C $(LIB) src/*.H
 	$(CC) $(CFLAGS) -o $@ test/BTEST.C $(LIB)
 
@@ -26,6 +29,10 @@ LIB68  = src/GCRT68.S src/GSUP68.S src/GARG68.C src/GRAF.C src/GBILD.C \
 GTEST.68K: test/GTEST.C $(LIB68) src/*.H
 	python3 tools/bau68.py -I src -D GBPOOL=61440 -o $@ \
 		$(firstword $(LIB68)) test/GTEST.C $(wordlist 2,99,$(LIB68))
+
+GLTEST.68K: test/GLTEST.C $(LIB68) src/*.H
+	python3 tools/bau68.py -I src -D GBPOOL=61440 -o $@ \
+		$(firstword $(LIB68)) test/GLTEST.C $(wordlist 2,99,$(LIB68))
 
 MTEST.68K: test/MTEST.C $(LIB68) src/*.H
 	python3 tools/bau68.py -I src -D GBPOOL=61440 -o $@ \
@@ -57,6 +64,12 @@ ITEST.COM: test/ITEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 PICTEST.EXE: test/PICTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/PICTEST.C $(LIBDOS)
 
+GLTEST.EXE: test/GLTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
+	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/GLTEST.C $(LIBDOS)
+
+TONTEST.EXE: test/TONTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
+	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/TONTEST.C $(LIBDOS)
+
 MTEST.EXE: test/MTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/MTEST.C $(LIBDOS)
 
@@ -77,4 +90,4 @@ simlib.so: tools/simlib.c src/GHWSIM.C src/*.H
 	$(CC) -shared -fPIC -O1 -w -x c -DHOST -std=gnu89 -Isrc -o tools/$@ tools/simlib.c
 
 clean:
-	rm -f gtest stest ptest btest pictest GTEST.68K MTEST.68K *.EXE *.COM tools/simlib.so *.ppm
+	rm -f gtest stest ptest btest pictest gltest GTEST.68K MTEST.68K GLTEST.68K *.EXE *.COM tools/simlib.so *.ppm

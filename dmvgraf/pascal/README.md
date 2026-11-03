@@ -13,8 +13,10 @@ Dieselbe Bibliothek wie die C-Fassung, nach Pascal übersetzt, als Include-Datei
 | `DMVFIG.INC` | Linien, Rechtecke, Kreise, Bögen (`gline`, `grect`, `gcircl`, `garc`) |
 | `DMVMAUS.INC` | Maus (`mpos`, `mset`) |
 | `DMVSPR.INC` | Figuren über GCHRD (`gsprdef`, `gsprset`, `gspr`); vorher `const SPMAX = …;` |
+| `DMVPIC.INC` | gepackte Vollbilder (`gpic`, `gpicm`), nur MS-DOS: derselbe 8086-Kern wie in C als `inline` (erzeugt von `tools/gpicbin.py`), 5,3 KB Daten |
+| `PICTEST.PAS` | Prüfprogramm dazu, wie `test/PICTEST.C` |
 | `DMVBILD.INC` | Bilder vollständig: alle Formate, `gbmap`, `gbget`, Zusammensetzen (`glayer`, `glput`, `gldraw`), Mauszeiger (`gzeig`) |
-| `DMVBKL.INC` | Bilder, kleine Fassung: Formate 1, 2, 4 und 5 mit `gbdef`, `gbload`, `gbput`, `gbfree`, `gbinfo`; die übrigen Bildfunktionen setzen `gerr` (`GE_FORM`, `GE_LAGE`). Die Zahl der Bilder legt das Programm fest (`const BKMAX`). |
+| `DMVBKL.INC` | Bilder, kleine Fassung: Formate 1, 2, 4 und 5 mit `gbdef`, `gbload`, `gbldv` (ohne 5), `gbput`, `gbfree`, `gbinfo`; die übrigen Bildfunktionen setzen `gerr` (`GE_FORM`, `GE_LAGE`). Die Zahl der Bilder legt das Programm fest (`const BKMAX`). |
 | `GTEST.PAS`, `GTESTZ.PAS`, `GTESTK.INC` | Prüf- und Vorführprogramm (wie `test/GTEST.C`) für MS-DOS bzw. CP/M-80, gemeinsamer Hauptteil |
 | `STEST.PAS`, `STESTZ.PAS`, `STESTK.INC` | Figuren über GCHRD (wie `test/STEST.C`) |
 | `PTEST.PAS`, `PTESTZ.PAS`, `PTESTK.INC` | Muster (wie `test/PTEST.C`) |
@@ -32,6 +34,7 @@ Die Quellen der Maschinensprache liegen in [`../tools/inline/`](../tools/inline/
     {$I DMVMAUS.INC}          { wenn die Maus gebraucht wird }
     const SPMAX = 20;         { Figuren 0..20 }
     {$I DMVSPR.INC}           { wenn Figuren ueber GCHRD gebraucht }
+    {$I DMVPIC.INC}           { MS-DOS: gepackte Vollbilder }
     {$I DMVBILD.INC}          { oder: const BKMAX = 16; DMVBKL.INC }
     begin
       gstart;                 { zuerst: Anfangswerte setzen }
@@ -51,6 +54,7 @@ Unterschiede zur C-Fassung, weil Turbo Pascal 3 keine Funktion als Anweisung auf
 - `ginfo(f, m, s, c)` ist eine Prozedur; `gbinfo(nr, r)` füllt ein `GBInfoArr` (`array[0..5] of integer`).
 - Zeichenketten sind `GStr` (`string[255]`, unter CP/M-80 `string[80]`), Bilddaten für `gbdef` und Muster für `gsprdef` und `gpdef` beliebige Variablen (untypisierter `var`-Parameter). Format 5 erwartet `integer`-Worte, wie Turbo Pascal sie ablegt.
 - `gbload(nr0, name, b, h, anz, fmt, kopf)`: `kopf` ist `real`, Dateien mit Bildern hinter 32 KB gehen also auch (ganze Zahlen gehen wie bisher).
+- `gbldv(nr0, name, anz, kopf)`: Bildsammlung wie in C (Kopf je Bild, siehe ../README.md); die Zahl der geladenen Bilder steht danach in `gbanz`. `DMVBKL.INC`: Formate 1, 2, 4 (Format 3 und 5 → `GE_FORM`, die Bilder davor bleiben), `DMVBILD.INC` alle Formate (5 bis 64 × 85 über den Heap). In `DMVBKL.INC` kostet `gbldv` rund 300 Byte Code, `gbload` benutzt dieselbe Schleife.
 - `ghinfo`, `ghcpu`, die Zeitbasis und `gcorun` gibt es nur in der C-Fassung unter MS-DOS.
 
 ## Neu gegenüber der C-Fassung 0.2
@@ -59,6 +63,7 @@ Unterschiede zur C-Fassung, weil Turbo Pascal 3 keine Funktion als Anweisung auf
 - **Tonwarteschlange:** `tonq(h, l)` stellt einen Ton in eine Warteschlange (32 Töne, voll: `GE_PLATZ`), `tonclr` verwirft Wartendes, `tonidle` sagt, ob alles an den 8741 geschickt ist (ob der letzte Ton noch klingt, sieht man ihm nicht an). `gwait` und `gkey` schicken die Töne nach und nach, ohne zu warten. `ton` geht jetzt ebenfalls über die Warteschlange und überschreibt nie einen wartenden Befehl.
 - **Muster:** `gpdef(p, m)` ersetzt Muster p durch acht eigene Zeilen, `gbcol(c)` macht Flächen zweifarbig (Musterpunkte in der Farbe, die übrigen in c; −1 aus). Muster liegen am Schirm fest, aneinanderstoßende Flächen passen ohne Naht (siehe `../README.md`).
 - **Figuren über GCHRD:** `gsprdef(nr, b, h, muster)`, `gsprset(nr, b, h, worte)` (Format 5 mit Maske, wie HOPPLERs `Spr16`) und `gspr(nr, x, y, zoom, art)`, siehe `../README.md`. Für bewegte Figuren deutlich schneller als `gbput`, besonders mit Zoom: Drachenlibelle 16 × 16 mit Zoom 1 unter DOS 30 000 Befehle (`gbput` Format 5 mit Zoom 108 000, HOPPLERs `Sprite16` 37 000). `DMVSPR.INC` belegt 1,9 KB Code.
+- **Gepackte Vollbilder** (`DMVPIC.INC`, nur MS-DOS): `gpic(name, xw, y, art)` und `gpicm(daten, laenge, xw, y, art)` wie in C, Ergebnis in `gerr` (neu `GE_VERW` = 97). Der Kern ist derselbe wie in der C-Bibliothek und in `GPIC.INC`; im Prüfstand zeigt `PICTEST.PAS` dieselben Bilder wie die C-Fassung (`tools/pruefpic.py`). Unter CP/M-80 gibt es keinen Z80-Kern.
 - **`gbload` Format 5** (nur `DMVBILD.INC`; `DMVBKL.INC` bleibt klein und meldet `GE_FORM`): liest je Bild alle Worte in einen Puffer vom Heap (Bilder bis 64 × 85) und gibt ihn danach frei; sonst `GE_PLATZ`. Für Figuren über `gsprset` braucht es das nicht: Die Daten müssen ohnehin im Programm bleiben, das Programm liest sie mit `BlockRead` in ein eigenes Feld.
 - **Schneller Weg für Bilder** wie HOPPLERs `BlitAsm`: Liegt ein Bild auf einer Wortgrenze, ohne Zoom und ganz auf dem Schirm, schreibt `gbput` es ohne GDC-Liste direkt aus dem Bildspeicher an den 7220 (`ghblit`, Maschinensprache). Bedingungen und Wirkung wie in `../README.md`; mit `qbsch := false` lässt er sich zum Vergleichen abschalten.
 
@@ -74,7 +79,7 @@ Unterschiede zur C-Fassung, weil Turbo Pascal 3 keine Funktion als Anweisung auf
 
 ## Stand
 
-- **MS-DOS:** Im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn) zeigen die mit Turbo Pascal 3.01A übersetzten `GTEST.COM`, `STEST.COM` und `PTEST.COM` in Farbe und mono dieselben Bilder wie die C-Fassung, `BTEST.COM` links (schneller Weg) wie rechts und wie die C-Simulation; ebenso ein Test des Mauszeigers (`gzeig`), das Laden eines TIL-Steinsatzes mit `gbload` samt Zusammensetzen und `gbload` im Format 5 (`DMVBILD.INC`).
+- **MS-DOS:** Im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn) zeigen die mit Turbo Pascal 3.01A übersetzten `GTEST.COM`, `STEST.COM` und `PTEST.COM` in Farbe und mono dieselben Bilder wie die C-Fassung, `BTEST.COM` links (schneller Weg) wie rechts und wie die C-Simulation; ebenso ein Test des Mauszeigers (`gzeig`), das Laden eines TIL-Steinsatzes mit `gbload` samt Zusammensetzen und `gbload` im Format 5 (`DMVBILD.INC`). `GLTEST.COM` (`DMVBILD.INC`, auch mit `DMVBKL.INC`) und unter CP/M-80 `GLTESTZ.COM` zeigen die Prüfsammlungen aus `tools/pruefgbl.py` (verschiedene Breiten, `kopf` 40000 und 70000, Datei über 64 KB) genau wie die C-Fassung mit `gbdef`.
 - **CP/M-80:** Im Prüfstand (`tools/pruefcpm.py`, Z80 mit nachgebildetem CP/M 2.2, BDOS D006h) zeigen `GTESTZ.COM`, `STESTZ.COM`, `PTESTZ.COM` und `BTESTZ.COM` (TP3 3.01A für CP/M) dieselben Bilder wie die C-Fassung; im Bild der Bilder fehlt genau, was `DMVBKL.INC` nicht enthält. `GTESTZ` in der Fassung vom 1.11.2026 (vor dem Umbau) in MAME getestet.
 - Auf echter Hardware noch nicht gelaufen.
 
@@ -82,6 +87,6 @@ Am PC übersetzen: `python3 tools/tp3.py VERZ GTEST.PAS` (MS-DOS) – `VERZ` ent
 
 ## English
 
-DMVGRAF translated to Pascal as include files for **Turbo Pascal 3.0x under MS-DOS and CP/M-80** on the DMV, split into parts because TP3 includes everything. Include the hardware layer (`DMVHWD.INC` for DOS, `DMVHWC.INC` for CP/M-80), `DMVFONT.INC`, `DMVGRAF.INC`, then what the program needs (`DMVFIG.INC` lines and circles, `DMVMAUS.INC` mouse, `DMVSPR.INC` GCHRD sprites) and exactly one image part (`DMVBILD.INC`, or the small `DMVBKL.INC` after `const BKMAX = n;`), and call `gstart` first. Functions that return an error code in C are procedures here and leave the code in `gerr`. New: `gdmv` (DMV check that only reads), a tone queue pumped by `gwait`/`gkey` (`tonq`, `tonclr`, `tonidle`), own and two-colour patterns anchored to the screen (`gpdef`, `gbcol`), sprites (`gsprdef`, `gspr`), `gbload` with a `real` header offset, and a fast image path like HOPPLER's `BlitAsm` for word-aligned, unzoomed images. The inner loops are machine code (`inline`) in both hardware layers. On DOS lower **"mAximum free dynamic memory"** (e.g. to `0400`); on CP/M-80 compile on the target system or set the end address. In the test benches all test programs give the same screens as the C version; not yet run on real hardware.
+DMVGRAF translated to Pascal as include files for **Turbo Pascal 3.0x under MS-DOS and CP/M-80** on the DMV, split into parts because TP3 includes everything. Include the hardware layer (`DMVHWD.INC` for DOS, `DMVHWC.INC` for CP/M-80), `DMVFONT.INC`, `DMVGRAF.INC`, then what the program needs (`DMVFIG.INC` lines and circles, `DMVMAUS.INC` mouse, `DMVSPR.INC` GCHRD sprites) and exactly one image part (`DMVBILD.INC`, or the small `DMVBKL.INC` after `const BKMAX = n;`), and call `gstart` first. Functions that return an error code in C are procedures here and leave the code in `gerr`. New: `gdmv` (DMV check that only reads), a tone queue pumped by `gwait`/`gkey` (`tonq`, `tonclr`, `tonidle`), own and two-colour patterns anchored to the screen (`gpdef`, `gbcol`), sprites (`gsprdef`, `gspr`), `gbload` with a `real` header offset, image collections of mixed sizes (`gbldv`, count in `gbanz`), and a fast image path like HOPPLER's `BlitAsm` for word-aligned, unzoomed images. The inner loops are machine code (`inline`) in both hardware layers. On DOS lower **"mAximum free dynamic memory"** (e.g. to `0400`); on CP/M-80 compile on the target system or set the end address. In the test benches all test programs give the same screens as the C version; not yet run on real hardware.
 
 Code: Claude (Anthropic), idea and prompts: rfka01. Licence: MIT.
