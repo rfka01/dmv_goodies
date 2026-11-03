@@ -289,6 +289,10 @@ gdc = dict(eintrag=bytearray(), lese=bytearray(), vs=0, n=0)
 def gdc_flush():
     e = gdc['eintrag']
     if e and sim:
+        while len(e) > 255 and e[0] & 0xE0 == 0x20:  # langes WDAT teilen
+            l = bytes([255]) + bytes(e[:255]) + b'\0'
+            sim.w_liste(l)
+            e = bytearray(e[:1]) + e[255:]
         l = bytes([len(e)]) + bytes(e) + b'\0'
         if e[0] & 0xE4 == 0xA0 or e[0] == 0xE0:
             buf = ctypes.create_string_buffer(1024)

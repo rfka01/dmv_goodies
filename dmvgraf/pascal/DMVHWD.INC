@@ -10,6 +10,8 @@
 
   Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT }
 
+const
+  hwPRES: integer = 0;              { nur CP/M-80 (DMVHWC.INC); hier ohne Wirkung }
 type
   GBytes  = array[0..32767] of byte;
   GStr    = string[255];
@@ -17,6 +19,7 @@ type
   GDosReg = record AX, BX, CX, DX, BP, SI, DI, DS, ES, Flags: integer; end;
 
 const
+  hwHSH    = 4;                     { MaxAvail in Einheiten von 2^hwHSH Byte }
   GH_FARBE = 1;  GH_MAUS = 2;  GH_SYN = 4;  GH_COVOX = 8;
   hwZEIT   = 30000;                 { Wartegrenze in Abfragen }
   hwGBBLK  = 2;                     { hoechstens so viele 64-KB-Bloecke }

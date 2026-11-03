@@ -244,14 +244,19 @@ static int bilder()
         gbget(4, 64, 64);
         gpoint(100, 120);
         gbput(4, GB_DECK);
-        gbinfo(1, r);
+        k = gbinfo(1, r);
         gpoint(180, 160);
         gmode(3);
         gcolor(7);
-        gtext("gbinfo: Drachenlibelle sichtbar von ", 0);
-        gtext(zahl(r[2]), 0); gtext(",", 0); gtext(zahl(r[3]), 0);
-        gtext(" bis ", 0);
-        gtext(zahl(r[4]), 0); gtext(",", 0); gtext(zahl(r[5]), 0);
+        if (k) {
+                gtext("gbinfo: Drachenlibelle fehlt, Fehler ", 0);
+                gtext(zahl(k), 0);
+        } else {
+                gtext("gbinfo: Drachenlibelle sichtbar von ", 0);
+                gtext(zahl(r[2]), 0); gtext(",", 0); gtext(zahl(r[3]), 0);
+                gtext(" bis ", 0);
+                gtext(zahl(r[4]), 0); gtext(",", 0); gtext(zahl(r[5]), 0);
+        }
         /* Zusammensetzen: zwoelf Streifenbilder ueberlappend + Zeiger */
         glayer(180, 20, 639, 140);
         for (i = 0; i < 12; i++)

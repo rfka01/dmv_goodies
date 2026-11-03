@@ -476,16 +476,24 @@ begin
 end;
 
 procedure gbload(nr0: integer; name: GStr; b, h, anz, fmt: integer; kopf: real);
-var i, r, n: integer;
+var i, r, n, m: integer;
+    p: GBZeiger;
 begin
   gerr := GE_HW;
   if qstart <> 0 then exit;
   bmini;
-  gerr := GE_FORM;
-  if fmt = GB_SETR then exit;
+  m := 0;                           { Format 5: je Bild alle Worte in }
+  if fmt = GB_SETR then begin       { einen Heap-Puffer, dann wie gbdef }
+    gerr := GE_PLATZ;
+    if (b < 1) or (b > 64) or (h < 1) or (h > 85) then exit;
+    m := 12 * h * ((b + 15) shr 4);
+    n := ghsnum;                    { Bildspeicher zuerst anlegen }
+    if (MaxAvail >= 0) and (MaxAvail <= m shr hwHSH) then exit;
+  end;
   if fmt = GB_NIB then ptbau;
   gerr := GE_DATEI;
   if ghopen(name) <> 0 then exit;
+  if m > 0 then GetMem(p, m);
   rdat := true;
   rpos := 128;
   r := 0;
@@ -496,9 +504,14 @@ begin
   end;
   i := 0;
   while (i < anz) and (r = 0) do begin
-    r := bdef(nr0 + i, b, h, fmt);
+    if m > 0 then
+      if brd(p^, m) then r := GE_KURZ
+      else begin rdat := false; rmem := p; rmpos := 0; end;
+    if r = 0 then r := bdef(nr0 + i, b, h, fmt);
+    rdat := true;
     i := i + 1;
   end;
+  if m > 0 then FreeMem(p, m);
   ghclos;
   rdat := false;
   gerr := r;

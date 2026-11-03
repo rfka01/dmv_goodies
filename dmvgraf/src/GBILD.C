@@ -566,18 +566,28 @@ char *daten;
         return r;
 }
 
+/* Format 5 aus einer Datei: je Bild alle Worte (16 Bit, niederwertiges
+   Byte zuerst) in diesen Puffer, dann wie gbdef. Reicht fuer Figuren bis
+   32 x 32 Punkte. */
+#define B5MAX 384
+static int b5w[B5MAX];
+
 int gbload(nr0, name, b, h, anz, fmt, kopf)
 int nr0, b, h, anz, fmt, kopf;
 char *name;
 {
-        int i, r;
-        char c;
+        int i, k, n, r;
+        char c, *u;
 
         if (qstart())
                 return GE_HW;
         bmini();
-        if (fmt == GB_SETR)
-                return GE_FORM;
+        n = 0;
+        if (fmt == GB_SETR) {
+                n = 6 * h * ((b + 15) >> 4);
+                if (b < 1 || h < 1 || n > B5MAX)
+                        return GE_PLATZ;
+        }
         if (fmt == GB_NIB)
                 ptbau();
         if (ghopen(name))
@@ -589,7 +599,17 @@ char *name;
                 if (brd(&c, 1))
                         r = GE_KURZ;
         for (i = 0; i < anz && !r; i++)
-                r = bdef(nr0 + i, b, h, fmt, (int *)0);
+                if (n) {
+                        u = (char *)&b5w[B5MAX] - 2 * n;  /* Bytes ans Ende */
+                        if (brd(u, 2 * n))
+                                r = GE_KURZ;
+                        for (k = 0; k < n && !r; k++)
+                                b5w[k] = (u[2 * k] & 0xFF)
+                                        | (u[2 * k + 1] & 0xFF) << 8;
+                        if (!r)
+                                r = bdef(nr0 + i, b, h, fmt, b5w);
+                } else
+                        r = bdef(nr0 + i, b, h, fmt, (int *)0);
         ghclos();
         return r;
 }

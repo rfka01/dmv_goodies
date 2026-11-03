@@ -51,6 +51,14 @@ Die Kopfdatei `src/DMVGRAF.H` einbinden und gegen die Bibliothek binden (Befehle
     zcc -c -m1 demo.c
     ld8k -w -s -o demo.z8k startup.o demo.o dmvgraf.a -lcpm
 
+Gepackte Vollbilder (`gpic`, `gpicm`) sind in `src/DMVPIC.H` vereinbart; wer sie braucht, bindet diese Datei zusätzlich ein:
+
+    #include "DMVGRAF.H"
+    #include "DMVPIC.H"
+    ...
+    if (gpic("TITEL.PIC", 0, 0, 1))         /* Anzeige dunkel, wie die Karte */
+            gputs("TITEL.PIC fehlt\n");
+
 DMVGRAF selbst ist K&R-C, ein Programm darf auch ANSI-C sein. `DMVGRAF.H` deklariert die Funktionen ohne Parameterliste; wer Prototypen will, schreibt sie sich nach den Kommentaren dort.
 
 ## Assembler
@@ -81,6 +89,20 @@ Mit GNU as (`ia16-elf-as`) geht es genauso (`.code16`, `.intel_syntax noprefix`,
 
 Eigene Daten legt ein Assemblerprogramm in `section .data` bzw. `.bss`; sie landen im selben Datensegment wie die von DMVGRAF. `DS` darf sich zwischen zwei Aufrufen nicht ändern.
 
+### MS-DOS: MASM 5.1 (gepackte Vollbilder)
+
+Die Bibliothek selbst lässt sich nicht an MASM-Programme binden (siehe unten), die gepackten Vollbilder aber schon: `src/GPIC.INC` ist eigenständig (MASM 5.1, auch JWasm `-Zm`; alle Namen mit `gp_`, nur eigene Port-Konstanten). Beispiel und Prüfprogramm: [`test/GPT.ASM`](test/GPT.ASM).
+
+            mov     dx, OFFSET name         ; DS:DX Dateiname (ASCIIZ)
+            mov     al, 1 + 4               ; dunkel schreiben, Farbe
+            xor     bx, bx                  ; xw = 0
+            xor     cx, cx                  ; y = 0
+            call    gp_pic                  ; CF = 1: AX = Fehlernummer
+            ...
+            INCLUDE GPIC.INC                ; am Ende des Codes (mit gp_puf, 5311 Byte)
+
+`gp_picw` nimmt statt `gp_puf` einen Arbeitsbereich des Programms in ES:DI. Art Bit 7: Daten im Speicher (DS:DX, Länge in SI). Ohne Art-Bit 1 (mono) oder 2 (Farbe) gilt Farbe – das Programm kennt seine Karte selbst.
+
 ### CP/M-68K: GNU as
 
 Jedes Argument ist ein Langwort. [`beispiele/DEMO68.S`](beispiele/DEMO68.S):
@@ -110,7 +132,7 @@ Namen mit Unterstrich, jeder fremde Name als `.global` angemeldet, Argumente als
 
 ## Sprachen ohne direkten Weg
 
-- **Microsoft-Werkzeuge unter DOS (MASM, MS-C, Turbo C, BASCOM, LINK):** Sie arbeiten mit OMF-Objekten; `lib/dos/DMVGRAF.A` ist ein ELF-Archiv für den Binder von gcc-ia16. Mit MASM geschriebene Teile lassen sich darum nicht dazubinden; NASM oder GNU as sind der Ersatz. Für eine OMF-Fassung müsste DMVGRAF mit einem Compiler übersetzt werden, der OMF schreibt (etwa OpenWatcom), und `GCRTDOS.S` müsste in dessen Konvention neu entstehen.
+- **Microsoft-Werkzeuge unter DOS (MASM, MS-C, Turbo C, BASCOM, LINK):** Sie arbeiten mit OMF-Objekten (Ausnahme: die gepackten Vollbilder als `GPIC.INC`, siehe oben); `lib/dos/DMVGRAF.A` ist ein ELF-Archiv für den Binder von gcc-ia16. Mit MASM geschriebene Teile lassen sich darum nicht dazubinden; NASM oder GNU as sind der Ersatz. Für eine OMF-Fassung müsste DMVGRAF mit einem Compiler übersetzt werden, der OMF schreibt (etwa OpenWatcom), und `GCRTDOS.S` müsste in dessen Konvention neu entstehen.
 - **DRs C-Compiler für CP/M-68K (Alcyon):** Dort hat `int` 16 Bit, die Bibliothek erwartet 32 Bit je Argument. Ein Alcyon-Programm müsste jeden Aufruf über eine kleine Assembler-Zwischenstufe führen, die die Worte zu Langworten erweitert. Einfacher ist es, das Programm mit gcc zu übersetzen.
 - **Turbo Pascal 3:** TP3 hat keinen Binder; `external` lädt nur eine Binärdatei an eine feste Stelle. Dafür gibt es eine eigene Pascal-Fassung von DMVGRAF als Include-Dateien mit denselben Namen, siehe [`pascal/README.md`](pascal/README.md) (MS-DOS und CP/M-80; in Teilen einzubinden, die inneren Schleifen in Maschinensprache als `inline`).
 - **Ein Weg für alle diese Sprachen** wäre ein residenter DMVGRAF-Treiber unter DOS, der über einen Software-Interrupt gerufen wird (wie NCRs GSX). Den gibt es noch nicht; sag Bescheid, wenn er gebraucht wird.
@@ -123,6 +145,7 @@ DMVGRAF is written in C and ships ready-built in [`lib/`](lib/) for MS-DOS (gcc-
 - **Calling conventions:** MS-DOS: arguments on the stack, last first, 2 bytes each, caller pops, result in `AX`, `SI`/`DI`/`BP`/`DS`/`SS`/`ES` preserved, `DS = SS` required. CP/M-68K: 4 bytes per argument (32-bit `int`), result in `d0`, `d2`–`d7`/`a2`–`a6` preserved. CP/M-8000: names with a leading underscore, 2 bytes per argument from `2(r15)`, result in `r7`, `r8`–`r14` preserved.
 - **Assembler:** NASM with `-f elf32` and `cpu 8086` or GNU as under MS-DOS, GNU as under CP/M-68K, asz8k under CP/M-8000.
 - **Not directly:** Microsoft OMF tools (MASM, MS-C, Turbo C, BASCOM), DR's Alcyon C on CP/M-68K (16-bit `int`), and Turbo Pascal 3, which has no linker – for TP3 there is a Pascal include version in `pascal/`.
+- **Packed full-screen pictures** (`gpic`, `gpicm`): declared in `src/DMVPIC.H`. For MASM programs (DMVDEMO) the same 8086 kernel is a standalone include, `src/GPIC.INC` (MASM 5.1 / JWasm `-Zm`): DS:DX file name, AL art, BX xw, CX y, `call gp_pic`; CF/AX on error. Example: `test/GPT.ASM`.
 - **Tested:** the C and assembler examples ran in the test benches under MS-DOS and CP/M-68K; `DEMO.8KN` assembles and links under CP/M-8000 but has not been run.
 
 Code: Claude (Anthropic), idea and prompts: rfka01. Licence: MIT.

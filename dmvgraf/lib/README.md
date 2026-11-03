@@ -2,7 +2,7 @@
 
 *English below.*
 
-DMVGRAF 0.3, übersetzt zum Einbinden in eigene Programme. Die Schnittstelle ist `src/DMVGRAF.H`; was die Funktionen tun, steht in `../README.md`.
+DMVGRAF 0.3, übersetzt zum Einbinden in eigene Programme. Die Schnittstelle ist `src/DMVGRAF.H` (gepackte Vollbilder: `src/DMVPIC.H`); was die Funktionen tun, steht in `../README.md`.
 
 | Verzeichnis | System | Inhalt | Werkzeuge zum Binden |
 |---|---|---|---|
@@ -50,7 +50,7 @@ Neu bauen: `make lib` (DOS small und tiny, CP/M-68K); das CP/M-8000-Archiv mit `
 
 ## English
 
-DMVGRAF 0.3, compiled for linking into your own programs. The interface is `src/DMVGRAF.H`; the functions are described in `../README.md`.
+DMVGRAF 0.3, compiled for linking into your own programs. The interface is `src/DMVGRAF.H` (packed pictures: `src/DMVPIC.H`); the functions are described in `../README.md`.
 
 - `dos/` – MS-DOS on the DMV (8088/V20), small model: `GCRTDOS.O` start-up and `DMVGRAF.A`, for gcc-ia16. Link with `tools/baudos.py -I src -o PROG.EXE lib/dos/GCRTDOS.O prog.c lib/dos/DMVGRAF.A`. Images go into memory blocks requested from DOS (up to two of 64 KB).
 - `dos-tiny/` – MS-DOS, tiny model (.COM, everything in one segment): `GCRTCOM.O` and `DMVGRAF.A`. Link with `tools/baudos.py --tiny -I src -o PROG.COM lib/dos-tiny/GCRTCOM.O prog.c lib/dos-tiny/DMVGRAF.A`. In both DOS models every function sits in its own section and the linker drops what the program does not call.

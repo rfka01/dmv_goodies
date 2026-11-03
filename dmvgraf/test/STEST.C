@@ -1,7 +1,11 @@
-/* STEST.C - Pruefprogramm fuer die Figuren ueber GCHRD (gsprdef, gspr).
-   Ein Bild: Hintergrund mit Streifen, Figuren 8 x 8 und 16 x 16 in den
+/* STEST.C - Pruefprogramm fuer die Figuren ueber GCHRD (gsprdef,
+   gsprset, gspr).
+   Bild 1: Hintergrund mit Streifen, Figuren 8 x 8 und 16 x 16 in den
    drei Arten und mit Zoom 0, 1 und 3; eine umgekehrte Figur wird mit
-   einem zweiten gspr wieder entfernt. Taste beendet.
+   einem zweiten gspr wieder entfernt. Taste weiter.
+   Bild 2: HOPPLERs Drachenlibelle im Format 5 (schwarze Umrisse decken),
+   links mit gsprset/gspr, rechts mit gbdef/gbput; beide Haelften gleich.
+   Taste beendet.
 
    Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT */
 #include "DMVGRAF.H"
@@ -13,6 +17,57 @@ static char raute[24] = {
         0x00, 0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x00     /* blau */
 };
 static char figur[96];          /* 16 x 16, wird berechnet */
+
+/* HOPPLERs Drachenlibelle (SprLibF) im Format 5 */
+static int libelle[3 * 2 * 16] = {
+        0x0000,0x0000,0x0540,0x0FF0,0x0BD0,0x0FF0,0x6FF6,0x2BD4,
+        0x2C34,0x0FF0,0x0560,0x07E0,0x0140,0x0000,0x0000,0x0000,
+        0x1818,0x0FF0,0x0AB0,0x1008,0x342C,0xF00F,0x9009,0x542A,
+        0x53CA,0x300C,0x1A98,0x0810,0x06A0,0x0BD0,0x1248,0x366C,
+        0x0000,0x0000,0x0000,0x0E70,0x0A50,0x0E70,0x0000,0x0000,
+        0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
+        0x1818,0x0FF0,0x0FF0,0x1188,0x35AC,0xF18F,0xFFFF,0x7FFE,
+        0x7FFE,0x3FFC,0x1FF8,0x0FF0,0x07E0,0x0BD0,0x1248,0x366C,
+        0x0000,0x0000,0x0000,0x0E70,0x2E74,0xEE77,0xE007,0x6006,
+        0x6006,0x2004,0x1008,0x0000,0x0000,0x0000,0x0000,0x0000,
+        0x1818,0x0FF0,0x0FF0,0x1188,0x1188,0x1188,0x1FF8,0x1FF8,
+        0x1FF8,0x1FF8,0x0FF0,0x0FF0,0x07E0,0x0BD0,0x1248,0x366C };
+
+/* Bild 2: Format 5, links gspr, rechts gbput */
+static int seite2()
+{
+        int i, k, a, z, x, y;
+
+        gclear();
+        gmode(3);
+        for (i = 0; i < 16; i++) {              /* senkrechte Streifen */
+                gcolor(i & 7);
+                gpoint(i * 40, 24);
+                gbox(40, 376, 0);
+        }
+        gmode(0);
+        gcolor(7);
+        gpoint(8, 4);
+        gtext("gsprset: links gspr, rechts gbput (Format 5), gleich?", 0);
+        gsprset(2, 16, 16, libelle);
+        gbdef(0, 16, 16, GB_SETR, (char *)libelle);
+        for (k = 0; k < 3; k++) {
+                a = k == 0 ? GB_DURCH : k == 1 ? GB_DECK : GB_XOR;
+                for (i = 0; i < 4; i++) {
+                        z = i == 0 ? 0 : i == 1 ? 1 : i == 2 ? 3 : 5;
+                        x = i == 0 ? 20 : i == 1 ? 52 : i == 2 ? 108 : 196;
+                        y = 40 + k * 118;
+                        gspr(2, x, y, z, a);
+                        gpoint(320 + x, y);
+                        gzoom(z);
+                        gbput(0, a);
+                        gzoom(0);
+                }
+        }
+        while (!gkey())
+                gwait(1);
+        return 0;
+}
 
 static int bauen()
 {
@@ -74,6 +129,7 @@ int main()
         gtext(k == GE_LAGE ? "Rand: GE_LAGE gut" : "Rand: FALSCH", 0);
         while (!gkey())
                 gwait(1);
+        seite2();
         gexit();
         return 0;
 }

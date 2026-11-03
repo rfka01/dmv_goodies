@@ -6,7 +6,7 @@ unter einem nachgebildeten MS-DOS auf der DMV (8086 in Unicorn).
 
 - INT 21h: 02h Zeichen, 06h DL=FFh Taste ohne Warten (je Aufruf eine
   Skriptzeile wie GHWSIM: maus x y k / taste c / bild datei.ppm),
-  3Dh/3Fh/3Eh Dateien im aktuellen Verzeichnis, 48h Speicher, 4Ch Ende.
+  3Dh/3Fh/3Eh/42h Dateien im aktuellen Verzeichnis, 48h Speicher, 4Ch Ende.
 - 7220 an A0h/A1h/A2h ueber simlib.so (dieselbe Nachbildung wie
   GHWSIM.C, make simlib.so); K806 an 30h-33h, 8741 an 40h/41h.
 
@@ -85,6 +85,10 @@ gdc = dict(eintrag=bytearray(), lese=bytearray(), vs=0, n=0)
 def gdc_flush():
     e = gdc['eintrag']
     if e:
+        while len(e) > 255 and e[0] & 0xE0 == 0x20:  # langes WDAT teilen
+            l = bytes([255]) + bytes(e[:255]) + b'\0'
+            sim.w_liste(l)
+            e = bytearray(e[:1]) + e[255:]
         l = bytes([len(e)]) + bytes(e) + b'\0'
         if e[0] & 0xE4 == 0xA0 or e[0] == 0xE0:
             buf = ctypes.create_string_buffer(1024)
@@ -236,6 +240,16 @@ def intr(uc, no, ud):
     elif ah == 0x3E:
         if bx in dateien:
             dateien.pop(bx).close()
+    elif ah == 0x42:            # Lage setzen: AL 0 Anfang, 1 hier, 2 Ende
+        if bx in dateien:
+            f = dateien[bx]
+            v = cx << 16 | dx
+            if v & 0x80000000:
+                v -= 1 << 32
+            p = f.seek(v, ax & 3)
+            W(UC_X86_REG_AX, p & 0xFFFF); W(UC_X86_REG_DX, p >> 16)
+        else:
+            W(UC_X86_REG_AX, 6); flag(0, 1)
     elif ah == 0x48:
         if st['bl'] < a.speicher and st['frei'] + bx <= 0xA000:
             W(UC_X86_REG_AX, st['frei']); st['frei'] += bx; st['bl'] += 1

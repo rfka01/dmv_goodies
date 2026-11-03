@@ -6,5 +6,6 @@ program STESTZ;
 {$I DMVGRAF.INC}
 const BKMAX = 4;
 {$I DMVBKL.INC}
+const SPMAX = 2;
 {$I DMVSPR.INC}
 {$I STESTK.INC}

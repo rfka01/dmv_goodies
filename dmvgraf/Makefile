@@ -2,7 +2,7 @@
 # und ihr Pruefstand. Unter CP/M-8000: test/GTEST.SUB.
 CC     = gcc
 CFLAGS = -x c -DHOST -std=gnu89 -O1 -g -w -Isrc
-LIB    = src/GRAF.C src/GBILD.C src/GEIN.C src/GKERN.C src/GHWSIM.C
+LIB    = src/GRAF.C src/GBILD.C src/GEIN.C src/GKERN.C src/GHWSIM.C src/GPIC.C
 
 gtest: test/GTEST.C $(LIB) src/*.H
 	$(CC) $(CFLAGS) -o $@ test/GTEST.C $(LIB)
@@ -13,11 +13,14 @@ stest: test/STEST.C $(LIB) src/*.H
 ptest: test/PTEST.C $(LIB) src/*.H
 	$(CC) $(CFLAGS) -o $@ test/PTEST.C $(LIB)
 
+pictest: test/PICTEST.C $(LIB) src/*.H
+	$(CC) $(CFLAGS) -o $@ test/PICTEST.C $(LIB)
+
 btest: test/BTEST.C $(LIB) src/*.H
 	$(CC) $(CFLAGS) -o $@ test/BTEST.C $(LIB)
 
 LIB68  = src/GCRT68.S src/GSUP68.S src/GARG68.C src/GRAF.C src/GBILD.C \
-         src/GEIN.C src/GK68.S src/GHWCPM.C src/GHD68K.C src/GHPOOL.C
+         src/GEIN.C src/GK68.S src/GHWCPM.C src/GHD68K.C src/GHPOOL.C src/GPIC.C
 
 # CP/M-68K (K234): GCRT68.S muss vorn stehen
 GTEST.68K: test/GTEST.C $(LIB68) src/*.H
@@ -30,7 +33,7 @@ MTEST.68K: test/MTEST.C $(LIB68) src/*.H
 
 # MS-DOS (8088/V20, small) mit gcc-ia16 (/opt/ia16/bin oder IA16=...)
 LIBDOS = src/GARG68.C src/GRAF.C src/GBILD.C src/GEIN.C src/GKERN.C src/GHWDOS.C \
-         src/GINFO.C src/GZEIT.C
+         src/GINFO.C src/GZEIT.C src/GPIC.C src/GPIC86.S
 
 GTEST.EXE: test/GTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/GTEST.C $(LIBDOS)
@@ -50,6 +53,9 @@ BTEST.EXE: test/BTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 
 ITEST.COM: test/ITEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/ITEST.C $(LIBDOS)
+
+PICTEST.EXE: test/PICTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
+	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/PICTEST.C $(LIBDOS)
 
 MTEST.EXE: test/MTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/MTEST.C $(LIBDOS)
@@ -71,4 +77,4 @@ simlib.so: tools/simlib.c src/GHWSIM.C src/*.H
 	$(CC) -shared -fPIC -O1 -w -x c -DHOST -std=gnu89 -Isrc -o tools/$@ tools/simlib.c
 
 clean:
-	rm -f gtest stest ptest btest GTEST.68K MTEST.68K *.EXE *.COM tools/simlib.so *.ppm
+	rm -f gtest stest ptest btest pictest GTEST.68K MTEST.68K *.EXE *.COM tools/simlib.so *.ppm

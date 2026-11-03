@@ -57,6 +57,7 @@ extern int gputs();     /* (s)                Text auf die Konsole (Textbetrieb)
 
 /* Figuren ueber GCHRD ("Sprites", schnell, 8 oder 16 Punkte) */
 extern int gsprdef();   /* (nr, b, h, muster) je Ebene G, R, B: h Zeilen zu b/8 Byte */
+extern int gsprset();   /* (nr, b, h, worte) Format 5: [Ebene][SET, RESET][Zeile] */
 extern int gspr();      /* (nr, x, y, zoom, art) */
 
 /* Nur MS-DOS: Hardwareauskunft (GINFO.C), Zeitbasis (GZEIT.C). Unter
@@ -113,4 +114,5 @@ extern int gt0();       /* () Kanal 0 gelatcht */
 #define GE_FORM   94    /* Format oder Groesse ungueltig */
 #define GE_LEER   95    /* Bild nicht angelegt */
 #define GE_LAGE   96    /* glput ohne glayer oder Liste voll */
+#define GE_VERW   97    /* gpic: Verweis vor den Anfang der Ebene */
 #define GE_HW     99    /* keine DMV-Grafik (BIOS) */

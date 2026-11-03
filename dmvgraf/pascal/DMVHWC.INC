@@ -12,16 +12,19 @@
 
   Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT }
 
+const
+  hwPRES: integer = 256;            { so viel Heap bleibt dem Programm (TP3 haelt selbst 1 KB);
+                                      vor dem ersten Bild aenderbar }
 type
   GBytes  = array[0..32767] of byte;
   GStr    = string[80];            { CP/M-80: eine Bildzeile, spart Platz }
   GBZeiger = ^GBytes;
 
 const
+  hwHSH    = 0;                     { MaxAvail in Einheiten von 2^hwHSH Byte }
   GH_FARBE = 1;  GH_MAUS = 2;  GH_SYN = 4;  GH_COVOX = 8;
   hwZEIT   = 30000;
   hwPMAX   = 16384;                 { Bildspeicher hoechstens }
-  hwPRES   = 256;                   { so viel Heap bleibt frei (TP3 haelt selbst 1 KB) }
   hwQL     = 256;                   { GDC-Liste }
   hwQB     = 384;  hwQB1 = 383;     { Bildzeilenpuffer (mindestens 320) }
 

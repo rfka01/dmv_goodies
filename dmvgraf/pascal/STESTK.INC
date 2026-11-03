@@ -1,12 +1,54 @@
-{ Hauptteil des Pascal-Pruefprogramms fuer gsprdef/gspr, wie test/STEST.C 
+{ Hauptteil des Pascal-Pruefprogramms fuer gsprdef/gsprset/gspr, wie test/STEST.C 
   Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT }
 const raute: array[0..23] of byte = (
   $18, $3C, $7E, $E7, $E7, $7E, $3C, $18,
   $18, $3C, $7E, $E7, $E7, $7E, $3C, $18,
   $00, $00, $00, $18, $18, $00, $00, $00);
+  { HOPPLERs Drachenlibelle (SprLibF) im Format 5 }
+  libelle: array[0..95] of integer = (
+    $0000,$0000,$0540,$0FF0,$0BD0,$0FF0,$6FF6,$2BD4,
+    $2C34,$0FF0,$0560,$07E0,$0140,$0000,$0000,$0000,
+    $1818,$0FF0,$0AB0,$1008,$342C,$F00F,$9009,$542A,
+    $53CA,$300C,$1A98,$0810,$06A0,$0BD0,$1248,$366C,
+    $0000,$0000,$0000,$0E70,$0A50,$0E70,$0000,$0000,
+    $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,
+    $1818,$0FF0,$0FF0,$1188,$35AC,$F18F,$FFFF,$7FFE,
+    $7FFE,$3FFC,$1FF8,$0FF0,$07E0,$0BD0,$1248,$366C,
+    $0000,$0000,$0000,$0E70,$2E74,$EE77,$E007,$6006,
+    $6006,$2004,$1008,$0000,$0000,$0000,$0000,$0000,
+    $1818,$0FF0,$0FF0,$1188,$1188,$1188,$1FF8,$1FF8,
+    $1FF8,$1FF8,$0FF0,$0FF0,$07E0,$0BD0,$1248,$366C);
 var figur: array[0..95] of byte;
     i, k, x, y, a: integer;
     g, r, b: boolean;
+
+{ Bild 2: Format 5, links gspr, rechts gbput; beide Haelften gleich }
+procedure seite2;
+var i, k, a, z, x, y: integer;
+begin
+  gclear;
+  gmode(3);
+  for i := 0 to 15 do begin gcolor(i and 7); gpoint(i * 40, 24); gbox(40, 376, 0); end;
+  gmode(0); gcolor(7); gpoint(8, 4);
+  gtext('gsprset: links gspr, rechts gbput (Format 5), gleich?', 0);
+  gsprset(2, 16, 16, libelle);
+  gbdef(0, 16, 16, GB_SETR, libelle);
+  for k := 0 to 2 do begin
+    if k = 0 then a := GB_DURCH else if k = 1 then a := GB_DECK else a := GB_XOR;
+    for i := 0 to 3 do begin
+      case i of
+        0: begin z := 0; x := 20; end;
+        1: begin z := 1; x := 52; end;
+        2: begin z := 3; x := 108; end;
+        3: begin z := 5; x := 196; end;
+      end;
+      y := 40 + k * 118;
+      gspr(2, x, y, z, a);
+      gpoint(320 + x, y); gzoom(z); gbput(0, a); gzoom(0);
+    end;
+  end;
+  while gkey = 0 do gwait(1);
+end;
 begin
   gstart; ginit;
   if gerr <> 0 then halt;
@@ -50,5 +92,6 @@ begin
   gpoint(400, 120);
   if a = GE_LAGE then gtext('Rand: GE_LAGE gut', 0) else gtext('Rand: FALSCH', 0);
   while gkey = 0 do gwait(1);
+  seite2;
   gexit;
 end.

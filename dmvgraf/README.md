@@ -11,19 +11,24 @@ A graphics, image, mouse and sound library for the **NCR Decision Mate V**, link
 - Images in five formats (1 bit, 4-bit colour numbers as in Nels Anderson's TIL tile sets, DMV planes, SET/RESET sprites as in HOPPLER), stored outside the program in the free segments of the K208 (BIOS 72)
 - Overlapping images composed off-screen and written in one go (`GLAYER`, `GLPUT`, `GLDRAW`), with a shaded variant for selections
 - Mouse pointer with saved background (`GZEIG`): moving it reads and writes only the small box around old and new position
-- Small figures ("sprites", 8 or 16 pixels, zoom 1–16) drawn and magnified by the µPD7220 itself (`gsprdef`, `gspr`)
+- Small figures ("sprites", 8 or 16 pixels, zoom 1–16) drawn and magnified by the µPD7220 itself (`gsprdef`, `gsprset` with mask in format 5, `gspr`)
 - Mouse (K806), keyboard, frame wait, tone via the keyboard 8741
+- Packed full-screen pictures (`.PIC`, LZSS, `gpic`, `gpicm`, header `DMVPIC.H`) written straight into the image store; the same 8086 kernel as a standalone MASM include (`src/GPIC.INC`) and a packer `tools/dmvpack.py`
 - MS-DOS only: hardware report (`ghinfo`, `ghcpu`), time base from the 8253 (`gtinit`, `gtus`), running a code block on the coprocessor (`gcorun`, K235), and a tiny-model (.COM) library
 
 Status 0.3 (2.11.2026): a fast image path like HOPPLER's `BlitAsm` (word-aligned, unzoomed images go straight from the image store to the 7220), sprites, patterns anchored to the screen and in two colours, hardware probes after the hardware detection guide (empty bus echoes its address, K806 via F1, screen probe that restores memory), MS-DOS hardware report, time base and coprocessor run, tiny model. All screens unchanged or as intended in the test benches; `gcorun` and the coprocessor probe have not run yet (they need MAME with a K234 or a real machine).
 
 Status 0.2: CP/M-8000 tested in MAME with Mahjongg (rfka01/dmv_games). CP/M-68K in a test bench (`tools/pruef68.py`, 68000 in Unicorn): the same screens as the PC simulation, with and without the BIOS block, colour and mono; Mahjongg tested in MAME under our CP/M-68K 1.3 v005 and NCR's 1.2. MS-DOS: the same screens as the PC simulation in its test bench (`tools/pruefdos.py`, 8086 in Unicorn), Mahjongg tested in MAME under MS-DOS 3.30.
 
+### Packed full-screen pictures (.PIC)
+
+`gpic(file, xw, y, art)` loads a `.PIC` file straight into the image store (`gpicm(data, length, xw, y, art)` from memory); `xw` is the left column in words (0–39), `y` the top line; `art` bit 0 blanks the display while writing, bit 1 forces mono, bit 2 colour. Declared in `src/DMVPIC.H`. MS-DOS uses an 8086 kernel that streams each byte to the 7220 (waits for an empty FIFO, then 16 bytes unchecked); the other systems use the same logic in C. For MASM programs such as DMVDEMO the kernel is `src/GPIC.INC` (MASM 5.1 / JWasm `-Zm`, all names `gp_`; DS:DX file name, AL art, BX xw, CX y; CF/AX error). `tools/dmvpack.py` packs raw 128 000/32 000-byte files or 8-colour PNGs and checks its output. File format: see "Dateiformat" below; KITT (mono plane only) packs from 32 000 to 12 231 bytes.
+
 ## Deutsch
 
 Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate V**, die ins Programm gebunden wird – wie NCRGRAF (CP/M-80, MS-BASIC) und TurboGraf (Turbo Pascal 3). Was es dort schon gibt, heißt und verhält sich wie dort; so laufen alte Programme mit wenig Aufwand weiter. Sie ist K&R-C für **CP/M-8000** (Z8001-Karte K238, mit einem Kern in Z8000-Assembler) **CP/M-68K** (68008-Karte K234, mit gcc übersetzt, auch auf NCRs eigenem CP/M-68K 1.2 ohne DMV-BIOS-Block) und **MS-DOS** (8088/V20, mit gcc-ia16 übersetzt), dazu eine Simulation für den PC. Fertig übersetzte Bibliotheken für alle drei liegen in [`lib/`](lib/); wie man sie aus C und Assembler aufruft, steht in [`EINBINDEN.md`](EINBINDEN.md). Für **Turbo Pascal 3** unter MS-DOS und CP/M-80 gibt es eine Übersetzung nach Pascal als Include-Dateien in [`pascal/`](pascal/).
 
-**Stand 0.3** (2.11.2026): schneller Weg für Bilder wie HOPPLERs `BlitAsm`, Figuren über GCHRD (`gsprdef`, `gspr`), Muster am Schirm verankert, zweifarbig und selbst festgelegt (`gpdef`, `gbcol`), Hardwareproben nach der Anleitung „Hardware erkennen“ (Echo des leeren Busses, K806 über F1, Bildschirmprobe mit Wiederherstellen, DMV-Prüfung vor `ginit`), unter MS-DOS Hardwareauskunft (`ghinfo`, `ghcpu`), Zeitbasis (`gtinit` …), Koprozessor (`gcorun`) und eine Bibliothek im Speichermodell tiny. In den Prüfständen dieselben Bilder wie die PC-Simulation; `gcorun` und die Koprozessorprobe sind noch nicht gelaufen (dafür braucht es MAME mit K234 oder eine echte Maschine).
+**Stand 0.3** (2.11.2026): schneller Weg für Bilder wie HOPPLERs `BlitAsm`, Figuren über GCHRD (`gsprdef`, `gspr`), Muster am Schirm verankert, zweifarbig und selbst festgelegt (`gpdef`, `gbcol`), Hardwareproben nach der Anleitung „Hardware erkennen“ (Echo des leeren Busses, K806 über F1, Bildschirmprobe mit Wiederherstellen, DMV-Prüfung vor `ginit`), unter MS-DOS Hardwareauskunft (`ghinfo`, `ghcpu`), Zeitbasis (`gtinit` …), Koprozessor (`gcorun`) und eine Bibliothek im Speichermodell tiny. Danach: Figuren im Format 5 mit Maske (`gsprset`), Anzahl der Figuren frei, `gbload` auch für Format 5. In den Prüfständen dieselben Bilder wie die PC-Simulation; `gcorun` und die Koprozessorprobe sind noch nicht gelaufen (dafür braucht es MAME mit K234 oder eine echte Maschine).
 
 **Stand 0.2** (1.11.2026): CP/M-8000 mit Mahjongg (rfka01/dmv_games) in MAME getestet, direkt am 7220 und über BIOS 66/67; der Z8000-Kern erzeugt dieselben GDC-Listen wie die C-Fassung. CP/M-68K im Prüfstand (`tools/pruef68.py`, 68000 in Unicorn): dieselben Bilder wie die PC-Simulation, mit und ohne BIOS-Block, Farbe und mono. Mahjongg in MAME getestet unter unserem CP/M-68K 1.3 v005 und unter NCRs 1.2. MS-DOS im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn) wie die PC-Simulation, Mahjongg in MAME unter MS-DOS 3.30 getestet.
 
@@ -157,9 +162,10 @@ Muster: 0 voll, 1 50 %, 2 25 %, 3 75 %, 4 waagrechte Linien, 5 senkrechte, 6 `/`
 | 2 `GB_BIT0` | 1 Bit je Punkt, Bit 0 links | eigene Schrift, Masken |
 | 3 `GB_NIB` | 4 Bit je Punkt (Farbnummer 0–15), hohes Halbbyte links | TIL-Steinsätze, EGA-Rohdaten |
 | 4 `GB_EBN` | je Zeile Maske, Grün, Rot, Blau, Bit 0 links | Zeiger, interne Form |
-| 5 `GB_SETR` | `int`-Worte: je Ebene (Grün, Rot, Blau) SET-, dann RESET-Worte aller Zeilen, Bit 0 links | HOPPLER-Figuren (`Spr16`); nur `gbdef` |
+| 5 `GB_SETR` | `int`-Worte: je Ebene (Grün, Rot, Blau) SET-, dann RESET-Worte aller Zeilen, Bit 0 links | HOPPLER-Figuren (`Spr16`); in Dateien 16-Bit-Worte, niederwertiges Byte zuerst |
 
 - 1-Bit-Bilder zeichnen in der aktuellen Farbe.
+- **Format 5 aus einer Datei:** `gbload` liest je Bild alle Worte in einen Puffer und legt das Bild dann wie `gbdef` an. In C reicht der Puffer für 384 Worte (Figuren bis 32 × 32), in Pascal (`DMVBILD.INC`, nicht in der kleinen Fassung `DMVBKL.INC`) kommt er vom Heap (Bilder bis 64 × 85). Sonst `GE_PLATZ`.
 - **Format 3:** `gbmap` setzt jede Farbnummer auf eine DMV-Farbe a, oder mit `muster` 1 (Schachbrett), 2 (jeder vierte Punkt) oder 3 (jede zweite Zeile) auf ein Raster aus a und b. **a = −1 macht die Farbnummer durchsichtig;** `muster` sagt dann, wie die Form entsteht: 0 jeder Punkt für sich, 1 je Zeile vom ersten bis zum letzten sichtbaren Punkt gefüllt (Lücken in Farbe b), 2 wie 1, um einen Punkt nach allen Seiten erweitert (Rand in Farbe b). Vorgabe wie Mahjongg: 0 durchsichtig, Hellgrau → Weiß, Dunkelgrau → Raster Schwarz/Blau, Braun → Raster Gelb/Rot, die übrigen auf die nächste DMV-Farbe; mono: Hellgrau und Weiß hell, Dunkelgrau im Raster, alles andere dunkel. Eine TIL-Datei ist `gbload(0, "X.TIL", 40, 40, 42, GB_NIB, 0)`.
 - **Arten** für `gbput` und `glput`: 0 `GB_DECK` deckend (das ganze Rechteck), 1 `GB_DURCH` durchsichtig, 2 `GB_SCHAT` durchsichtig und schattiert (Weißes im Raster Weiß/Blau, mono Helles im 50-%-Raster – für Auswahlen), 3 `GB_XOR` umkehren.
 - `gbput` zeichnet wortweise über Setzen und Löschen je Ebene; Nachbarpunkte bleiben unberührt. Bilder werden am Schirmrand abgeschnitten.
@@ -172,10 +178,14 @@ Kleine Figuren, die der 7220 selbst aus seinem Parameter-RAM zeichnet und vergr�
 
 | Name | Parameter | Wirkung |
 |---|---|---|
-| `gsprdef` | nr, b, h, muster | Figur 0–15 anlegen; b und h je 8 oder 16; muster: je Ebene (grün, rot, blau) h Zeilen zu b/8 Byte, Bit 0 links. Die Daten müssen erhalten bleiben. |
-| `gspr` | nr, x, y, zoom, art | an x, y zeichnen (Ecke wie `gbput`), Zoom 0–15; art `GB_XOR` umkehren (zweimal = weg), `GB_DURCH` nur die gesetzten Punkte in ihrer Farbe, `GB_DECK` das ganze Feld. Ragt die Figur über den Schirm: `GE_LAGE` (96). |
+| `gsprdef` | nr, b, h, muster | Figur anlegen; b und h je 8 oder 16; muster: je Ebene (grün, rot, blau) h Zeilen zu b/8 Byte, Bit 0 links. Maske ist das ODER der Ebenen, schwarze Punkte sind also durchsichtig. |
+| `gsprset` | nr, b, h, worte | Figur im Format 5 wie `gbdef … GB_SETR`: `int`-Worte je Ebene SET, dann RESET, ein Wort je Zeile, Bit 0 links. Durchsichtig ist nur, was in keiner Ebene gesetzt oder gelöscht wird; Schwarz (RESET in allen Ebenen) deckt – Umrisse, Pupillen, Beine wie in HOPPLER. |
+| `gspr` | nr, x, y, zoom, art | an x, y zeichnen (Ecke wie `gbput`), Zoom 0–15; art `GB_XOR` umkehren (zweimal = weg), `GB_DURCH` nur die Figur, `GB_DECK` das ganze Feld. Ragt die Figur über den Schirm: `GE_LAGE` (96). |
 
-Auf der Mono-DMV gilt ein Punkt als gesetzt, wenn er in einer der drei Ebenen gesetzt ist.
+- Die Daten beider Arten bleiben im Programm und müssen erhalten bleiben (bei `gsprset` etwa ein Feld, in das das Programm die Figuren aus seiner Datei liest).
+- Anzahl: in C 32 Figuren (0–31, beim Übersetzen der Bibliothek `-DGSMAX=n`), in Pascal legt das Programm sie fest: `const SPMAX = 20;` vor `{$I DMVSPR.INC}` ergibt die Figuren 0–20.
+- `GB_DURCH` zeichnet je Ebene erst die zu löschenden, dann die zu setzenden Punkte über GCHRD; leere Durchgänge fallen weg. HOPPLERs Drachenlibelle 16 × 16 mit Zoom 1 braucht in der Pascal-Fassung unter DOS 30 000 Befehle (HOPPLERs `Sprite16` 37 000); `test/STEST.C` zeichnet sie im zweiten Bild links mit `gspr`, rechts mit `gbput` – beide Hälften gleich.
+- Auf der Mono-DMV gilt ein Punkt als gesetzt, wenn er in einer der drei Ebenen gesetzt ist.
 
 ### Zusammensetzen
 
@@ -229,6 +239,50 @@ Nach der Anleitung „NCR Decision Mate V – Hardware erkennen“ (2.11.2026) u
 **Zeitbasis** (`GZEIT.C`): `gtinit()` lernt Kanal 2 des 8253 kennen (unter DOS Modus 3, Startwert 5000 oder 27463, 1 µs je Schritt; ohne DOS setzt es ihn auf Modus 2 mit vollem Umfang) und eicht Kanal 0 (Bildtakt) und den Bildwechsel; steht Kanal 0, stößt es ihn über Port 14h an. `gtus()` liefert µs seit `gtinit` als `long` und muss öfter gerufen werden als einmal je Halbperiode von Kanal 2 (5 bzw. 27 ms). `gtbild()` µs je Bild, `gt0per()` µs je Takt von Kanal 0 (0 = steht), `gt0()` Kanal 0 roh. Kanal 0 und 1 werden nie umprogrammiert.
 
 **Koprozessor** (nur K235): `gcorun(art, seg, start, len, &us)` lässt ein Programm auf dem Z80 (art 1), dem 68008 der K234 (2) oder dem Z8001 der K238 (3) laufen; der 8088 steht so lange, die Unterbrechungen sind gesperrt. Z80: `len` Byte Code ab `seg:start`, endet mit `OUT (D0h),A` und `JP F111h`; DMVGRAF legt ihn in Bank 0 unter das eigene Programm (2000h–F100h) und stellt den Speicher danach wieder her. 68008/Z8001: ab `seg:start` 8 Byte Startblock (68008: SSP und PC, Big Endian), die nach 0:0000 kommen; das Programm gibt mit einem Schreibzugriff auf FFFDFh zurück (68008: `move.b d0,$FFDF.w`, danach `stop #$2700`). Gestartet wird der Koprozessor vom Z80 mit `OUT DFh`, nie D8h. `us`: Laufzeit über Kanal 0 (auf ein Bild genau). Ergebnis 0 gut, 1 keine K235 oder kein Platz, 2 der Z80 kam nicht zurück. Lange Rechnungen in Stücken laufen lassen: nach mehr als 15 s Sperre ist der Diskettenmotor aus.
+
+### Gepackte Vollbilder (.PIC)
+
+Für Titelbilder, Fotos und Bildschirmabzüge: ein Vollbild oder ein Ausschnitt in Ebenen, mit LZSS gepackt, wird ohne Puffer für eine ganze Ebene direkt in den Bildspeicher geschrieben. Erbeten von DMVDEMO (`claude/DMVGRAF-LZSS-Anforderungen.md`).
+
+| Name | Parameter | Wirkung |
+|---|---|---|
+| `gpic` | datei, xw, y, art | `.PIC`-Datei an Wortspalte `xw` (0–39), Zeile `y` (0–399) |
+| `gpicm` | daten, laenge, xw, y, art | dasselbe aus dem Speicher (Bilder im Programm) |
+
+- Vereinbart in **`src/DMVPIC.H`**, nicht in `DMVGRAF.H`: Der Binder von CP/M-8000 nimmt zu jeder vereinbarten Funktion den Code dazu.
+- `art`: Bit 0 Anzeige während des Schreibens dunkel (BCTRL 0Ch, danach 0Dh), Bit 1 Mono erzwingen, Bit 2 Farbe erzwingen; ohne beides gilt die erkannte Karte.
+- Geschrieben wird: Farbkarte – G, R, B in ihre Ebenen, fehlende Farbebenen gelöscht; hat die Datei nur M, kommt M in alle drei (weiß). Mono – M in die Grün-Ebene, ohne M die Ebene G. Nicht benötigte Ebenen werden übersprungen.
+- Rückgabe: 0, `GE_DATEI` (92, Datei fehlt), `GE_KURZ` (93, zu kurz oder Ebenenlänge stimmt nicht), `GE_FORM` (94, Kennung oder Version unbekannt), `GE_LAGE` (96, ragt über den Schirm), **`GE_VERW` (97, Verweis vor den Anfang der Ebene)**, `GE_HW`. Bei einem Fehler wird nichts außerhalb des Bildes geschrieben.
+- **MS-DOS:** Kern in 8086-Maschinensprache (`src/GPIC.INC`, in die Bibliothek übernommen als `src/GPIC86.S`): Arbeitsbereich 5,3 KB (Fenster 4 KB, Lesepuffer 1 KB, mit INT 21h nachgefüllt, Zeilenpuffer 80 Byte), jedes Byte geht sofort an den 7220. Je Zeile CURS und WDAT, bei voller Breite ein einziger Strom. **FIFO in Blöcken:** Statt vor jedem Byte auf „nicht voll“ zu warten, wartet der Kern auf „FIFO leer“ (Status Bit 2) und schreibt dann 16 Byte ohne Abfrage; nach Befehlen beginnt ein neuer Block. Ein Bild nur mit M wird für den Farbschirm einmal entpackt und Zeile für Zeile in alle drei Ebenen geschrieben.
+- **Dunkelschalten:** `gpic` schaltet in der Bibliothek selbst um den Kern herum (GDC-Liste), `GPIC.INC` vor dem Öffnen der Datei und nach dem Schließen (6Bh, 0Dh). In MAME blieb die Anzeige dunkel, solange der Kern erst nach dem Öffnen dunkel schaltete.
+- **Andere Systeme** (CP/M-68K, CP/M-8000, PC-Simulation): dieselbe Arbeit in C über die GDC-Liste, Zeile für Zeile.
+- **Geschwindigkeit** (Befehle im Prüfstand; MAME braucht für 1,28 Mio. etwa 6 s): KITT nur M auf dem Farbschirm 1,03 Mio. (etwa 5 s), alle vier Ebenen gepackt 1,59 Mio., alte Rohdatei mit drei Ebenen 0,91 Mio. Die erbetenen 2 s sind auf dem 8088 nicht zu erreichen; schon das reine Ausgeben von 96 000 Byte an den 7220 kostet fast 1 s.
+
+**Aus MASM** (DMVDEMO): `INCLUDE GPIC.INC` (MASM 5.1, auch JWasm `-Zm`), alle Namen mit `gp_`, keine Variablen des Programms. `call gp_pic` mit DS:DX = Dateiname (ASCIIZ), AL = art, BX = xw, CX = y; zurück CF = 1 und AX = Fehlernummer, sonst AX = 0; die übrigen Register bleiben. Der Arbeitsbereich `gp_puf` (`GP_GROESSE` = 5311 Byte) steht am Ende von `GPIC.INC`; `gp_picw` nimmt stattdessen ES:DI (etwa aus FREEMEM). Art Bit 7: Quelle im Speicher, DS:DX = Daten, SI = Länge. Ohne Bit 1/2 gilt Farbe. `tools/gpicbin.py` erzeugt aus derselben Quelle `src/GPIC86.S` für die Bibliothek (braucht JWasm, nur wenn sich `GPIC.INC` ändert).
+
+**Packen:** `tools/dmvpack.py` (Python 3, für PNG Pillow): `dmvpack.py KITT.PIC KITTM.PIC --ebenen M`, `dmvpack.py bild.png bild.PIC --mono bildm.png`, `--roh G` (Ebene ungepackt; geschieht auch von selbst, wenn LZSS größer würde), `--breite`/`--hoehe` für kleinere Bilder, `--entpacken x.PIC x.png` zur Kontrolle. Nach dem Packen entpackt es selbst und vergleicht byteweise. Gierig mit Nachschau um ein Byte, Fenster 4 KB, je Stelle die letzten 64 Treffer. KITT, nur M: 32 000 → 12 231 Byte (38 %).
+
+**Prüfung:** `tools/pruefpic.py` packt Testbilder, zeigt sie mit `test/PICTEST.C` (C) bzw. `test/GPT.ASM` (MASM, `GPIC.INC`) und vergleicht den Bildspeicher mit den Rohdaten: Farbe und mono, volle und schmale Breite, `xw`/`y` ungleich 0, aus dem Speicher, alte Rohdateien (128 000 und 32 000 Byte), rohe neben gepackten Ebenen, G und B ohne R (R wird gelöscht), Abstand 4095, Abstand 1 mit Länge 18, Ende mitten im Flagbyte, kaputte Dateien (zu kurz, Version, Verweis vor den Anfang, Ebenenlänge, Lage, fehlende Datei). Alles gleich in der PC-Simulation, unter MS-DOS (small, tiny, MASM-Fassung) und CP/M-68K.
+
+#### Dateiformat
+
+Alle Zahlen Little Endian, Endung `.PIC`. Andere Programme (DMVSNAP, Spiele) können es ohne DMVGRAF lesen.
+
+| Versatz | Länge | Inhalt |
+|---|---|---|
+| 0 | 4 | Kennung `DMVP` |
+| 4 | 1 | Version 1 |
+| 5 | 1 | n = Zahl der Ebeneneinträge, 1–4 |
+| 6 | 2 | Breite in Worten (1–40) |
+| 8 | 2 | Höhe in Zeilen (1–400) |
+| 10 | 2 | 0 |
+| 12 | 4·n | je Eintrag: Art (`G` Grün 0000h, `R` Rot 4000h, `B` Blau 8000h, `M` Mono-Fassung), Verfahren (0 roh, 1 LZSS), Länge der gepackten Daten (2 Byte) |
+
+Die Daten folgen in der Reihenfolge der Tabelle; jede Ebene steht für sich. Entpackt: Zeile für Zeile von oben, je Zeile `Breite` Worte im Format des 7220 (Low-Byte zuerst, Bit 0 = linker Punkt) – genau der Wortstrom nach CURS, MASK FFFFh, FIGS und WDAT.
+
+**LZSS:** Ein Flagbyte gilt für die nächsten acht Einträge, Bit 0 zuerst. Bit 0 = ein Literalbyte folgt; Bit 1 = ein Verweis aus zwei Byte: Byte 1 = Abstand Bits 0–7, Byte 2 = Abstand Bits 8–11 im hohen Halbbyte, Länge − 3 im niedrigen. Abstand 1–4095 zurück, Länge 3–18; Byte für Byte kopiert, Überlappen erlaubt (Abstand < Länge wiederholt). Das Fenster beginnt bei jeder Ebene leer; Verweise vor den Anfang sind unzulässig. Die Ebene endet nach `Breite · 2 · Höhe` Byte; der Rest eines Flagbytes wird nicht gebraucht, die gepackte Länge muss genau aufgehen.
+
+**Alte Dateien:** ohne Kennung `DMVP` gilt eine Datei mit genau 128 000 Byte als roh, 40 × 400, Ebenen G, R, B, M; mit 32 000 Byte als eine Ebene M.
 
 ### Geplant
 

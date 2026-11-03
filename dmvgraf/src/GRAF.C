@@ -890,15 +890,14 @@ int d;
 /* 7220 zeichnet und vergroessert sie selbst. Schneller als Bilder,     */
 /* gut fuer kleine bewegte Figuren.                                     */
 
-#define GSMAX 16
+#ifndef GSMAX
+#define GSMAX 32
+#endif
 static char *qspd[GSMAX];       /* Muster des Programms (bleibt dort) */
-static char qspb[GSMAX], qsph[GSMAX];
+static char qspb[GSMAX], qsph[GSMAX], qspf[GSMAX];
 
-/* Figur nr anlegen: b und h je 8 oder 16 Punkte; mu: je Ebene (gruen,
-   rot, blau) h Zeilen zu b/8 Byte, Bit 0 links. Die Daten bleiben im
-   Programm und muessen erhalten bleiben. */
-int gsprdef(nr, b, h, mu)
-int nr, b, h;
+static int qspan(nr, b, h, mu, f)
+int nr, b, h, f;
 char *mu;
 {
         if (nr < 0 || nr >= GSMAX)
@@ -908,7 +907,40 @@ char *mu;
         qspd[nr] = mu;
         qspb[nr] = b;
         qsph[nr] = h;
+        qspf[nr] = f;
         return 0;
+}
+
+/* Figur nr anlegen: b und h je 8 oder 16 Punkte; mu: je Ebene (gruen,
+   rot, blau) h Zeilen zu b/8 Byte, Bit 0 links. Maske ist das ODER der
+   Ebenen: schwarze Punkte sind durchsichtig. Die Daten bleiben im
+   Programm und muessen erhalten bleiben. */
+int gsprdef(nr, b, h, mu)
+int nr, b, h;
+char *mu;
+{
+        return qspan(nr, b, h, mu, 0);
+}
+
+/* Figur nr im Format 5 (wie gbdef GB_SETR): int-Worte [Ebene gruen, rot,
+   blau][SET, RESET][Zeile], ein Wort je Zeile, Bit 0 links. Punkte, die
+   in keiner Ebene gesetzt oder geloescht werden, sind durchsichtig;
+   Schwarz ist RESET in allen Ebenen und deckt. */
+int gsprset(nr, b, h, wd)
+int nr, b, h;
+int *wd;
+{
+        return qspan(nr, b, h, (char *)wd, 1);
+}
+
+/* ein Byte der Figur: Format 4/Ebenen (s = 0) oder Format 5 SET/RESET */
+static int qspby(nr, e, s, z, c)
+int nr, e, s, z, c;
+{
+        if (qspf[nr])
+                return (((int *)qspd[nr])[(2 * e + s) * qsph[nr] + z]
+                        >> (8 * c)) & 0xFF;
+        return qspd[nr][(e * qsph[nr] + z) * (qspb[nr] >> 3) + c] & 0xFF;
 }
 
 /* Ein 8 x 8-Feld auf Ebene e mit WDAT-Befehl w; x, y = untere linke Ecke
@@ -949,9 +981,8 @@ char *mu;
 int gspr(nr, x, y, z, art)
 int nr, x, y, z, art;
 {
-        char m[8], p[8], q[8];
-        register char *d;
-        int nc, z1, sx, sy, c, r, e, i, k, eb, xt, yt;
+        char m[8], o[8], p[8], q[8];
+        int nc, z1, sx, sy, c, r, e, i, k, f, j, xt, yt;
 
         if (nr < 0 || nr >= GSMAX)
                 return GE_NR;
@@ -963,7 +994,7 @@ int nr, x, y, z, art;
                 return GE_FORM;
         if (qstart())
                 return GE_HW;
-        d = qspd[nr];
+        f = qspf[nr];
         nc = qspb[nr] >> 3;
         z1 = z + 1;
         sx = x;
@@ -973,21 +1004,33 @@ int nr, x, y, z, art;
         if (sx < 0 || sy < 0 || sx + qspb[nr] * z1 > 640 ||
             sy + qsph[nr] * z1 > 400)
                 return GE_LAGE;
-        eb = qsph[nr] * nc;             /* Byte je Ebene */
         qzm(z);
         for (r = 0; r < qsph[nr] >> 3; r++)
                 for (c = 0; c < nc; c++) {
                         xt = sx + c * 8 * z1;
                         yt = sy + (r + 1) * 8 * z1 - 1;
-                        for (i = 0; i < 8; i++) {
-                                k = (r * 8 + i) * nc + c;
-                                m[i] = d[k] | d[eb + k] | d[2 * eb + k];
+                        for (i = 0; i < 8; i++) {   /* Maske, ODER der Farben */
+                                k = r * 8 + i;
+                                m[i] = o[i] = 0;
+                                for (e = 0; e < 3; e++) {
+                                        j = qspby(nr, e, 0, k, c);
+                                        o[i] |= j;
+                                        m[i] |= j;
+                                        if (f)
+                                                m[i] |= qspby(nr, e, 1, k, c);
+                                }
                         }
                         for (e = 0; e < qneb; e++) {
                                 for (i = 0; i < 8; i++) {
-                                        k = (r * 8 + i) * nc + c;
-                                        p[i] = qneb == 1 ? m[i] : d[e * eb + k];
-                                        q[i] = m[i] & ~p[i];
+                                        k = r * 8 + i;
+                                        if (qneb == 1)
+                                                p[i] = o[i];
+                                        else
+                                                p[i] = qspby(nr, e, 0, k, c);
+                                        if (f && qneb > 1)
+                                                q[i] = qspby(nr, e, 1, k, c);
+                                        else
+                                                q[i] = m[i] & ~p[i];
                                 }
                                 if (art == GB_DECK)
                                         qkach(e, 0x20, xt, yt, p);
@@ -995,10 +1038,10 @@ int nr, x, y, z, art;
                                         if (!qleer(p))
                                                 qkach(e, 0x21, xt, yt, p);
                                 } else {
-                                        if (!qleer(p))
-                                                qkach(e, 0x23, xt, yt, p);
                                         if (!qleer(q))
                                                 qkach(e, 0x22, xt, yt, q);
+                                        if (!qleer(p))
+                                                qkach(e, 0x23, xt, yt, p);
                                 }
                         }
                 }
