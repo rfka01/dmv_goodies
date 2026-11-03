@@ -7,6 +7,7 @@ Programs for the **NCR Decision Mate V** (DMV) under MS-DOS · Programme für di
 | [`ecodrive/`](ecodrive/) | RAM disk in the unused red/blue video memory · RAM-Disk im ungenutzten Rot/Blau-Bildspeicher |
 | [`dmvdemo/`](dmvdemo/) | Graphics demo for the µPD7220 · Grafikdemo für den µPD7220 |
 | [`dmvrace/`](dmvrace/) | Processor race Z80 / 8088 / 8087 / 68008 or Z8001 · Prozessor-Rennen |
+| [`pittest/`](pittest/) | Time base and processor test (8253 channels 0/2, frame rate, K803, V20/8088, 8087, K235) · Test von Zeitbasis und Prozessor |
 | [`mousetst/`](mousetst/) | Graphical test for the K806 mouse adapter · Grafischer Test für den Maus-Adapter K806 |
 | [`printertst/`](printertst/) | Printer test files for the printers emulated in MAME (Epson MX-80, FX-80, JX-80, LX-800, EX-800, Star NL-10, Nixdorf MD 16) · Druckertestdateien für die in MAME emulierten Drucker |
 | [`dmvkerm/`](dmvkerm/) | small Kermit and terminal for the K211/K212/K801/K215 serial modules · kleines Kermit und Terminal für die seriellen Module K211/K212/K801/K215 |
