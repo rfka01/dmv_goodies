@@ -34,9 +34,15 @@
 ;*  Mit der Tastatur-Firmware mit Rennwerk (8741, CRC32 bcb29bec) gibt *
 ;*  es danach D = Drag-Race: 8741 gegen Z80 gegen 8088/V20 (Division). *
 ;*                                                                     *
-;*  Zeitmessung: PIT-Kanal 0, den das Boot-ROM als 50-Hz-Zaehler       *
-;*  programmiert (Modus 5, 838 = 16,8 s Motor-Auszeit). Er zaehlt frei *
-;*  weiter, auch waehrend der 8088 steht und der Z80 rechnet.          *
+;*  Zeitmessung: PIT-Kanal 0, den das Boot-ROM als Motor-Auszeit       *
+;*  programmiert (Modus 5, 838 Takte). CLK0 ist der Bildtakt (gemessen *
+;*  56,09/56,19 Hz). Er zaehlt frei weiter, auch waehrend der 8088     *
+;*  steht und Z80 oder 68008 rechnen. Sein Takt und die Bildfrequenz   *
+;*  werden beim Start gegen Kanal 2 geeicht (PITCAL.INC); steht er,    *
+;*  wird sein Gate ueber Port 14h angestossen.                         *
+;*  Hardware nach "DMV - Hardware erkennen" (2.11.2026, HWDET.INC):    *
+;*  V20 nur, wenn PUSH 0 und AAD 16 uebereinstimmen; 8087 am           *
+;*  Steuerwort; K234 nur auf der K235, gestartet vom Z80 mit OUT DFh.  *
 ;*                                                                     *
 ;*  Z80: Das Boot-ROM (C.07.00, 0580h) legt bei F10Ch OUT (10h),A /    *
 ;*  OUT (D0h),A / NOP / JP F111h ab und schaltet damit auf den 8088.   *
@@ -123,8 +129,9 @@ START:  jmp     main
         INCLUDE ANG.INC
         INCLUDE Z80.INC
         INCLUDE R68.INC
+        INCLUDE RZ8.INC
 
-; Wagen: 0 = Z80, 1 = 8088/V20, 2 = mit 8087, 3 = 68008
+; Wagen: 0 = Z80, 1 = 8088/V20, 2 = mit 8087, 3 = 68008 (K234) bzw. Z8001 (K238)
 ENAME   dw      offset TN0,offset TN1,offset TN2,offset TN3
 TN0     db      'Z80',0
 TN1     db      '8088',0,0,0,0,0,0
@@ -185,8 +192,14 @@ T_BANNER db     'DMVRACE - Prozessor-Rennen fuer die NCR Decision Mate V',0Dh,0A
 T_HELP  db      'DMVRACE [/Z] [/K] [/8] [/M] [/C]',0Dh,0Ah
         db      '/Z ohne Z80, /K ohne 68008 (K234), /8 ohne 8087, /M Mono, /C Farbe',0Dh,0Ah,'$'
 T_PITNO db      'PIT-Kanal 0 zaehlt nicht - Zeit ueber die DOS-Uhr, Z80 faehrt nicht mit',0Dh,0Ah,'$'
+T_PITHZ db      'Zeitbasis: PIT-Kanal 0 $'
+T_PITB  db      ' Hz, Bildwechsel $'
+T_PITK  db      ' Hz (Kanal 0 stand und wurde ueber Port 14h angestossen)$'
+T_PITE  db      ' Hz',0Dh,0Ah,'$'
 T_ZOVL  db      'Z80: kein freier Bereich in Bank 0 - Z80 faehrt nicht mit',0Dh,0Ah,'$'
 T_MEM   db      'Kein Speicher fuer den 68008-Block',0Dh,0Ah,'$'
+T_NOK235 db     'K230/K231 (ohne 8259): keine K234-Probe, der 68008 faehrt nicht mit',0Dh,0Ah,'$'
+T_ZOVL68 db     'Programm liegt ueber dem Z80-Warteplatz F10Eh: keine K234-Probe',0Dh,0Ah,'$'
 T_68RUN db      'Achtung: der 68008 rechnet noch - bitte die DMV neu starten!',0Dh,0Ah,'$'
 T_TITLE db      'DMV GRAND PRIX',0
 T_QUAL  db      'QUALIFYING',0
@@ -242,7 +255,8 @@ T_FALSE db      'FALSCH',0
 T_BOX   db      ' BOX',0
 T_LAPX  db      ' 1/3',0
 W_NO87  db      'KEIN 8087',0
-W_NO68  db      'KEIN K234',0
+W_NO68  db      'KEIN K234/K238',0
+W_NOK235 db     'OHNE K235',0
 W_OFF   db      'AUS',0
 W_ZMEM  db      'KEIN RAUM',0
 W_NOT   db      'OHNE ZEIT',0
@@ -302,6 +316,8 @@ v_rhi   dw      0
 v_zbase dw      0                       ; Z80-Kern: Basis in Bank 0
 v_zseg  dw      0                       ; dieselbe als Segment
 v_t     dw      0                       ; Rennzeit (1/50 s)
+v_vacc  dw      0                       ; Bildzeit-Rest in us (vtick)
+v_kick  db      0                       ; Kanal 0 musste angestossen werden
 v_tgt   dw      0
 v_lapn  dw      0
 v_pp    dw      0                       ; Bildzeiger der Kerne
@@ -313,8 +329,7 @@ v_ovc   db      0                       ; ovpics: Farbe
 v_ovx   dw      0                       ; ovpics: linker Rand
 v_ovw   dw      0                       ; ovpics: Wagen*Bildgroesse
 v_srcseg dw     0
-VEC68   db      8 dup (0)
-IVTSAV  db      8 dup (0)
+v_k234  db      0                       ; 0 nicht geprueft, 1 keine, 2 K234
 TRAMP   db      0D3h,0D0h,000h,0C3h,0,0 ; OUT (D0h),A / NOP / JP Kern
 PLG     dw      40 dup (0)              ; eine Bildzeile ueber alle vier Bilder, gruen
 PLR     dw      40 dup (0)              ; rot
@@ -389,6 +404,18 @@ tstop   PROC    NEAR
         mov     dx,v_t0
         sub     dx,ax                   ; Zaehler laeuft abwaerts
         mov     ax,dx
+        mov     bx,c_c0per              ; Takte -> 1/50 s (geeicht)
+        cmp     bx,20000
+        je      tsp8
+        mul     bx
+        add     ax,10000                ; runden
+        adc     dx,0
+        mov     bx,20000
+        cmp     dx,bx
+        jb      tsp7
+        mov     ax,0FFFFh
+        jmp     short tsp8
+tsp7:   div     bx
         jmp     short tsp8
 tsp1:   call    dostime                 ; Hundertstel -> /2
         sub     ax,v_d0lo
@@ -462,6 +489,126 @@ pck1:   call    vsync
         mov     v_pitok,1
 pck9:   ret
 pitchk  ENDP
+
+; Zeitbasis einrichten: Kanal 0 und Bildwechsel gegen Kanal 2 eichen.
+; Steht Kanal 0, wird sein Gate ueber Port 14h (Motor ein) angestossen.
+; Ohne Kanal 2 bleibt es bei der alten Pruefung und 50 Hz.
+pitset  PROC    NEAR
+        mov     c_c0per,20000
+        mov     c_vper,20000
+        mov     v_kick,0
+        call    c2learn
+        jnc     pts1
+        jmp     pitchk
+pts1:   mov     c_dur,8                 ; je 0,5 s
+        call    cal0
+        cmp     c_c0per,0
+        jne     pts3
+        mov     v_kick,1
+        out     14h,al                  ; Gate von Kanal 0 (Motor ein)
+        mov     cx,10
+pts2:   call    vsync
+        loop    pts2
+        call    cal0
+pts3:   mov     v_pitok,0
+        mov     ax,c_c0per
+        cmp     ax,5000                 ; 16..200 Hz glaubhaft
+        jb      pts4
+        cmp     ax,62500
+        ja      pts4
+        mov     v_pitok,1
+        jmp     short pts5
+pts4:   mov     c_c0per,20000
+pts5:   call    calv
+        mov     ax,c_vper
+        cmp     ax,10000                ; 25..100 Hz glaubhaft
+        jb      pts6
+        cmp     ax,40000
+        jbe     pts7
+pts6:   mov     c_vper,20000
+pts7:   cmp     v_pitok,0
+        je      pts9
+        mov     dx,offset T_PITHZ       ; Zeitbasis melden
+        mov     ah,09h
+        int     21h
+        mov     ax,c_c0per
+        call    calhz
+        call    prhz
+        mov     dx,offset T_PITB
+        mov     ah,09h
+        int     21h
+        mov     ax,c_vper
+        call    calhz
+        call    prhz
+        mov     dx,offset T_PITE
+        cmp     v_kick,0
+        je      pts8
+        mov     dx,offset T_PITK
+        mov     ah,09h
+        int     21h
+        mov     dx,offset T_PITE+3
+pts8:   mov     ah,09h
+        int     21h
+pts9:   ret
+pitset  ENDP
+
+; AX in 1/100 als "nn,nn" ueber DOS ausgeben
+prhz    PROC    NEAR
+        xor     dx,dx
+        mov     bx,100
+        div     bx
+        push    dx
+        call    prdec
+        mov     dl,','
+        mov     ah,02h
+        int     21h
+        pop     ax
+        cmp     ax,10
+        jae     prh1
+        push    ax
+        mov     dl,'0'
+        mov     ah,02h
+        int     21h
+        pop     ax
+prh1:   call    prdec
+        ret
+prhz    ENDP
+
+prdec   PROC    NEAR                    ; AX dezimal
+        mov     bx,10
+        xor     cx,cx
+prd1:   xor     dx,dx
+        div     bx
+        push    dx
+        inc     cx
+        or      ax,ax
+        jnz     prd1
+prd2:   pop     dx
+        add     dl,'0'
+        mov     ah,02h
+        int     21h
+        loop    prd2
+        ret
+prdec   ENDP
+
+; ein Bildwechsel ist vergangen: Rennzeit v_t (1/50 s) um die geeichte
+; Bilddauer weiterzaehlen
+vtick   PROC    NEAR
+        push    ax
+        mov     ax,v_vacc
+        add     ax,c_vper
+vt1:    cmp     ax,20000
+        jb      vt2
+        sub     ax,20000
+        inc     v_t
+        jmp     vt1
+vt2:    mov     v_vacc,ax
+        pop     ax
+        ret
+vtick   ENDP
+
+        INCLUDE PITCAL.INC
+        INCLUDE HWDET.INC
 
 ; Zeit AX (1/50 s) als "sss,hh" nach T_NUM (fuehrende Nullen als Leerzeichen)
 fmtime  PROC    NEAR
@@ -923,54 +1070,58 @@ tcp5:   cmp     v_car,2
 tcp6:   jmp     t_circ
 t_cpu   ENDP
 
-; 8087 suchen (nur FN-Befehle ohne WAIT - ohne 8087 wuerde WAIT haengen)
+; 8087 suchen (h87: SW/CW mit 5A5Ah vorbelegt, CW <> 5A5Ah = vorhanden)
 det87   PROC    NEAR
         mov     v_has87,0
         cmp     v_lvl,8
         je      d87x
-        fninit
-        mov     cx,40
-d87w:   loop    d87w
-        mov     v_sw,5A5Ah
-        fnstsw  v_sw
-        cmp     byte ptr v_sw,0
-        jne     d87x
-        fnstcw  v_sw
-        mov     ax,v_sw
-        and     ax,103Fh
-        cmp     ax,003Fh
-        jne     d87x
-        mov     v_has87,1
+        call    h87
+        mov     al,h_87
+        mov     v_has87,al
 d87x:   ret
 det87   ENDP
 
-; V20 erkennen: PUSH imm8 (6Ah) kennt der V20; der 8088 fuehrt 60h..6Fh wie
-; 70h..7Fh aus, also hier JP +0 (wirkt nicht)
+; 8088 oder V20 (hcpu: PUSH 0 und AAD 16 muessen uebereinstimmen),
+; Namen der Wagen anpassen
 detv20  PROC    NEAR
+        call    hcpu
         mov     v_v20,0
-        mov     bx,sp
-        db      6Ah,00h                 ; V20: PUSH 0   8088: JP $+2
-        cmp     bx,sp
-        mov     sp,bx
+        mov     al,h_cpu
+        cmp     al,1
         je      dv9
-        mov     v_v20,1
-        mov     si,offset TV20          ; Namen anpassen
+        mov     bx,offset TV20
+        cmp     al,2
+        je      dv1
+        mov     bx,offset TCPUQ         ; Proben uneins
+        jmp     short dv2
+dv1:    mov     v_v20,1
+dv2:    mov     si,bx                   ; Namen: 'V20' bzw. 'CPU?'
         mov     di,offset TN1
-        mov     cx,4
+        mov     cx,5
         rep     movsb
-        mov     si,offset TV20P
+        mov     si,bx
         mov     di,offset TN2
-        mov     cx,9
+        call    dvcopy
+        mov     si,offset TPLUS87
+        mov     cx,6
         rep     movsb
-        mov     si,offset TV20S
+        mov     si,bx
         mov     di,offset TS1
-        mov     cx,4
+        mov     cx,5
         rep     movsb
 dv9:    ret
 detv20  ENDP
-TV20    db      'V20',0
-TV20P   db      'V20+8087',0
-TV20S   db      'V20',0
+dvcopy  PROC    NEAR                    ; Text DS:SI ohne Null nach ES:DI
+dvc1:   lodsb
+        or      al,al
+        jz      dvc9
+        stosb
+        jmp     dvc1
+dvc9:   ret
+dvcopy  ENDP
+TV20    db      'V20',0,0
+TCPUQ   db      'CPU?',0
+TPLUS87 db      '+8087',0
 
 ;=======================================================================
 ;  68008 (K234): je Test ein Start; CF = 1 wenn er nicht antwortet
@@ -983,7 +1134,7 @@ rd68    PROC    NEAR
         ret
 rd68    ENDP
 
-; Block vorbereiten (einmal): leeren, Code ablegen, Reset-Vektoren
+; Block vorbereiten: leeren, Code ablegen, Reset-Vektoren (hvec68)
 p68     PROC    NEAR
         push    es
         mov     es,v_s68
@@ -993,38 +1144,22 @@ p68     PROC    NEAR
         mov     cx,4000h/2
         rep     stosw
         mov     si,offset R68CODE
-        mov     di,100h
         mov     cx,R68LEN
+        cmp     h_k234,3
+        jne     p68a
+        mov     si,offset RZ8CODE       ; K238: Z8001
+        mov     cx,RZ8LEN
+p68a:   mov     di,100h
         rep     movsb
         pop     es
-        ; physische Adresse P = Segment*16 -> DX:AX
         mov     ax,v_s68
-        mov     dx,ax
-        mov     cl,4
-        shl     ax,cl
-        mov     cl,12
-        shr     dx,cl
-        ; Reset-Vektoren im 68000-Format: SSP = P+1000h, PC = P+100h
-        mov     bx,ax
-        mov     cx,dx
-        add     bx,1000h
-        adc     cx,0
-        mov     VEC68[0],0
-        mov     VEC68[1],cl
-        mov     VEC68[2],bh
-        mov     VEC68[3],bl
-        mov     bx,ax
-        mov     cx,dx
-        add     bx,100h
-        adc     cx,0
-        mov     VEC68[4],0
-        mov     VEC68[5],cl
-        mov     VEC68[6],bh
-        mov     VEC68[7],bl
+        call    hvec68
         ret
 p68     ENDP
 
-; Test AL starten und abwarten; CF = 1: keine Antwort / abgebrochen
+; Test AL auf dem 68008 (0 = nur melden) -> DX:AX, Zeit -> CX
+; CF = 1: keine Antwort (Z80 nicht zurueck oder Status nicht "fertig").
+; Der 8088 steht, solange der 68008 rechnet (hrun68).
 q68     PROC    NEAR
         push    es
         mov     es,v_s68
@@ -1034,57 +1169,18 @@ q68     PROC    NEAR
         mov     cx,36
         rep     movsb
         mov     byte ptr es:[3],al      ; Test
-        ; 8088-Vektoren 0 und 1 sichern, 68000-Vektoren eintragen, starten
-        xor     ax,ax
-        mov     es,ax
-        cli
-        mov     bx,0
-q68v1:  mov     al,es:[bx]
-        mov     IVTSAV[bx],al
-        mov     al,VEC68[bx]
-        mov     es:[bx],al
-        inc     bx
-        cmp     bx,8
-        jb      q68v1
-        call    tstart
-        out     0D8h,al                 ; 68008: Reset und los
-        ; warten, bis der 68008 "laeuft" meldet (hoechstens ca. 3 s)
-        mov     cx,0
-q68w:   mov     bx,0
-        call    rd68
-        or      al,al
-        jnz     q68st
-        loop    q68w
-q68st:  push    ax
-        mov     bx,0
-q68v2:  mov     al,IVTSAV[bx]
-        mov     es:[bx],al
-        inc     bx
-        cmp     bx,8
-        jb      q68v2
-        sti
-        pop     ax
         pop     es
-        or      al,al
-        jnz     q68go
-        stc
-        ret
-q68go:  mov     v_s68run,1
-q68p:   mov     bx,0                    ; auf "fertig" warten
-        call    rd68
-        cmp     al,2
-        jae     q68f
-        call    poll_key                ; ESC: aufgeben (68008 laeuft weiter)
-        cmp     v_key,2
-        jne     q68p
-        mov     v_key,0
-        stc
-        ret
-q68f:   call    tstop
+        call    tstart
+        call    hrun68
+        pushf
+        call    tstop
         mov     cx,ax
-        mov     v_s68run,0
+        popf
+        jc      q68x
         push    es
         mov     es,v_s68
+        cmp     byte ptr es:[0],2       ; fertig?
+        jne     q68y
         mov     ah,byte ptr es:[32]     ; Ergebnis (Big Endian) -> DX:AX
         mov     al,byte ptr es:[33]
         mov     dx,ax
@@ -1093,7 +1189,64 @@ q68f:   call    tstop
         pop     es
         clc
         ret
+q68y:   pop     es
+q68x:   stc
+        ret
 q68     ENDP
+
+; K234 suchen: Block holen, Probe (Test 0) -> v_k234 (1 keine, 2 da)
+k234probe PROC  NEAR
+        mov     v_k234,0
+        mov     h_k234,0
+        mov     v_s68,0
+        cmp     v_nok,0
+        jne     kp9
+        mov     v_k234,1
+        mov     dx,offset T_NOK235
+        cmp     h_k235,0
+        je      kp8                     ; K230/K231: Probe verboten
+        mov     ax,cs
+        mov     cx,offset ENDPROG
+        call    hzhit                   ; Programm ueber dem Z80-Warteplatz?
+        mov     dx,offset T_ZOVL68
+        jc      kp8
+        call    hprobe                  ; K234 (68008) oder K238 (Z8001)?
+        mov     al,h_k234
+        cmp     al,2
+        jb      kp9a
+        mov     bx,0400h                ; 16 KB fuer den Koprozessor
+        call    hcoblk
+        mov     dx,offset T_MEM
+        jc      kp8
+        mov     v_s68,ax
+        cmp     h_k234,3                ; Z8001: Namen anpassen
+        jne     kp1
+        mov     si,offset TZ8001
+        mov     di,offset TN3
+        mov     cx,6
+        rep     movsb
+        mov     si,offset TZ8001
+        mov     di,offset TS3
+        mov     cx,6
+        rep     movsb
+kp1:    call    p68                     ; und mit dem echten Kern pruefen
+        mov     al,0
+        call    q68
+        jc      kp9
+        mov     al,h_k234
+        mov     v_k234,al
+        jmp     short kp9
+kp8:    mov     ah,09h
+        int     21h
+kp9:    mov     al,v_k234
+        mov     h_k234,al
+        ret
+kp9a:   mov     v_k234,al
+        ret
+k234probe ENDP
+TZ8001  db      'Z8001',0
+
+
 
 ; Mandelbrot-Ergebnisse des 68008 holen
 ;=======================================================================
@@ -1374,7 +1527,7 @@ zhit    ENDP
 zplace  PROC    NEAR
         mov     v_zok,0
         mov     ax,Z80ORG
-        mov     cx,6
+        mov     cx,HZLEN                ; Warteplatz samt K234-Stummel
         call    zhit
         jc      zp9
         mov     ax,(0F000h-Z80SIZE) AND 0FF00h
@@ -2802,9 +2955,10 @@ drg5:   mov     al,GELB
         jmp     drg_e
 drg6:   call    tstart
         mov     v_t,0
+        mov     v_vacc,0
         mov     v_klast,0
 drg7:   call    vsync
-        inc     v_t                     ; Rennzeit: Bilder ...
+        call    vtick                     ; Rennzeit: Bilder ...
         cmp     v_pitok,0
         je      drg7a
         call    tstop                   ; ... oder genauer der PIT (falls ein
@@ -3691,7 +3845,7 @@ an1:    mov     ax,v_t
         jb      an2
         ret
 an2:    call    vsync
-        inc     v_t
+        call    vtick
         mov     bx,0
 an3:    cmp     E_OK[bx],0
         je      an8
@@ -3751,6 +3905,7 @@ lapinfo ENDP
 race    PROC    NEAR
         mov     v_win,0FFh
         mov     v_t,0
+        mov     v_vacc,0
         mov     v_meas,0
         mov     v_psec,0FFh
         mov     v_abort,0
@@ -3780,8 +3935,14 @@ rc2:    cmp     v_has87,0
 rc3:    mov     E_WHY[6],offset W_OFF
         cmp     v_nok,0
         jne     rc4
+        mov     E_WHY[6],offset W_NOK235
+        cmp     h_k235,0
+        je      rc4
         mov     E_WHY[6],offset W_NO68
-        cmp     v_s68,0
+        cmp     v_k234,2                ; K234 oder K238
+        jb      rc4
+        mov     E_WHY[6],offset W_NOT    ; Zeit nur ueber PIT-Kanal 0
+        cmp     v_pitok,0
         jne     rc5
 rc4:    mov     E_OK[3],0
 rc5:    ; Startaufstellung
@@ -4058,31 +4219,28 @@ ma5:    ; Speicher: eigener Block nur so gross wie noetig
         int     21h
         call    det87
         call    detv20
-        ; Z80-Bereich
+        call    hpic                    ; K235 oder K230/K231
+        ; Z80-Bereich; das Programm darf auch fuer die K234-Probe nicht
+        ; ueber dem Z80-Warteplatz liegen (dann zieht es um)
         mov     v_zok,0
         cmp     v_noz,0
+        je      ma6
+        mov     ax,cs
+        mov     cx,offset ENDPROG
+        call    hzhit
+        jnc     ma7
+ma6:    call    zmove
+        cmp     v_noz,0
         jne     ma7
-        call    zmove
         cmp     v_zok,0
         jne     ma7
         mov     dx,offset T_ZOVL
         mov     ah,09h
         int     21h
-ma7:    ; 68008-Block (16 KB)
-        mov     v_s68,0
-        cmp     v_nok,0
-        jne     ma8
-        mov     bx,0400h
-        mov     ah,48h
-        int     21h
-        jc      ma7a
-        mov     v_s68,ax
-        jmp     short ma8
-ma7a:   mov     dx,offset T_MEM
-        mov     ah,09h
-        int     21h
+ma7:    call    k234probe               ; 68008-Block und Probe
+        call    hwline
 ma8:    call    kbdetect                ; Tastatur-Firmware mit Rennwerk?
-        call    pitchk
+        call    pitset
         cmp     v_pitok,0
         jne     ma9
         mov     dx,offset T_PITNO

@@ -8,11 +8,18 @@
 ;*      LINK DMVDEMO;          (Warnung "no stack segment" ist normal) *
 ;*      EXE2BIN DMVDEMO.EXE DMVDEMO.COM                                *
 ;*                                                                     *
-;*  Aufruf:  DMVDEMO [n] [/M] [/C] [/6|/7|/8]                          *
+;*  Aufruf:  DMVDEMO [n] [/M] [/C] [/7|/8]                             *
 ;*      n   nur Bild n (1..13) zeigen                                  *
-;*      /6  Bild 11: 68008 (K234), sonst 8087, sonst 8088 (experim.)   *
-;*      /7  Bild 11: 8087, wenn vorhanden, sonst 8088 (Vorgabe)        *
-;*      /8  Bild 11: nur 8088/V20                                      *
+;*          Vorgabe Bild 11: 68008 (K234), sonst 8087, sonst 8088/V20  *
+;*      /7  Bild 11 ohne 68008: 8087, wenn vorhanden, sonst 8088       *
+;*      /8  Bild 9, 10 und 11: nur 8088/V20                            *
+;*      (/6 wird wie die Vorgabe behandelt)                            *
+;*  Hardware nach "DMV - Hardware erkennen" (2.11.2026, HWDET.INC):    *
+;*  V20 nur, wenn PUSH 0 und AAD 16 uebereinstimmen; 8087 am           *
+;*  Steuerwort; K234 nur auf der K235: der Z80 startet sie mit OUT DFh,*
+;*  der 68008 rechnet je Start fuenf Zeilen und gibt ueber FFFDFh      *
+;*  zurueck. Seine Zeit misst PIT-Kanal 0 (Bildtakt), geeicht gegen    *
+;*  Kanal 2 (PITCAL.INC).                                              *
 ;*      /M  Mono erzwingen, /C Farbe erzwingen (sonst Erkennung)       *
 ;*  Taste = naechstes Bild, ESC = Ende                                 *
 ;*                                                                     *
@@ -41,7 +48,7 @@ CYAN    EQU     6
 WEISS   EQU     7
 BUNT    EQU     0FFh            ; Regenbogen je Zeichen
 
-NSCREEN EQU     13
+NSCREEN EQU     15
 CALC87  EQU     1               ; 8087-Rechnung immer eingebaut
 CALC68  EQU     1               ; 68008-Rechnung immer eingebaut (nur mit /6 benutzt)
 MAXIT2  EQU     100             ; Spirale: Iterationen
@@ -77,7 +84,8 @@ START:  jmp     main
 ;  Daten
 ;=======================================================================
 
-SCRTAB  dw      scr1,scr2,scr3,scr4,scr5,scr6,scr7,scr8,scr9,scr10,scrsp,scrkitt,scrana
+SCRTAB  dw      scr1,scr2,scr3,scr4,scr5,scr6,scr7,scr8,scr9,scr10,scrsp,scrkitt
+        dw      scrband,scrtut,scrana
 
         INCLUDE GDCTAB.INC
 
@@ -237,27 +245,37 @@ T12_TXT db      'SPIRALE BEI -0,7759+0,1362i - 16-BIT-FESTKOMMA, DER 8088 RECHNE
 
         IFDEF   CALC68
         INCLUDE M68.INC
+        INCLUDE MZ8.INC
         ENDIF
-VEC68   db      8 dup (0)
-IVTSAV  db      8 dup (0)
-T_E88   db      'DER 8088 RECHNET MIT 16 BIT FESTKOMMA 3.13',0
-T_E87   db      'DER 8087 RECHNET MIT 80 BIT GLEITKOMMA',0
-T_E68   db      'DER 68008 (K234) RECHNET MIT 32 BIT FESTKOMMA 4.28',0
+v_c0a   dw      0                       ; Kanal 0 vor dem 68008-Lauf
+v_ulo   dw      0                       ; Rechenzeit des 68008 in us
+v_uhi   dw      0
+ROWS68  EQU     20                      ; Zeilen je Koprozessor-Lauf
+T_E88   db      'DER 8088 RECHNET: 16 BIT FESTKOMMA, 13 NACHKOMMABITS',0
+T_E87   db      'DER 8087 RECHNET: 80 BIT GLEITKOMMA',0
+T_E68   db      'DER 68008 (K234) RECHNET: 32 BIT FESTKOMMA, 28 NACHKOMMABITS',0
+T_EZ8   db      'DER Z8001 (K238) RECHNET: 16 BIT FESTKOMMA, 13 NACHKOMMABITS',0
+v_e68   dw      offset T_E68            ; Beschriftung des Koprozessors
 T_SECS  db      20 dup (0)              ; Zeit 'sss,hh SEKUNDEN'
 T_LINE  db      90 dup (0)              ; Beschriftung oben
 T_SEKU  db      ' SEKUNDEN',0
 T_DASH  db      ' - ',0
+T_GEDUL db      ' ... GEDULD BITTE!',0
+v_ged   db      0                       ; 1: hinter v_lab ' ... GEDULD BITTE!'
 v_lab   dw      0                       ; Beschriftung waehrend der Rechnung
 v_hlo   dw      0                       ; Rechenzeit in 1/100 s
 v_hhi   dw      0
-T68_NO  db      'KEINE ANTWORT VOM 68008 (K234) - ERSATZRECHNUNG:',0
+T68_NO  db      'KEINE ANTWORT VOM KOPROZESSOR - ERSATZRECHNUNG:',0
 T_VAR87 db      '8087 gefunden - er rechnet Bild 9, 10 und 11',0Dh,0Ah,'$'
+T_VAR87B db     '8087 gefunden - er rechnet Bild 9 und 10',0Dh,0Ah,'$'
 T_NO87  db      'Kein 8087 - Bild 9, 10 und 11 rechnet der 8088/V20',0Dh,0Ah,'$'
 T_OFF87 db      '/8: Bild 9, 10 und 11 rechnet der 8088/V20',0Dh,0Ah,'$'
-T_VAR68 db      '/6: Bild 11 rechnet der 68008 (K234), experimentell',0Dh,0Ah,'$'
-T_R87   db      'Antwortet der 68008 nicht, rechnet der 8087',0Dh,0Ah,'$'
-T_R88   db      'Antwortet der 68008 nicht, rechnet der 8088/V20',0Dh,0Ah,'$'
-T68_MEM db      'Kein Speicher fuer den 68008-Block - Bild 11 rechnet der 8088',0Dh,0Ah,'$'
+T_VAR68 db      'K234 (68008) gefunden - er rechnet Bild 11',0Dh,0Ah,'$'
+T_VARZ8 db      'K238 (Z8001) gefunden - er rechnet Bild 11',0Dh,0Ah,'$'
+T68_MEM db      'Kein Speicher fuer den 68008-Block - Bild 11 ohne 68008',0Dh,0Ah,'$'
+T68_235 db      'K230/K231 (ohne 8259): keine K234-Probe',0Dh,0Ah,'$'
+T68_PIT db      'PIT-Kanal 0 zaehlt nicht - Bild 11 ohne 68008 (keine Zeitmessung)',0Dh,0Ah,'$'
+T68_OVL db      'Programm liegt ueber dem Z80-Warteplatz F10Eh - Bild 11 ohne 68008',0Dh,0Ah,'$'
 T68_RUN db      'Achtung: der 68008 rechnet noch - bitte die DMV neu starten!',0Dh,0Ah,'$'
         IFDEF   CALC87
 FOUR87  dq      4.0
@@ -279,6 +297,24 @@ v_sc87  dw      offset SCALE87          ; Skala fuer mandel87
 T_KFILE db      'KITT.PIC',0
 T_KMISS db      'KITT.PIC FEHLT',0
 T_KCRED db      'FOTO: POUDOU99, WIKIMEDIA COMMONS, CC BY-SA 4.0 (BEARBEITET)',0
+T_TFILE db      'TUT.PIC',0
+T_TMISS db      'TUT.PIC FEHLT',0
+T_TNAME db      'TUTANCHAMUN',0
+T_TC1   db      'FOTO:',0
+T_TC2   db      'MARK FISCHER',0
+T_TC3   db      'WIKIMEDIA',0
+T_TC4   db      'COMMONS',0
+T_TC5   db      'CC BY-SA 2.0',0
+T_TC6   db      '(BEARBEITET)',0
+; Beschriftung Tutanchamun: Text, x, y, Farbe (links und rechts neben dem Foto)
+TCRED   dw      T_TNAME, 508, 8,   GELB
+        dw      T_TC1,   4,   340, WEISS
+        dw      T_TC2,   4,   352, WEISS
+        dw      T_TC3,   4,   364, WEISS
+        dw      T_TC4,   4,   376, WEISS
+        dw      T_TC5,   4,   388, WEISS
+        dw      T_TC6,   508, 388, WEISS
+        dw      0
 KPLANE  dw      0000h,4000h,8000h
 ; Scanner: x0, y, Abstand, Breite, Hoehe (Punkte) - aus dem Foto abgelesen
 KSCAN   dw      242,261,20,18,15
@@ -296,15 +332,18 @@ KLEV    db      8 dup (0)
 T_BANNER db     'DMVDEMO - Grafikdemo fuer die NCR Decision Mate V',0Dh,0Ah,'$'
 T_FARBE db      'Farbbildschirm (8 Farben)',0Dh,0Ah,'$'
 T_MONO  db      'Monochrom-Bildschirm',0Dh,0Ah,'$'
-T_HELP  db      'DMVDEMO [n] [/M] [/C] [/6|/7|/8]   n = nur Bild 1..13, /M Mono, /C Farbe',0Dh,0Ah
-        db      'Rechner fuer Bild 11: /6 68008 (K234) > 8087 > 8088, /7 8087 > 8088 (Vorgabe),',0Dh,0Ah
-        db      '/8 nur 8088/V20',0Dh,0Ah
+T_HELP  db      'DMVDEMO [n] [/M] [/C] [/7|/8]   n = nur Bild 1..15, /M Mono, /C Farbe',0Dh,0Ah
+        db      'Rechner fuer Bild 11: 68008 (K234) > 8087 > 8088/V20 (Vorgabe),',0Dh,0Ah
+        db      '/7 ohne 68008, /8 nur 8088/V20 (auch Bild 9 und 10)',0Dh,0Ah
         db      'Taste = weiter, ESC = Ende',0Dh,0Ah,'$'
 
         INCLUDE GDCVAR.INC
 
 
         INCLUDE GDCLIB.INC
+        INCLUDE PITCAL.INC
+        INCLUDE HWDET.INC
+        INCLUDE BAENDER.INC
 
 ;=======================================================================
 ;  Bild 1: Titel mit Hardware-Zeichenzoom
@@ -2008,6 +2047,8 @@ edges   ENDP
 
 scrana  PROC    NEAR
         call    sreset
+        mov     al,0Ch                  ; Anzeige dunkel, bis die Partitionen
+        call    gcmd                    ; stehen (sonst Laufschrift als Muell oben)
         mov     al,0Fh                  ; 16 Rasterzeilen je Textzeile, kein Cursor
         call    cchar
         ; Laufschrift in die ersten 10 Zeilen der gruenen Ebene
@@ -2055,6 +2096,8 @@ s10t3:  lodsb
         mov     v_ang2,0
         call    proj
         call    s10ar
+        mov     al,0Dh                  ; Anzeige ein
+        call    gcmd
 s10f:   ; neue Lage rechnen, alte Linien loeschen, neue zeichnen
         call    s10cp                   ; N -> O
         add     v_ang1,2
@@ -2829,6 +2872,7 @@ scr10   PROC    NEAR
 pl_a:
         ENDIF
         mov     v_lab,si
+        mov     v_ged,1
         call    toplab0
         ; vier Ecken zufaellig, dann unterteilen
         mov     bx,255
@@ -2926,6 +2970,7 @@ pl_f:
         mov     cx,300
         call    wframes
 pl_end: mov     v_lab,0
+        mov     v_ged,0
         mov     v_patp,offset PSOLID
         ret
 scr10   ENDP
@@ -3323,12 +3368,26 @@ toplab  PROC    NEAR
         push    di
         push    es
         call    fmth
-        call    toplab0                 ; Text (steht schon da) ...
         call    textlen
         mov     ax,cx
         mov     cl,3
         shl     ax,cl
         add     ax,8
+        cmp     v_ged,0                 ; ' ... GEDULD BITTE!' wegnehmen
+        je      tlb1
+        mov     v_ged,0                 ; (schwarzer Balken unter der ganzen
+        push    ax                      ; Beschriftung)
+        mov     v_x0,6
+        mov     v_y0,3
+        add     ax,18*8+4-6
+        mov     v_w,ax
+        mov     v_h,11
+        mov     al,SCHWARZ
+        call    fillc
+        pop     ax
+tlb1:   push    ax
+        call    toplab0                 ; Text (steht schon da) ...
+        pop     ax
         mov     v_tx,ax                 ; ... und dahinter ' - Zeit'
         mov     ax,ds
         mov     es,ax
@@ -3358,6 +3417,7 @@ toplab  ENDP
 ; Beschriftung oben links ohne Zeit: Text SI (Zeile 4, ab Punkt 8)
 toplab0 PROC    NEAR
         push    ax
+        push    cx
         push    si
         mov     v_tz,1
         mov     v_tx,8
@@ -3366,7 +3426,20 @@ toplab0 PROC    NEAR
         mov     v_shc,SCHWARZ
         mov     v_sho,1
         call    stext
+        cmp     v_ged,0
+        je      tl0a
         pop     si
+        push    si
+        call    textlen                 ; dahinter ' ... GEDULD BITTE!'
+        mov     ax,cx
+        mov     cl,3
+        shl     ax,cl
+        add     ax,8
+        mov     v_tx,ax
+        mov     si,offset T_GEDUL
+        call    stext
+tl0a:   pop     si
+        pop     cx
         pop     ax
         ret
 toplab0 ENDP
@@ -3414,9 +3487,9 @@ scrsp   PROC    NEAR
         mov     v_t0lo,ax
         mov     v_t0hi,dx
         IFDEF   CALC68
-        cmp     v_lvl,6
-        jne     sp_cpu                  ; ohne /6: kein Versuch mit dem 68008
-        call    sp68                    ; CF = 1: 68008 nicht da -> 8087/8088
+        cmp     h_k234,2
+        jb      sp_cpu                  ; kein Koprozessor (oder /7, /8)
+        call    sp68                    ; CF = 1: 68008 versagt -> 8087/8088
         jc      sp_cpu
         cmp     v_key,0
         jne     sp_ke
@@ -3439,6 +3512,7 @@ sp_c0:
         jne     sp_c0a
         mov     si,offset T_E87
 sp_c0a: mov     v_lab,si
+        mov     v_ged,1
         call    toplab0
         mov     v_mj,0
         mov     v_mi,1048               ; Imaginaerteil der obersten Zeile
@@ -3468,26 +3542,19 @@ sp_c3:  inc     v_mi
         cmp     v_mj,100
         jb      sp_r
 sp_fin: ; Rechenzeit anzeigen
-        call    elapsed
         IFDEF   CALC68
-        cmp     v_eng,2
-        jne     sp_f1
-        cmp     v_tok,0
-        jne     sp_f1
-        mov     ax,v_mf                 ; DOS-Uhr steht: Bildwechsel zaehlen
-        shl     ax,1                    ; 1/50 s -> 1/100 s
-        mov     v_hlo,ax
-        mov     v_hhi,0
-        mov     v_tok,1
-sp_f1:
+        cmp     v_eng,2                 ; 68008: Zeit aus PIT-Kanal 0 (sp68)
+        je      sp_f1
         ENDIF
+        call    elapsed
+sp_f1:
         mov     si,offset T_E88
         cmp     v_eng,1
         jne     sp_f3
         mov     si,offset T_E87
 sp_f3:  cmp     v_eng,2
         jne     sp_f4
-        mov     si,offset T_E68
+        mov     si,v_e68
 sp_f4:  mov     v_lab,0
         call    toplab
         cmp     v_note,0
@@ -3503,6 +3570,7 @@ sp_f4:  mov     v_lab,0
 sp_f5:  mov     cx,400
         call    wframes
 sp_end: mov     v_lab,0
+        mov     v_ged,0
         ret
 scrsp   ENDP
 
@@ -3550,48 +3618,27 @@ m87z:   mov     ax,cx
         ret
 mandel87 ENDP
 
-; 8087 suchen (nur FN-Befehle ohne WAIT - ohne 8087 wuerde WAIT haengen)
+; 8087 suchen (h87: SW/CW mit 5A5Ah vorbelegt, CW <> 5A5Ah = vorhanden)
 det87   PROC    NEAR
         mov     v_has87,0
         cmp     v_lvl,8
         je      d87x                    ; /8: nur der 8088/V20
-        fninit
-        mov     cx,40                   ; dem 8087 Zeit fuer FNINIT lassen
-d87w:   loop    d87w
-        mov     v_sw,5A5Ah
-        fnstsw  v_sw
-        cmp     byte ptr v_sw,0
-        jne     d87x
-        fnstcw  v_sw
-        mov     ax,v_sw
-        and     ax,103Fh
-        cmp     ax,003Fh
-        jne     d87x
-        mov     v_has87,1
+        call    h87
+        mov     al,h_87
+        mov     v_has87,al
 d87x:   ret
 det87   ENDP
         ENDIF
 
         IFDEF   CALC68
 ;-----------------------------------------------------------------------
-; 68008: rechnet im gemeinsamen Speicher, der 8088 zeichnet fertige Zeilen
-; CF = 1: 68008 nicht verfuegbar (8088 soll rechnen)
+; 68008: rechnet je Lauf ROWS68 Zeilen, der 8088 steht derweil und
+; zeichnet sie danach. Zeit ueber PIT-Kanal 0 (der DOS-Takt steht).
+; CF = 1: 68008 versagt (8087/8088 sollen rechnen)
 ;-----------------------------------------------------------------------
-rd68    PROC    NEAR
-        push    es
-        mov     es,v_s68
-        mov     al,es:[bx]
-        pop     es
-        ret
-rd68    ENDP
-
-sp68    PROC    NEAR
-        cmp     v_s68,0
-        jne     s68a0
-        mov     v_note,offset T68_NO
-        stc
-        ret
-s68a0:  ; Block vorbereiten: loeschen, Briefkasten, 68000-Code
+; Block vorbereiten: leeren, Briefkasten (1 Zeile ab Zeile 0, ci = y0),
+; Code ablegen, Reset-Vektoren
+s68prep PROC    NEAR
         push    es
         mov     es,v_s68
         cld
@@ -3603,93 +3650,69 @@ s68a0:  ; Block vorbereiten: loeschen, Briefkasten, 68000-Code
         xor     di,di
         mov     cx,32
         rep     movsb
+        mov     ax,es:[8]               ; ci = y0
+        mov     es:[32],ax
+        mov     ax,es:[10]
+        mov     es:[34],ax
+        mov     word ptr es:[28],0100h  ; 1 Zeile (68000-Format)
+        mov     word ptr es:[30],0
         mov     si,offset M68CODE
         mov     di,100h
         mov     cx,M68LEN
+        cmp     h_k234,3
+        jne     s6p1
+        mov     si,offset MZ8CODE       ; K238: Z8001 (3.13 wie der 8088)
+        mov     cx,MZ8LEN
+s6p1:
         rep     movsb
         pop     es
-        ; physische Adresse P = Segment*16 -> DX:AX
         mov     ax,v_s68
-        mov     dx,ax
-        mov     cl,4
-        shl     ax,cl
-        mov     cl,12
-        shr     dx,cl
-        ; Reset-Vektoren im 68000-Format: SSP = P+1000h, PC = P+100h
-        mov     bx,ax
-        mov     cx,dx
-        add     bx,1000h
-        adc     cx,0
-        mov     VEC68[0],0
-        mov     VEC68[1],cl
-        mov     VEC68[2],bh
-        mov     VEC68[3],bl
-        mov     bx,ax
-        mov     cx,dx
-        add     bx,100h
-        adc     cx,0
-        mov     VEC68[4],0
-        mov     VEC68[5],cl
-        mov     VEC68[6],bh
-        mov     VEC68[7],bl
-        ; 8088-Vektoren 0 und 1 sichern, 68000-Vektoren eintragen, starten
-        push    es
-        xor     ax,ax
-        mov     es,ax
-        cli
-        mov     bx,0
-s68v1:  mov     al,es:[bx]
-        mov     IVTSAV[bx],al
-        mov     al,VEC68[bx]
-        mov     es:[bx],al
-        inc     bx
-        cmp     bx,8
-        jb      s68v1
-        out     0D8h,al                 ; 68008: Reset und los
-        sti
-        pop     es
-        ; warten, bis der 68008 "laeuft" meldet (hoechstens 3 s)
-        mov     cx,150
-s68w:   call    vsync
-        mov     bx,0
-        call    rd68
-        or      al,al
-        jnz     s68st
-        loop    s68w
-s68st:  push    ax
-        push    es
-        xor     ax,ax
-        mov     es,ax
-        cli
-        mov     bx,0
-s68v2:  mov     al,IVTSAV[bx]
-        mov     es:[bx],al
-        inc     bx
-        cmp     bx,8
-        jb      s68v2
-        sti
-        pop     es
-        pop     ax
-        or      al,al
-        jnz     s68go
-        mov     v_note,offset T68_NO
-        stc
+        call    hvec68
         ret
-s68go:  mov     v_s68run,1
+s68prep ENDP
+
+sp68    PROC    NEAR
+        call    s68prep
         mov     v_eng,2
-        mov     v_lab,offset T_E68      ; der 68008 rechnet - oben zeigen
+        mov     ax,v_e68                ; der Koprozessor rechnet - oben zeigen
+        mov     v_lab,ax
+        mov     v_ged,1
         push    si
-        mov     si,offset T_E68
+        mov     si,ax
         call    toplab0
         pop     si
         mov     v_mj,0                  ; gezeichnete Zeilen
-        mov     v_mf,0                  ; Bildwechsel seit Start
-s68p:   mov     bx,1
-        call    rd68                    ; fertige Zeilen
-        mov     ah,0
-        cmp     v_mj,ax
-        jae     s68n
-        ; Zeile v_mj aus den Ergebnissen zeichnen
+        mov     v_ulo,0
+        mov     v_uhi,0
+s68l:   mov     ax,100                  ; Zeilen in diesem Lauf
+        sub     ax,v_mj
+        cmp     ax,ROWS68
+        jbe     s68a
+        mov     ax,ROWS68
+s68a:   push    ax
+        push    es
+        mov     es,v_s68
+        mov     byte ptr es:[28],ah
+        mov     byte ptr es:[29],al
+        pop     es
+        call    c0rd
+        mov     v_c0a,ax
+        call    hrun68
+        jc      s68x
+        call    c0rd
+        mov     bx,v_c0a
+        sub     bx,ax                   ; Takte (Kanal 0 zaehlt abwaerts)
+        mov     ax,bx
+        mul     c_c0per                 ; -> us
+        add     v_ulo,ax
+        adc     v_uhi,dx
+        push    es
+        mov     es,v_s68
+        cmp     byte ptr es:[0],2
+        pop     es
+        jne     s68x
+        pop     cx
+s68d:   push    cx                      ; Zeile v_mj zeichnen
         mov     ax,v_mj
         mov     cl,5
         shl     ax,cl                   ; *32
@@ -3711,37 +3734,38 @@ s68c:   mov     al,es:[si]
         pop     es
         call    crow
         inc     v_mj
-        jmp     short s68p
-s68n:   mov     bx,0
-        call    rd68
-        cmp     al,2
-        jb      s68n1
-        cmp     v_mj,100
-        jb      s68n1
-        mov     v_s68run,0
-        clc
-        ret
-s68n1:  call    vsync
-        inc     v_mf
+        pop     cx
+        loop    s68d
         call    poll_key
         cmp     v_key,0
-        je      s68p
-        ; Taste: 68008 bitten aufzuhoeren, hoechstens 10 s warten
-        push    es
-        mov     es,v_s68
-        mov     byte ptr es:[bx+2],1
-        pop     es
-        mov     cx,500
-s68a:   call    vsync
-        mov     bx,0
-        call    rd68
-        cmp     al,2
-        jae     s68a1
-        loop    s68a
-        clc                             ; laeuft noch: v_s68run bleibt 1
+        jne     s68k
+        cmp     v_mj,100
+        jb      s68l
+        ; Rechenzeit: us -> 1/100 s (32 Bit) und Sekunden
+        mov     ax,v_ulo
+        mov     dx,v_uhi
+        mov     bx,10000
+        mov     cx,ax
+        mov     ax,dx
+        xor     dx,dx
+        div     bx
+        xchg    ax,cx
+        div     bx
+        mov     v_hlo,ax
+        mov     v_hhi,cx
+        xor     dx,dx
+        mov     v_tok,0
+        or      cx,cx
+        jnz     s68k
+        mov     bx,100
+        div     bx
+        mov     v_secs,ax
+        mov     v_tok,1
+s68k:   clc
         ret
-s68a1:  mov     v_s68run,0
-        clc
+s68x:   pop     cx
+        mov     v_note,offset T68_NO
+        stc
         ret
 sp68    ENDP
         ENDIF
@@ -3750,44 +3774,140 @@ sp68    ENDP
 ; Variante beim Start vorbereiten / beim Ende aufraeumen
 ;-----------------------------------------------------------------------
 varinit PROC    NEAR
+        call    hcpu                    ; 8088 oder V20
+        call    cpuname
         call    det87
+        call    hpic                    ; K235 oder K230/K231
+vi0:    ; 68008 (K234): nur ohne /7 und /8, nur auf der K235
+        mov     h_k234,0
         cmp     v_lvl,6
         jne     vi5
-        ; /6: 68008 versuchen, Ersatz ist der 8087 bzw. 8088
-        mov     dx,offset T_VAR68
-        mov     ah,09h
-        int     21h
-        mov     dx,offset T_R87
-        cmp     v_has87,0
-        jne     vi4
-        mov     dx,offset T_R88
-vi4:    mov     ah,09h
-        int     21h
-        mov     v_s68,0
+        mov     dx,offset T68_235
+        cmp     h_k235,0
+        je      vi4
+        mov     h_k234,1
+        mov     ax,cs                   ; Code, Daten, Stapel nicht ueber F10Eh
+        mov     cx,offset FREEMEM
+        call    hzhit
+        mov     dx,offset T68_OVL
+        jc      vi4
+        call    hprobe                  ; K234 (68008) oder K238 (Z8001)?
+        cmp     h_k234,2
+        jb      vi5
+        ; nur mit Koprozessor: Zeitbasis (Kanal 0) gegen Kanal 2 eichen,
+        ; 0,26 s; steht Kanal 0, sein Gate ueber Port 14h anstossen
+        mov     c_c0per,0
+        call    c2learn
+        jc      vi0e
+        mov     c_dur,4
+        call    cal0
+        cmp     c_c0per,0
+        jne     vi0c
+        out     14h,al
+        mov     cx,10
+vi0w:   call    vsync
+        loop    vi0w
+        call    cal0
+vi0c:   mov     ax,c_c0per
+        cmp     ax,5000
+        jb      vi0e
+        cmp     ax,62500
+        jbe     vi0f
+vi0e:   mov     c_c0per,0
+        mov     h_k234,1                ; ohne Zeitbasis kein Koprozessor
+        mov     dx,offset T68_PIT
+        jmp     vi4
+vi0f:
+        mov     v_e68,offset T_E68
+        cmp     h_k234,3
+        jne     vi2a
+        mov     v_e68,offset T_EZ8
+vi2a:   mov     v_s68,0
         mov     bx,1000h                ; eigenen Block auf 64 KB kuerzen
         mov     ah,4Ah
         int     21h
-        mov     bx,0500h                ; 20 KB fuer den 68008
-        mov     ah,48h
-        int     21h
-        jc      vi2
+        mov     bx,0500h                ; 20 KB fuer den Koprozessor
+        call    hcoblk
+        mov     dx,offset T68_MEM
+        jc      vi4n
         mov     v_s68,ax
-        ret
-vi2:    mov     dx,offset T68_MEM
-        mov     ah,09h
+        call    s68prep                 ; mit dem echten Kern eine Zeile rechnen,
+        push    es                      ; Tiefe 1 (geht schnell; Bild 11
+        mov     es,v_s68                ; bereitet den Block neu vor)
+        mov     word ptr es:[24],0100h
+        pop     es
+        call    hrun68
+        jc      vi3n
+        push    es
+        mov     es,v_s68
+        cmp     byte ptr es:[0],2
+        pop     es
+        je      vi5
+vi3n:   mov     h_k234,1
+        jmp     short vi5
+vi4n:   mov     h_k234,1
+vi4:    mov     ah,09h
         int     21h
-        ret
-vi5:    mov     dx,offset T_OFF87       ; /8
+vi5:    call    hwline
+        mov     dx,offset T_VAR68
+        cmp     h_k234,2
+        je      vi5a
+        mov     dx,offset T_VARZ8
+        cmp     h_k234,3
+        jne     vi6
+vi5a:   mov     ah,09h
+        int     21h
+vi6:    mov     dx,offset T_OFF87       ; /8
         cmp     v_lvl,8
         je      vi1
-        mov     dx,offset T_VAR87       ; /7 (Vorgabe)
-        cmp     v_has87,0
+        mov     dx,offset T_VAR87
+        cmp     h_k234,2
+        jb      vi6a
+        mov     dx,offset T_VAR87B      ; Bild 11 hat der Koprozessor
+vi6a:   cmp     v_has87,0
         jne     vi1
         mov     dx,offset T_NO87
 vi1:    mov     ah,09h
         int     21h
         ret
 varinit ENDP
+
+; '8088' in den Beschriftungen durch den erkannten Prozessor ersetzen
+; (V20: 'V20', Proben uneins: 'CPU?')
+CPUTXT  dw      offset T9_TXT, offset T10_PL, offset T12_TXT, offset T_E88, 0
+cpuname PROC    NEAR
+        cmp     h_cpu,1
+        je      cn9
+        mov     bx,offset CPUTXT
+cn1:    mov     si,[bx]
+        or      si,si
+        jz      cn9
+cn2:    cmp     byte ptr [si],0         ; '8088' suchen
+        je      cn8
+        cmp     word ptr [si],'08'      ; '8','0'
+        jne     cn3
+        cmp     word ptr [si+2],'88'
+        je      cn4
+cn3:    inc     si
+        jmp     cn2
+cn4:    cmp     h_cpu,2
+        je      cn5
+        mov     word ptr [si],'PC'      ; 'CPU?'
+        mov     word ptr [si+2],'?U'
+        jmp     short cn8
+cn5:    mov     word ptr [si],'2V'      ; 'V20' und Rest eins nach links
+        mov     byte ptr [si+2],'0'
+        lea     di,[si+3]
+        lea     si,[si+4]
+cn6:    lodsb
+        mov     [di],al
+        inc     di
+        or      al,al
+        jnz     cn6
+cn8:    add     bx,2
+        jmp     cn1
+cn9:    ret
+cpuname ENDP
 
 varexit PROC    NEAR
         cmp     v_s68run,0
@@ -3802,55 +3922,23 @@ varexit ENDP
 ;=======================================================================
 ;  Bild 12: Foto (KITT.PIC) mit Scanner-Lauflicht - auch auf den 8 LEDs
 ;  KITT.PIC: 4 Ebenen zu 32000 Bytes (gruen, rot, blau, mono), erzeugt
-;  mit tools/pic2dmv.py; Lage des Scanners in der Tabelle KSCAN
+;  mit tools/pic2dmv.py; gezeigt wird die Mono-Ebene in Weiss. Lage des
+;  Scanners in der Tabelle KSCAN
 ;=======================================================================
 
-; Foto laden: CF = 1, wenn die Datei fehlt oder zu kurz ist
+; Foto laden: DX = Dateiname -> CF = 1, wenn die Datei fehlt oder kaputt
+; ist. Gepackte Vollbilder (DMVP/LZSS) laedt GPIC.INC aus DMVGRAF direkt in
+; den Bildspeicher; waehrend des Schreibens ist die Anzeige dunkel, das
+; Bild erscheint in einem Rutsch. KITT.PIC hat nur die Mono-Ebene (auf der
+; Farbkarte in alle drei Ebenen, also weiss), TUT.PIC alle vier.
 kload   PROC    NEAR
-        mov     dx,offset T_KFILE
-        mov     ax,3D00h
-        int     21h
-        jc      kl9
-        mov     v_fh,ax
-        mov     v_kpl,0
-kl1:    mov     bx,v_fh
-        mov     cx,32000
-        mov     dx,offset FREEMEM
-        mov     ah,3Fh
-        int     21h
-        jc      kl8
-        cmp     ax,32000
-        jne     kl8
-        ; Ziel: Farbe -> Ebene 0/1/2, Mono -> nur die vierte in die gruene
-        mov     bx,v_kpl
+        mov     al,1+4                  ; dunkel, Farbe
         cmp     v_mono,0
-        jne     kl2
-        cmp     bx,3
-        jae     kl5
-        shl     bx,1
-        mov     di,KPLANE[bx]
-        jmp     short kl3
-kl2:    cmp     bx,3
-        jne     kl5
-        mov     di,0
-kl3:    call    wbegin
-        mov     si,offset FREEMEM
-        mov     cx,16000
-kl4:    lodsw
-        call    gpw
-        loop    kl4
-kl5:    inc     v_kpl
-        cmp     v_kpl,4
-        jb      kl1
-        mov     bx,v_fh
-        mov     ah,3Eh
-        int     21h
-        clc
-        ret
-kl8:    mov     bx,v_fh
-        mov     ah,3Eh
-        int     21h
-kl9:    stc
+        je      kl1
+        mov     al,1+2                  ; dunkel, Mono
+kl1:    xor     bx,bx
+        xor     cx,cx
+        call    gp_pic
         ret
 kload   ENDP
 
@@ -3892,6 +3980,7 @@ kseg    ENDP
 
 scrkitt PROC    NEAR
         call    sreset
+        mov     dx,offset T_KFILE
         call    kload
         jnc     kt1
         mov     v_tz,2
@@ -3974,9 +4063,88 @@ kt9:    mov     al,0FFh                 ; LEDs aus
         mov     v_patp,offset PSOLID
         ret
 scrkitt ENDP
+
+;=======================================================================
+;  Bild 14: Tutanchamun - gerastertes Foto (TUT.PIC, gepackt: gruen, rot,
+;  blau, mono). Foto: Mark Fischer, Wikimedia Commons, bearbeitet
+;=======================================================================
+
+scrtut  PROC    NEAR
+        call    sreset
+        mov     dx,offset T_TFILE
+        call    kload
+        jnc     tu1
+        mov     v_tz,2
+        mov     v_ty,190
+        mov     v_col,WEISS
+        mov     si,offset T_TMISS
+        call    ctext
+        mov     cx,150
+        call    wframes
+        ret
+tu1:    mov     v_tz,1
+        mov     si,offset TCRED
+tu2:    mov     ax,[si]
+        or      ax,ax
+        jz      tu3
+        mov     ax,[si+2]
+        mov     v_tx,ax
+        mov     ax,[si+4]
+        mov     v_ty,ax
+        mov     al,[si+6]
+        mov     v_col,al
+        push    si
+        mov     si,[si]
+        call    text
+        pop     si
+        add     si,8
+        jmp     short tu2
+tu3:    mov     cx,700
+        call    wframes
+        ret
+scrtut  ENDP
 ;=======================================================================
 ;  Hauptprogramm
 ;=======================================================================
+
+; Farbe oder Mono aus der Firmwarekennung: OUT 11h legt das ROM ueber
+; 0000h-1FFFh, bei 0FF9h steht 'C' (Farbe) oder 'M' (Mono). Nur, wenn das
+; Programm ueber 2000h liegt; sonst bleibt es bei Farbe bis zur Ebenenprobe.
+romcol  PROC    NEAR
+        mov     v_mono,0
+        mov     ax,cs
+        cmp     ax,0200h
+        jb      rcl9
+        pushf
+        cli
+        out     11h,al
+        push    ds
+        xor     ax,ax
+        mov     ds,ax
+        mov     al,ds:[0FF9h]
+        pop     ds
+        out     10h,al
+        popf
+        cmp     al,'M'
+        jne     rcl9
+        mov     v_mono,1
+rcl9:   ret
+romcol  ENDP
+
+; /M bzw. /C erzwingen, Ebenenzahl setzen
+mforce  PROC    NEAR
+        cmp     v_force,1
+        jne     mf1
+        mov     v_mono,1
+mf1:    cmp     v_force,2
+        jne     mf2
+        mov     v_mono,0
+mf2:    mov     v_npl,3
+        cmp     v_mono,0
+        je      mf3
+        mov     v_npl,1
+mf3:    ret
+mforce  ENDP
 
 main    PROC    NEAR
         mov     sp,offset STACKTOP
@@ -4031,18 +4199,12 @@ m_s1:   ; INT 23h (Strg-C) auf eigenen Ausgang legen
         mov     dx,offset brk_h
         mov     ax,2523h
         int     21h
-        ; Mono/Farbe
-        call    detect
-        cmp     v_force,1
-        jne     m_f1
-        mov     v_mono,1
-m_f1:   cmp     v_force,2
-        jne     m_f2
-        mov     v_mono,0
-m_f2:   mov     v_npl,3
-        cmp     v_mono,0
-        je      m_f3
-        mov     v_npl,1
+        ; Mono/Farbe fuer die Meldung aus der Firmwarekennung (C/M); die
+        ; Ebenenprobe (detect) schreibt in den Bildspeicher und kommt erst
+        ; nach gr_on - im Textbetrieb verstellte sie die Schreibstelle der
+        ; Konsole (Zeichenmuell in Zeile 0)
+        call    romcol
+        call    mforce
 m_f3:   mov     dx,offset T_BANNER
         mov     ah,09h
         int     21h
@@ -4055,7 +4217,11 @@ m_f4:   mov     ah,09h
         call    varinit                 ; 8087 suchen / 68008-Block holen
         mov     ax,v_frame
         mov     v_seed,ax
+        mov     v_npl,3
         call    gr_on
+        call    detect                  ; Ebenenprobe im Grafikbetrieb
+        call    mforce
+        call    cls
         ; Bilder zeigen
 m_loop: mov     bl,v_single
         or      bl,bl
@@ -4110,6 +4276,8 @@ scrx    PROC    NEAR
         call    wframes
         ret
 scrx    ENDP
+
+        INCLUDE GPIC.INC                ; aus DMVGRAF (dmvgraf/src), Arbeitsbereich gp_puf
 
         EVEN
         db      1024 dup (?)

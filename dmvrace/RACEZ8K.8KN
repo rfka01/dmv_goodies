@@ -1,0 +1,350 @@
+; RACEZ8K.8KN - Rechenkerne fuer den Z8001 (K238) in DMVRACE
+; (libasm:  asm -C Z8001 -o RACEZ8K.BIN RACEZ8K.8KN)
+;
+; Gegenstueck zu RACE68.S. Der 8088 kopiert den Code nach P+100h und legt
+; den Startzustand des Z8001 ueber seine Vektoren 0/1: FCW = C000h
+; (segmentiert, System) bei 0002h, PC = P+100h als Segment/Versatz bei
+; 0004h. Gestartet wird er vom Z80 mit OUT (DFh); am Ende gibt er mit
+; OUTB DFh den Bus an den Z80 zurueck und haelt an. Je Start ein Test.
+; Der Code ist lageunabhaengig (LDAR, JR, CALR); der Block P..P+3FFFh
+; muss in einem 64-KB-Segment liegen (das prueft der 8088).
+;
+; Briefkasten ab P (wie beim 68008, Z8000 ist ebenfalls Big Endian):
+;   +0  Status   0 = nicht gestartet, 1 = rechnet, 2 = fertig
+;   +1  fertige Zeilen      +3  Test (1..5; 0 = nur melden, fuer die Probe)
+;   +4  x0 (4.28)  +8 y0 (4.28)  +12 dx (4.28)  +16 dy (4.28)
+;   +20 W  +22 H  +24 maxit (Worte)  +26/+28 Spalten-/Zeilenzaehler
+;   +32 Ergebnis (Langwort)
+;   +40 cr  +44 ci  +56 zr^2  +60 zr^2-zi^2 (Arbeitsplatz)
+; Speicher: P+1000h Mandelbrot-Ergebnisse (darunter der Stapel),
+; P+1400h Sieb-Flags (8191 Bytes), P+3400h Sierpinski-Zeile (32 Bytes),
+; P+3500h Sierpinski-Bild (100 Zeilen zu 16 Bytes), P+3C00h Division
+; (Faktoren je n, 400 Bytes), P+3E00h Kreis (150 Worte).
+;
+; Code: Claude, Prompts: rfka01
+
+        cpu     z8001
+        org     0
+
+SIER_ROWS:  equ 200
+SIER_REPS:  equ 40
+SIEVE_SIZE: equ 8190
+SIEVE_ITER: equ 8
+DIV_N0:     equ 50000
+DIV_K:      equ 400
+SQ_R:       equ 6000
+
+start:  ldar    rr12,start
+        sub     r13,#256                ; Briefkasten P
+        ldl     rr14,rr12
+        add     r15,#0x1000             ; Stapel unter P+1000h
+        ldb     rl0,#1
+        ldb     rr12(#0),rl0            ; laeuft
+        clr     r0
+        clr     r1
+        ldl     rr12(#32),rr0
+        ldb     rl0,rr12(#3)
+        cpb     rl0,#1
+        jr      ne,d2
+        calr    mandel
+        jr      fin
+d2:     cpb     rl0,#2
+        jr      ne,d3
+        calr    sier
+        jr      fin
+d3:     cpb     rl0,#3
+        jr      ne,d4
+        calr    sieve
+        jr      fin
+d4:     cpb     rl0,#4
+        jr      ne,d5
+        calr    divt
+        jr      fin
+d5:     cpb     rl0,#5
+        jr      ne,fin
+        calr    circ
+fin:    ldb     rl0,#2
+        ldb     rr12(#0),rl0            ; fertig
+        outb    0xdf,rl0                ; Bus zurueck an den Z80 (K238)
+hlt:    halt
+        jr      hlt
+
+;------------------------------------------------------------------------
+; 1: Mandelbrot (32 Bit Festkomma 4.28, MULTL)
+;------------------------------------------------------------------------
+mandel: lda     rr10,rr12(#0x1000)      ; Ergebnisse
+        ldb     rl0,#0
+        ldb     rr12(#1),rl0
+        ldl     rr0,rr12(#8)
+        ldl     rr12(#44),rr0           ; ci = y0
+        ld      r0,rr12(#22)
+        ld      rr12(#28),r0            ; Zeilen
+mrow:   ldl     rr0,rr12(#4)
+        ldl     rr12(#40),rr0           ; cr = x0
+        ld      r0,rr12(#20)
+        ld      rr12(#26),r0            ; Spalten
+mpix:   calr    mpoint
+        ld      r0,r8
+        ldb     @rr10,rl0
+        inc     r11,#1
+        ldl     rr0,rr12(#40)
+        ldl     rr2,rr12(#12)
+        addl    rr0,rr2
+        ldl     rr12(#40),rr0           ; cr += dx
+        ld      r0,rr12(#26)
+        dec     r0,#1
+        ld      rr12(#26),r0
+        jr      nz,mpix
+        ldl     rr0,rr12(#44)
+        ldl     rr2,rr12(#16)
+        addl    rr0,rr2
+        ldl     rr12(#44),rr0           ; ci += dy
+        ldb     rl0,rr12(#1)
+        incb    rl0,#1
+        ldb     rr12(#1),rl0            ; Zeile fertig
+        ld      r0,rr12(#28)
+        dec     r0,#1
+        ld      rr12(#28),r0
+        jr      nz,mrow
+        ret
+
+; ein Punkt: cr bei +40, ci bei +44 -> r8 = Iterationen
+; zr = rr4, zi = rr6, n = r8, maxit = r9
+mpoint: clr     r4
+        clr     r5
+        clr     r6
+        clr     r7
+        clr     r8
+        ld      r9,rr12(#24)
+mit:    cpl     rr4,#0x20000000         ; |zr| < 2 ?
+        jr      ge,mesc
+        cpl     rr4,#0xE0000000
+        jr      le,mesc
+        cpl     rr6,#0x20000000         ; |zi| < 2 ?
+        jr      ge,mesc
+        cpl     rr6,#0xE0000000
+        jr      le,mesc
+        ldl     rr2,rr4
+        multl   rq0,rr4
+        calr    sh28                    ; rr0 = zr^2
+        ldl     rr12(#56),rr0
+        ldl     rr2,rr6
+        multl   rq0,rr6
+        calr    sh28                    ; rr0 = zi^2
+        ldl     rr2,rr12(#56)
+        addl    rr2,rr0
+        cpl     rr2,#0x40000000         ; |z|^2 > 4 ?
+        jr      gt,mesc
+        ldl     rr2,rr12(#56)
+        subl    rr2,rr0
+        ldl     rr12(#60),rr2           ; zr^2 - zi^2
+        ldl     rr2,rr4
+        multl   rq0,rr6
+        calr    sh28                    ; rr0 = zr*zi
+        addl    rr0,rr0
+        ldl     rr2,rr12(#44)
+        addl    rr0,rr2
+        ldl     rr6,rr0                 ; zi = 2 zr zi + ci
+        ldl     rr4,rr12(#60)
+        ldl     rr2,rr12(#40)
+        addl    rr4,rr2                 ; zr = zr^2 - zi^2 + cr
+        inc     r8,#1
+        cp      r8,r9
+        jr      ult,mit
+mesc:   ret
+
+; rq0 (64 Bit) >> 28 -> rr0
+sh28:   slll    rr0,#4
+        srll    rr2,#28
+        or      r1,r3
+        ret
+
+;------------------------------------------------------------------------
+; 2: Sierpinski: Zeile = Zeile XOR (Zeile << 1), 256 Bit als 8 Langworte
+;    (Langwort 0 = niedrigste Bits; je Langwort erst das niedere Wort bei
+;    +2, dann das hohe bei +0); C traegt das Bit weiter
+;------------------------------------------------------------------------
+sier:   lda     rr10,rr12(#0x3500)      ; Bild
+        ld      r6,#100                 ; Bildzeilen
+        ld      r9,#SIER_REPS
+srep:   lda     rr2,rr12(#0x3400)
+        ld      r1,#16
+        clr     r0
+sclr:   ld      @rr2,r0
+        inc     r3,#2
+        djnz    r1,sclr
+        ld      r0,#1
+        ld      rr12(#0x3402),r0        ; Langwort 0 = 1
+        calr    scopy
+        ld      r8,#SIER_ROWS-1
+srow:   lda     rr2,rr12(#0x3400)
+        resflg  c
+        ld      r7,#8
+s1:     ld      r0,rr2(#2)
+        ld      r1,r0
+        rlc     r1,#1                   ; C rein, oberstes Bit nach C
+        xor     r0,r1                   ; (XOR und LD lassen C stehen)
+        ld      rr2(#2),r0
+        ld      r0,@rr2
+        ld      r1,r0
+        rlc     r1,#1
+        xor     r0,r1
+        ld      @rr2,r0
+        inc     r3,#4                   ; (INC laesst C stehen)
+        djnz    r7,s1
+        calr    scopy
+        djnz    r8,srow
+        djnz    r9,srep
+        lda     rr2,rr12(#0x3400)       ; Summe der 32 Bytes
+        clr     r4
+        clr     r5
+        clr     r0
+        ld      r7,#32
+ssum:   ldb     rl0,@rr2
+        add     r5,r0
+        inc     r3,#1
+        djnz    r7,ssum
+        ldl     rr12(#32),rr4
+        ret
+
+; im letzten Durchgang (r9 = 1) die ersten 4 Langworte der Zeile ablegen
+scopy:  cp      r9,#1
+        ret     ne
+        test    r6
+        ret     z
+        dec     r6,#1
+        lda     rr2,rr12(#0x3400)
+        ld      r1,#8
+sc1:    ld      r0,@rr2
+        ld      @rr10,r0
+        inc     r3,#2
+        inc     r11,#2
+        djnz    r1,sc1
+        ret
+
+;------------------------------------------------------------------------
+; 3: Sieb (BYTE 1981): 8190 Flags, 8 Durchgaenge -> 1899
+;------------------------------------------------------------------------
+sieve:  ld      r9,#SIEVE_ITER
+sit:    lda     rr2,rr12(#0x1400)
+        ld      r1,#SIEVE_SIZE+1
+        ldb     rl0,#1
+sfl:    ldb     @rr2,rl0
+        inc     r3,#1
+        djnz    r1,sfl
+        clr     r5                      ; Zaehler
+        clr     r4                      ; i
+sl:     lda     rr2,rr12(#0x1400)
+        add     r3,r4
+        testb   @rr2
+        jr      z,snext
+        ld      r6,r4                   ; Primzahl = 2i+3
+        add     r6,r6
+        add     r6,#3
+        ld      r7,r4
+        add     r7,r6                   ; k = i + Primzahl
+skl:    cp      r7,#SIEVE_SIZE
+        jr      ugt,sdone
+        lda     rr2,rr12(#0x1400)
+        add     r3,r7
+        clrb    @rr2
+        add     r7,r6
+        jr      skl
+sdone:  inc     r5,#1
+snext:  inc     r4,#1
+        cp      r4,#SIEVE_SIZE
+        jr      ule,sl
+        djnz    r9,sit
+        clr     r4
+        ldl     rr12(#32),rr4
+        ret
+
+;------------------------------------------------------------------------
+; 4: Primfaktoren durch Probedivision (DIV, 32/16 mit Vorzeichen; alle
+;    Werte positiv, Quotient < 32768), n = 50000..50399
+;------------------------------------------------------------------------
+divt:   ld      r7,#DIV_N0              ; n
+        ld      r8,#DIV_K
+        clr     r4
+        clr     r5                      ; Summe
+        lda     rr10,rr12(#0x3C00)      ; Bild
+dn:     ld      r9,r5                   ; Summe vorher
+        ld      r3,r7                   ; m
+        ld      r6,#2                   ; d
+dd:     clr     r0
+        ld      r1,r3
+        div     rr0,r6                  ; r1 = Quotient, r0 = Rest
+        cp      r1,r6
+        jr      ult,dbrk                ; Quotient < d
+        test    r0
+        jr      nz,dnext
+        ld      r3,r1                   ; teilbar: m = q
+        inc     r5,#1
+        jr      dd
+dnext:  inc     r6,#1
+        jr      dd
+dbrk:   inc     r5,#1                   ; Rest ist prim
+        ld      r0,r5                   ; Bild: Zahl der Faktoren von n
+        sub     r0,r9
+        ldb     @rr10,rl0
+        inc     r11,#1
+        inc     r7,#1
+        djnz    r8,dn
+        ldl     rr12(#32),rr4
+        ret
+
+;------------------------------------------------------------------------
+; 5: Gitterpunkte im Viertelkreis: Summe isqrt(R^2 - x^2), x = 0..R-1
+;------------------------------------------------------------------------
+circ:   clr     r7                      ; x
+        clr     r4
+        clr     r5                      ; Summe
+        lda     rr10,rr12(#0x3E00)      ; Bild
+        clr     r8                      ; Zaehler bis 40
+cx1:    clr     r0
+        ld      r1,r7
+        mult    rr0,r7                  ; x^2
+        ldl     rr2,#SQ_R*SQ_R
+        subl    rr2,rr0                 ; N
+        calr    isqrt                   ; -> rr0
+        addl    rr4,rr0
+        test    r8                      ; Bild: jede 40. Wurzel
+        jr      nz,cx2
+        ld      @rr10,r1
+        inc     r11,#2
+        ld      r8,#40
+cx2:    dec     r8,#1
+        inc     r7,#1
+        cp      r7,#SQ_R
+        jr      ult,cx1
+        ldl     rr12(#32),rr4
+        ret
+
+; Wurzel Bit fuer Bit: rr2 = N -> rr0 = isqrt(N); rr4 Rest, rr6 Probe
+isqrt:  pushl   @rr14,rr4
+        pushl   @rr14,rr6
+        push    @rr14,r9
+        clr     r0
+        clr     r1
+        clr     r4
+        clr     r5
+        ld      r9,#16
+iq1:    ldl     rr6,rr2                 ; 2 Bits von N in den Rest
+        srll    rr6,#30
+        slll    rr4,#2
+        addl    rr4,rr6
+        slll    rr2,#2
+        addl    rr0,rr0
+        ldl     rr6,rr0
+        addl    rr6,rr6
+        addl    rr6,#1
+        cpl     rr4,rr6
+        jr      ult,iq2
+        subl    rr4,rr6
+        addl    rr0,#1
+iq2:    djnz    r9,iq1
+        pop     r9,@rr14
+        popl    rr6,@rr14
+        popl    rr4,@rr14
+        ret
+        end

@@ -1,0 +1,112 @@
+; MANDZ8K.8KN - Mandelbrot-Rechenkern fuer den Z8001 (K238) in DMVDEMO
+; (libasm:  asm -C Z8001 -o MANDZ8K.HEX MANDZ8K.8KN)
+;
+; Rechnet wie der 8088 in DMVDEMO (mandel13) mit 16 Bit Festkomma 3.13,
+; also dasselbe Bild in derselben Genauigkeit - ein direkter Vergleich
+; Z8001 gegen 8088/V20. (32 Bit mit MULTL waere auf dem Z8001 rund
+; viermal langsamer: 282 Takte je Multiplikation.)
+;
+; DMVDEMO kopiert den Code nach P+100h und legt den Startzustand des
+; Z8001 ueber seine Vektoren 0/1: FCW = C000h (segmentiert, System) bei
+; 0002h, PC = P+100h als Segment/Versatz bei 0004h. Gestartet wird er vom
+; Z80 mit OUT (DFh); am Ende gibt er mit OUTB DFh den Bus an den Z80
+; zurueck und haelt an. Der 8088 steht, solange der Z8001 rechnet, darum
+; rechnet er je Start nur einige Zeilen. Der Block P..P+4FFFh muss in
+; einem 64-KB-Segment liegen.
+;
+; Briefkasten ab P (Big Endian; Lage wie beim 68008, die 4.28-Werte dort
+; braucht der Z8001 nicht):
+;   +0  Status   0 = nicht gestartet, 1 = rechnet, 2 = fertig
+;   +1  fertige Zeilen (dieser Lauf)
+;   +20 W (Wort, 160)   +24 maxit (Wort, 100)
+;   +28 Zeilen in diesem Lauf (Wort)   +30 erste Zeile dieses Laufs (Wort)
+; Ausschnitt fest wie beim 8088: cr = -6446 + Spalte, ci = 1048 + Zeile
+; (in 1/8192). Ergebnis ab P+1000h: ein Byte je Zelle = Iterationen.
+;
+; Code: Claude, Prompts: rfka01
+
+        cpu     z8001
+        org     0
+
+CR0:    equ     -6446
+CI0:    equ     1048
+
+start:  ldar    rr12,start
+        sub     r13,#256                ; Briefkasten P
+        ldl     rr14,rr12
+        add     r15,#0x1000             ; Stapel unter P+1000h
+        ldb     rl0,#1
+        ldb     rr12(#0),rl0            ; laeuft
+        ldb     rl0,#0
+        ldb     rr12(#1),rl0
+        ld      r1,rr12(#30)            ; erste Zeile
+        ld      r3,rr12(#20)
+        mult    rr0,r3                  ; * W
+        lda     rr10,rr12(#0x1000)      ; Ergebnisse
+        add     r11,r1
+        ld      r9,rr12(#24)            ; maxit
+mrow:   ld      r7,rr12(#30)
+        add     r7,#CI0                 ; ci
+        ld      r6,#CR0                 ; cr
+        ld      r3,rr12(#20)            ; Spalten
+mpix:   push    @rr14,r3
+        calr    mpoint
+        ldb     @rr10,rl0
+        inc     r11,#1
+        inc     r6,#1                   ; cr += 1/8192
+        pop     r3,@rr14
+        djnz    r3,mpix
+        ldb     rl0,rr12(#1)
+        incb    rl0,#1
+        ldb     rr12(#1),rl0            ; Zeile fertig
+        ld      r0,rr12(#30)
+        inc     r0,#1
+        ld      rr12(#30),r0
+        ld      r0,rr12(#28)
+        dec     r0,#1
+        ld      rr12(#28),r0
+        jr      nz,mrow
+        ldb     rl0,#2
+        ldb     rr12(#0),rl0            ; fertig
+        outb    0xdf,rl0                ; Bus zurueck an den Z80 (K238)
+hlt:    halt
+        jr      hlt
+
+; ein Punkt: cr = r6, ci = r7 -> r0 = Iterationen (wie mandel13 des 8088)
+; zr = r4, zi = r5, n = r8, maxit = r9
+mpoint: clr     r4
+        clr     r5
+        clr     r8
+mit:    cp      r4,#16384               ; |zr| < 2 ?
+        jr      ge,mesc
+        cp      r4,#-16384
+        jr      le,mesc
+        cp      r5,#16384               ; |zi| < 2 ?
+        jr      ge,mesc
+        cp      r5,#-16384
+        jr      le,mesc
+        ld      r1,r4
+        mult    rr0,r4
+        sral    rr0,#13
+        ld      r2,r1                   ; zr^2
+        ld      r1,r5
+        mult    rr0,r5
+        sral    rr0,#13                 ; r1 = zi^2
+        ld      r3,r2
+        add     r3,r1
+        cp      r3,#32768               ; |z|^2 > 4 ?
+        jr      ugt,mesc
+        sub     r2,r1
+        add     r2,r6                   ; zr^2 - zi^2 + cr
+        ld      r1,r4
+        mult    rr0,r5
+        sral    rr0,#12                 ; 2 zr zi
+        add     r1,r7
+        ld      r5,r1                   ; zi = 2 zr zi + ci
+        ld      r4,r2                   ; zr
+        inc     r8,#1
+        cp      r8,r9
+        jr      ult,mit
+mesc:   ld      r0,r8
+        ret
+        end

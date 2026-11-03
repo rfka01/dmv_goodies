@@ -1,18 +1,24 @@
 | MANDEL68.S - Mandelbrot-Rechenkern fuer den 68008 auf dem K234
 | (GNU as, m68k:  m68k-linux-gnu-as -m68000 --register-prefix-optional)
 |
-| Wird vom 8088-Programm DMV68 an die physische Adresse P+100h kopiert
-| und per Zugriff auf Port D8h gestartet (Reset: SSP/PC ab Adresse 0).
+| Wird von DMVDEMO an die physische Adresse P+100h kopiert. Gestartet wird
+| er vom Z80 mit OUT (DFh) (Reset: SSP/PC ab Adresse 0); am Ende gibt er
+| mit einem Schreiben auf FFFDFh den Bus an den Z80 zurueck (wie NCRs
+| CP/M-68K; mit Port D8h laeuft die echte K234 nicht an). Der 8088 steht,
+| solange der 68008 rechnet, darum rechnet er je Start nur einige Zeilen
+| (+28) ab Zeile +30 und merkt sich ci in +32.
 | Der Code ist lageunabhaengig (nur PC-relativ).
 |
 | Briefkasten ab P (Bytes, Langworte im 68000-Format = Big Endian):
-|   +0  Status   0 = nicht gestartet, 1 = rechnet, 2 = fertig, 3 = abgebrochen
-|   +1  fertige Zeilen (0..H)
-|   +2  Abbruchwunsch vom 8088 (<> 0)
+|   +0  Status   0 = nicht gestartet, 1 = rechnet, 2 = fertig
+|   +1  fertige Zeilen (dieser Lauf)
 |   +4  x0  (4.28)     +8  y0 (4.28)
 |   +12 dx  (4.28)     +16 dy (4.28)
 |   +20 W (Wort)       +22 H (Wort)      +24 maxit (Wort, <= 255)
-|   +26 Spaltenzaehler +28 Zeilenzaehler (Arbeitsvariablen)
+|   +26 Spaltenzaehler (Arbeitsvariable)
+|   +28 Zeilen in diesem Lauf (Wort)   +30 erste Zeile dieses Laufs (Wort)
+|   +32 ci der ersten Zeile (4.28; vor dem ersten Lauf = y0, danach
+|       vom 68008 fortgeschrieben)
 | Ergebnis ab P+1000h: ein Byte je Zelle = Iterationen (maxit = innen)
 
         .text
@@ -30,13 +36,15 @@
         .endm
 
 start:  lea     start-256(pc),a5        | Briefkasten
-        lea     4096(a5),a4             | Ergebnisse
-        move.l  #0x20000000,a3          | 2.0
-        move.l  #0x40000000,a6          | 4.0
         move.b  #1,(a5)                 | laeuft
         clr.b   1(a5)
-        move.l  8(a5),a2                | ci = y0
-        move.w  22(a5),28(a5)           | Zeilen
+        move.w  30(a5),d0               | erste Zeile
+        mulu.w  20(a5),d0               | * W
+        lea     4096(a5),a4             | Ergebnisse
+        add.l   d0,a4
+        move.l  #0x20000000,a3          | 2.0
+        move.l  #0x40000000,a6          | 4.0
+        move.l  32(a5),a2               | ci
 row:    move.l  4(a5),a1                | cr = x0
         move.w  20(a5),26(a5)           | Spalten
 pix:    moveq   #0,d0                   | zr
@@ -99,14 +107,13 @@ esc:    move.b  d5,(a4)+
         bne     pix
         add.l   16(a5),a2               | ci += dy
         addq.b  #1,1(a5)                | Zeile fertig
-        tst.b   2(a5)                   | Abbruch?
-        bne.s   abort
+        addq.w  #1,30(a5)
         subq.w  #1,28(a5)
         bne     row
+        move.l  a2,32(a5)               | ci fuer den naechsten Lauf
         move.b  #2,(a5)                 | fertig
+        move.b  d0,0xFFDF.w             | Bus zurueck an den Z80 (K234: FFFDFh)
 halt:   stop    #0x2700                 | anhalten
-        bra.s   halt
-abort:  move.b  #3,(a5)
         bra.s   halt
         .end
 

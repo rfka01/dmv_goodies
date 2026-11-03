@@ -11,7 +11,7 @@ A processor race for the **NCR Decision Mate V** under MS-DOS (2.0 or later, tes
 | red | Z80 on the mainboard (4 MHz) |
 | green | 8088 or V20 (K230/K231/K235), detected and labelled |
 | yellow | the same with 8087 |
-| cyan | 68008 on the K234 |
+| cyan | coprocessor in slot 7: 68008 on the K234, or Z8001 on the K238 (home-made card, MAME fork only) |
 
 A missing processor leaves its car in the pit. Every section of the kidney-shaped track is a benchmark that each processor really computes, showing its own result as a picture:
 
@@ -25,7 +25,7 @@ A missing processor leaves its car in the pit. Every section of the kidney-shape
 
 Lap one is measured section by section: first all processors compute the test, then the cars drive until the fastest reaches the end of the section. Laps two and three run without a break. Everything is in real time (one frame = 1/50 s of measured computing time). A wrong checksum disqualifies the car.
 
-`DMVRACE /Z` without Z80, `/K` without 68008, `/8` without 8087, `/M` and `/C` force monochrome or colour.
+`DMVRACE /Z` without Z80, `/K` without K234/K238, `/8` without 8087, `/M` and `/C` force monochrome or colour.
 
 ### Drag race (second page)
 
@@ -33,7 +33,7 @@ Two snails and a greyhound on the division straight: the 8741 keyboard controlle
 
 After the Grand Prix, `D` starts the drag race. The 8741 really computes the test itself (a little over 23 s) and reports its progress, so its snail runs live; the Z80 snail and the greyhound run with their division times from lap one. While the 8741 computes, it does not scan the keyboard. At the end: the 8741's result (1388 = correct), the ranking and how many times faster the greyhound is than the keyboard.
 
-`LIESMICH.TXT` is the full description (German), `BUILD.BAT` builds `DMVRACE.COM` with MASM 5.10. The Z80 and 68008 kernels are included as sources (`RACEZ80.ASM`, `RACE68.S`) and as assembled bytes (`Z80.INC`, `R68.INC`), so no Z80 or 68000 assembler is needed.
+`LIESMICH.TXT` is the full description (German), `BUILD.BAT` builds `DMVRACE.COM` with MASM 5.10. The Z80, 68008 and Z8001 kernels are included as sources (`RACEZ80.ASM`, `RACE68.S`, `RACEZ8K.8KN`) and as assembled bytes (`Z80.INC`, `R68.INC`, `RZ8.INC`), so no Z80, 68000 or Z8000 assembler is needed. Hardware detection follows the rules measured on two real machines (`HWDET.INC`, shared with DMVDEMO): V20 only if `PUSH 0` and `AAD 16` agree, 8087 by its control word, K234/K238 only on a K235, started by the Z80 with `OUT DFh`. The timebase (PIT channel 0 = frame clock, about 56 Hz on real hardware) is calibrated against channel 2 at start-up (`PITCAL.INC`).
 
 ## Deutsch
 
@@ -44,7 +44,7 @@ Ein Prozessor-Rennen für die **NCR Decision Mate V** unter MS-DOS (ab 2.0, gete
 | rot | Z80 auf der Hauptplatine (4 MHz) |
 | grün | 8088 bzw. V20 (K230/K231/K235), wird erkannt und beschriftet |
 | gelb | derselbe mit 8087 |
-| cyan | 68008 auf der K234 |
+| cyan | Koprozessor auf Steckplatz 7: 68008 der K234 oder Z8001 der K238 (Eigenbau, nur im MAME-Fork) |
 
 Fehlt ein Prozessor, bleibt sein Wagen in der Box. Jeder Abschnitt der nierenförmigen Strecke ist ein Test, den jeder Prozessor tatsächlich rechnet und dessen Ergebnis er als Bild zeigt:
 
@@ -58,7 +58,7 @@ Fehlt ein Prozessor, bleibt sein Wagen in der Box. Jeder Abschnitt der nierenfö
 
 Die erste Runde wird abschnittsweise gemessen: Erst rechnen alle Prozessoren den Test, dann fahren die Wagen, bis der Schnellste das Abschnittsende erreicht. Runde zwei und drei folgen ohne Pause. Alles läuft in Echtzeit (ein Bildwechsel = 1/50 s gemessene Rechenzeit). Eine falsche Prüfsumme disqualifiziert den Wagen.
 
-`DMVRACE /Z` ohne Z80, `/K` ohne 68008, `/8` ohne 8087, `/M` und `/C` erzwingen Mono oder Farbe.
+`DMVRACE /Z` ohne Z80, `/K` ohne K234/K238, `/8` ohne 8087, `/M` und `/C` erzwingen Mono oder Farbe.
 
 ### Drag-Race (zweite Seite)
 
@@ -66,7 +66,7 @@ Zwei Schnecken und ein Windhund auf der Divisions-Geraden: der 8741 der Tastatur
 
 Nach dem Grand Prix startet `D` das Drag-Race. Der 8741 rechnet den Test wirklich selbst (gut 23 s) und meldet seinen Fortschritt, seine Schnecke fährt also live; die Z80-Schnecke und der Windhund fahren mit ihren Divisionszeiten aus Runde 1. Solange der 8741 rechnet, fragt er die Tastatur nicht ab. Am Ende: Ergebnis des 8741 (1388 = richtig), Rangfolge und wievielmal schneller der Windhund als die Tastatur ist.
 
-`LIESMICH.TXT` ist die ausführliche Beschreibung, `BUILD.BAT` baut `DMVRACE.COM` mit MASM 5.10. Die Kerne für Z80 und 68008 liegen als Quelle (`RACEZ80.ASM`, `RACE68.S`) und fertig übersetzt (`Z80.INC`, `R68.INC`) bei; einen Z80- oder 68000-Assembler braucht man nicht.
+`LIESMICH.TXT` ist die ausführliche Beschreibung, `BUILD.BAT` baut `DMVRACE.COM` mit MASM 5.10. Die Kerne für Z80, 68008 und Z8001 liegen als Quelle (`RACEZ80.ASM`, `RACE68.S`, `RACEZ8K.8KN`) und fertig übersetzt (`Z80.INC`, `R68.INC`, `RZ8.INC`) bei; einen Z80-, 68000- oder Z8000-Assembler braucht man nicht. Die Hardware wird nach den auf zwei echten Maschinen gemessenen Regeln erkannt (`HWDET.INC`, gemeinsam mit DMVDEMO): V20 nur, wenn `PUSH 0` und `AAD 16` übereinstimmen, 8087 am Steuerwort, K234/K238 nur auf der K235, gestartet vom Z80 mit `OUT DFh`. Die Zeitbasis (PIT-Kanal 0 = Bildtakt, auf echter Hardware rund 56 Hz) wird beim Start gegen Kanal 2 geeicht (`PITCAL.INC`).
 
 ## Credits
 

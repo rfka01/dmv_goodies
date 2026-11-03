@@ -1,0 +1,30 @@
+TUT.PIC - Bildnachweis / Image credit
+=====================================
+
+TUT.PIC ist eine bearbeitete Fassung des Fotos
+TUT.PIC is an edited version of the photo
+
+  "King Tut Burial Mask (23785641449).jpg"
+  Foto / photo: Mark Fischer
+  Wikimedia Commons:
+  https://commons.wikimedia.org/wiki/File:King_Tut_Burial_Mask_%2823785641449%29.jpg
+
+Lizenz / License: CC BY-SA 2.0 (laut Commons-Seite zu pruefen /
+  to be confirmed on the Commons page)
+  https://creativecommons.org/licenses/by-sa/2.0/
+
+Bearbeitungen / Changes:
+  Ausschnitt (Gesicht und Kopftuch), auf 360 x 400 skaliert, Farben und
+  Kontrast verstaerkt, Lapisblau angehoben, Floyd-Steinberg-Raster auf
+  die 8 DMV-Farben und getrennt in Graustufen fuer die Mono-DMV, auf
+  schwarzen Grund 640 x 400 gesetzt, gespeichert als vier DMV-Bildebenen
+  (mit LZSS gepackt, DMVGRAF-Format).
+  cropped (face and headdress), scaled to 360 x 400, colour and contrast
+  increased, lapis blue raised, Floyd-Steinberg dithering to the 8 DMV
+  colours and separately in grey levels for the mono DMV, placed on a
+  black 640 x 400 canvas, stored as four DMV video planes (packed with
+  LZSS, DMVGRAF format).
+
+TUT.PIC steht ebenfalls unter CC BY-SA 2.0, nicht unter der MIT-Lizenz
+der Programme. / TUT.PIC is likewise licensed under CC BY-SA 2.0, not
+under the MIT License of the programs.

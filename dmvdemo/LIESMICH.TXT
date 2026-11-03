@@ -5,37 +5,59 @@ Fuer MS-DOS ab 2.0 (getestet mit 3.30) auf der DMV mit Farb-Grafikkarte
 (uPD7220, 640 x 400, 8 Farben). Laeuft auch auf der Mono-DMV (dann
 Graustufen als Raster).
 
-Ein Programm; ein Schalter legt fest, wer den blauen Mandelbrot-Tentakel
-(Bild 11) hoechstens rechnen darf, bevor der 8088/V20 einspringt:
+Ein Programm. Den blauen Mandelbrot-Tentakel (Bild 11) rechnet das
+staerkste Rechenwerk, das gefunden wird:
 
-  /6   68008 auf dem K234 (32-Bit-Festkomma 4.28, experimentell)
-       -> antwortet er nicht: 8087 -> ohne 8087: 8088/V20
-  /7   8087 (80-Bit-Gleitkomma), wenn einer steckt -> sonst 8088/V20
-       (Voreinstellung, gilt auch ohne Schalter)
-  /8   nur 8088/V20 (16-Bit-Festkomma 3.13), zum Zeitvergleich
+  Koprozessor auf Steckplatz 7: 68008 der K234 (32-Bit-Festkomma 4.28)
+  oder Z8001 der K238 (16-Bit-Festkomma 3.13 wie der 8088; die K238 ist
+  ein Eigenbau, den es nur im MAME-Fork gibt) -> sonst 8087
+  (80-Bit-Gleitkomma) -> sonst 8088/V20 (16-Bit-Festkomma 3.13).
+  (4.28 = 4 Bit vor und 28 Bit nach dem Komma, 3.13 = 3 vor, 13 nach.)
+
+  Die Zeitbasis (PIT-Kanal 0 gegen Kanal 2, 0,26 s) wird nur geeicht,
+  wenn ein Koprozessor gefunden ist - sonst startet das Demo ohne Pause.
+
+  /7   ohne Koprozessor: 8087, wenn einer steckt, sonst 8088/V20
+  /8   nur 8088/V20, auch in Bild 9 und 10 (zum Zeitvergleich)
+  (/6 gibt es nicht mehr als eigenen Schalter; es wirkt wie die Vorgabe.)
+
+Erkannt wird nach "NCR Decision Mate V - Hardware erkennen" (2.11.2026,
+auf zwei echten Maschinen gemessen), Quelltext in HWDET.INC:
+  - 8088 oder V20: PUSH 0 (6Ah) und AAD 16 (D5h 10h) muessen
+    uebereinstimmen, sonst heisst es "CPU?". Die Beschriftungen nennen den
+    gefundenen Prozessor (8088, V20).
+  - K235 oder K230/K231: 8259 auf 90h/91h (AAh/55h ins Maskenregister).
+  - K234 oder K238: nur auf der K235. Eine zweisprachige Probe (wie die
+    Diagnosediskette DMVDIAG) startet, was auf Steckplatz 7 steckt: der
+    68008 schreibt 36h nach 0:0000, der Z8001 5Ah. Danach rechnet der
+    gefundene Prozessor mit seinem eigenen Kern eine Probezeile.
+Beim Start steht eine Zeile "Erkannt: ..." auf dem Bildschirm.
 
 Steckt ein 8087 (und kein /8), rechnet er auch Bild 9 (Mandelbrot) und
 Bild 10 (Plasma, dort mit normalverteiltem Zufall).
 
-Die 8087-Erkennung nutzt nur FNINIT/FNSTSW/FNSTCW (ohne WAIT): ohne
-Koprozessor bleibt das Pruefmuster 5A5Ah stehen, mit 8087 stehen
-Statuswort 0 und Steuerwort 03FFh da. Beim Start steht auf dem
-Bildschirm, was gewaehlt und gefunden wurde.
+Die 8087-Erkennung nutzt nur FNINIT/FNSTSW/FNSTCW (ohne WAIT): Status-
+und Steuerwort werden mit 5A5Ah vorbelegt; ohne Koprozessor bleiben sie
+stehen, ein 8087 liefert Steuerwort 03FFh (MAME 037Fh). Gilt: Steuerwort
+<> 5A5Ah heisst vorhanden.
 
 Bei den Bildern 9, 10 und 11 steht oben links schon waehrend der
 Rechnung, wer rechnet; am Ende kommt die Rechenzeit dazu (Sekunden mit
-Hundertsteln). Die Zeit kommt
-von der DOS-Uhr (Fn 2Ch). Laeuft die Uhr nicht, steht dort "?" (beim
-68008 werden dann Bildwechsel gezaehlt, 50 je Sekunde).
+Hundertsteln). Beim 8088 und 8087 kommt die Zeit von der DOS-Uhr
+(Fn 2Ch); laeuft sie nicht, steht dort "?". Waehrend der Koprozessor rechnet,
+steht der 8088 und mit ihm die DOS-Uhr; seine Zeit misst PIT-Kanal 0,
+dessen Takt (der Bildtakt, gemessen 56,1 Hz) beim Start gegen Kanal 2
+geeicht wird (PITCAL.INC). Zaehlt Kanal 0 nicht, rechnet der Koprozessor
+nicht mit.
 
 Aufruf
 ------
-  DMVDEMO            alle 13 Bilder als Endlosschau
+  DMVDEMO            alle 15 Bilder als Endlosschau
   DMVDEMO 7          nur Bild 7 (bleibt stehen bis Tastendruck)
   DMVDEMO /M         Mono erzwingen,  /C Farbe erzwingen
-  DMVDEMO /6         Bild 11 zuerst auf dem 68008 (K234) rechnen
-  DMVDEMO /8         Bild 11 nur auf dem 8088/V20 (Zeitvergleich)
-  DMVDEMO 11 /6      Schalter und Bildnummer lassen sich kombinieren
+  DMVDEMO /7         Bild 11 ohne Koprozessor (8087 oder 8088/V20)
+  DMVDEMO /8         Bild 9, 10, 11 nur auf dem 8088/V20 (Zeitvergleich)
+  DMVDEMO 11 /7      Schalter und Bildnummer lassen sich kombinieren
   Taste = naechstes Bild, ESC = Ende (zurueck zu DOS, Strg-Z loescht
   den Textbildschirm).
 
@@ -43,7 +65,7 @@ Farbe oder Mono wird erkannt, indem ein Wort in die rote Ebene (4000h)
 geschrieben und mit RDAT zurueckgelesen wird. MAME meldet immer "Farbe",
 auch in der Mono-Konfiguration - dort bitte /M angeben.
 
-Die 13 Bilder
+Die 15 Bilder
 -------------
  1  Titel: "NCR" 12fach mit dem Zeichenzoom des GDC, 3D-Schichten,
     weisser XOR-Glanzstreifen laeuft dreimal nach rechts und zurueck
@@ -61,27 +83,64 @@ Die 13 Bilder
     normalverteilt (Polarmethode nach Marsaglia: FYL2X fuer ln, FSQRT) -
     das Plasma wird weicher. Gemessen wird die Unterteilung.
 11  Der blaue Tentakel: Spirale bei -0,7759 + 0,1362i, 160 x 100 Zellen,
-    Tiefe 100, Farbring schwarz-blau-cyan-weiss - 8088, 8087 oder 68008
+    Tiefe 100, Farbring schwarz-blau-cyan-weiss - 8088, 8087, 68008 oder Z8001
 12  KITT: freigestelltes Foto (KITT.PIC, 640 x 400) als Low-Key-Bild
-    (Licht von oben, Atkinson-Raster schwarz/weiss) mit rotem Scanner-
-    Lauflicht im Kuehlergrill - das Lauflicht laeuft gleichzeitig auf den
-    8 LEDs vorne an der DMV mit
-13  Finale (immer zuletzt): Anaglyphen-Wuerfel mit Stern ueber einer
+    (Licht von oben, Atkinson-Raster schwarz/weiss; auf der Farbkarte in
+    alle drei Ebenen geschrieben, also weiss, bei dunkler Anzeige - es
+    erscheint auf einmal) mit rotem Scanner-Lauflicht im Kuehlergrill -
+    das Lauflicht laeuft gleichzeitig auf den 8 LEDs vorne an der DMV mit
+13  Verwobene Baender: vier Farbbaender winden sich als Zopf um eine
+    Achse, die langsam hin und her schwenkt, und laufen nach unten aus
+    dem Bild. Hardware-Scrolling ueber einen Ring aus 408 Zeilen und zwei
+    Partitionen; je Bildwechsel wird nur die neue oberste Zeile
+    gezeichnet (unsichtbar), dann rueckt die Startadresse eine Zeile
+    weiter. Hinten liegende Baender sind dunkler gerastert, das vordere
+    ueberdeckt sie - so verweben sie sich. Am Ende laufen sie aus.
+14  Tutanchamun: gerastertes Foto der Totenmaske (TUT.PIC), Ausschnitt
+    wie beim bekannten Amiga-Bild; Farbe in 8 Farben, auf der Mono-DMV
+    eine eigene Graustufen-Ebene
+15  Finale (immer zuletzt): Anaglyphen-Wuerfel mit Stern ueber einer
     Laufschrift, die echter Textmodus in einer eigenen Partition ist -
     Regenbogenfarben in voller Helligkeit
 
-Der 68008 (Schalter /6)
------------------------
-Mit /6 holt sich das Programm beim Start 20 KB von DOS. In Bild 11 kommen dort
-ein Briefkasten (Parameter im 68000-Format) und der 68000-Code
-(MANDEL68.S, 244 Bytes, als Bytes in M68.INC) hinein. Die 8 Bytes ab
-Adresse 0 (8088-Vektoren 0/1) werden gesichert, durch die 68000-Reset-
-Vektoren ersetzt, dann startet OUT D8h den 68008. Sobald er "laeuft"
-meldet, kommen die 8088-Vektoren zurueck. Der 8088 zeichnet fertige
-Zeilen, am Ende haelt sich der 68008 mit STOP an. Eine Taste bittet ihn
-aufzuhoeren (nach der laufenden Zeile). In MAME laufen V20 und 68008
-gleichzeitig; ob das auf der echten DMV (ein Bus) auch so geht, ist
-offen - im schlimmsten Fall hilft nur ein Neustart.
+Die Fotos
+---------
+KITT.PIC und TUT.PIC sind gepackte Vollbilder im Format von DMVGRAF
+(Kennung DMVP, LZSS, je Ebene gruen/rot/blau/mono fuer sich). Geladen
+werden sie mit GPIC.INC aus DMVGRAF direkt in den Bildspeicher, waehrend
+die Anzeige dunkel ist. KITT.PIC hat nur die Mono-Ebene (12 KB statt
+128 KB), TUT.PIC alle vier (68 KB). Packen: dmvgraf/tools/dmvpack.py.
+Das Laden dauert auf dem 8088 einige Sekunden (vor allem das Entpacken).
+
+Der Koprozessor: 68008 (K234) oder Z8001 (K238)
+------------------------------------------------
+Nur auf der K235 (auf der K230/K231 ist jedes OUT D8h-DFh eine
+Prozessorumschaltung). Das Programm holt sich beim Start 20 KB von DOS:
+Briefkasten (Parameter im 68000-Format; der Z8001 ist ebenfalls Big
+Endian) und den Code des gefundenen Prozessors (MANDEL68.S als Bytes in
+M68.INC, MANDZ8K.8KN als Bytes in MZ8.INC). Fuer den Z8001 liegt der Block
+in einem 64-KB-Segment. So laeuft ein Start, wie auf der echten DMV
+gemessen (K234) bzw. in MAME (K238):
+
+  1. Die 8 Bytes ab Adresse 0 (8088-Vektoren 0/1) werden gesichert und
+     durch den Startzustand ersetzt: 68008 SSP und PC, Z8001 FCW (C000h)
+     und PC (Segment, Versatz).
+  2. Am Warteplatz des Z80 (F10Eh) steht ein kleines Z80-Programm:
+     OUT (DFh),A - der Z80 startet den Koprozessor (mit D8h lief die
+     echte K234 nicht an) -, dann eine Marke und zurueck zu OUT (D0h),A.
+  3. Der 8088 gibt mit OUT D0h an den Z80 ab und steht.
+  4. Der Koprozessor rechnet 20 Zeilen und gibt an den Z80 zurueck (68008:
+     Schreiben auf FFFDFh, Z8001: OUTB DFh), der Z80 an den 8088.
+  5. Vektoren und Warteplatz kommen zurueck, der 8088 zeichnet die Zeilen.
+
+Weil es nur einen Bus gibt, kann der 8088 nicht zeichnen, solange der
+Koprozessor rechnet; das Bild waechst darum in fuenf Schueben. Die
+angezeigte Zeit ist nur die Rechenzeit. Eine Taste bricht zwischen zwei
+Starts ab.
+
+Der Z8001 rechnet mit 16 Bit Festkomma 3.13 genau wie der 8088 (gleiches
+Bild, direkter Vergleich); 32 Bit mit MULTL waere auf ihm rund viermal
+langsamer (282 Takte je Multiplikation).
 
 Der 8087
 --------
@@ -104,18 +163,31 @@ Auf der echten Maschine bitte besonders pruefen
   geht wie im Boot-ROM C.07.00 ueber Port A2h: der GDC sieht ihn als
   Parameter, Grafikkarten ab Change Level 36 zoomen damit auch waagrecht.
 - Bild 12: Front-LEDs (Port 00h, LED 1 = Bit 7, aktiv low)
-- Bild 13: Textpartition im Mischmodus
+- Bild 13: Ring-Scrolling Zeile fuer Zeile (schafft der 8088 eine Zeile
+  je Bildwechsel?)
+- Bild 15: Textpartition im Mischmodus
 - Farb/Mono-Erkennung auf der Mono-DMV, Rueckkehr zu DOS
-- Rechenzeiten in Bild 9, 10, 11: 8088 (/8), 8087 (/7), 68008 (/6, nur 11)
+- Rechenzeiten in Bild 9, 10, 11: 8088/V20 (/8), 8087 (/7), 68008/Z8001 (nur 11)
 
 Bauen
 -----
   BUILD.BAT baut DMVDEMO.COM (MASM 5.10, LINK, EXE2BIN; "no stack
   segment" ist normal).
   Dateien: DMVDEMO.ASM, GDCTAB.INC, GDCVAR.INC, GDCLIB.INC (GDC-Routinen,
-  gemeinsam mit DMVRACE), FONT.INC, SINTAB.INC, MONOPAT.INC, M68.INC.
+  gemeinsam mit DMVRACE), FONT.INC, SINTAB.INC, MONOPAT.INC, M68.INC,
+  MZ8.INC (Z8001-Kern als Bytes, Quelle MANDZ8K.8KN fuer libasm),
+  PITCAL.INC (Zeitbasis) und HWDET.INC (Hardwareerkennung, beide
+  gemeinsam mit DMVRACE), BAENDER.INC (Bild 13) und GPIC.INC (Lader
+  fuer gepackte Bilder, aus dmvgraf/src).
   Zum Bauen braucht man keinen 68000-Assembler (MANDEL68.S liegt nur als
-  Quelle bei, M68.INC enthaelt den Code als Bytes). KITT.PIC muss beim
-  Start im aktuellen Verzeichnis liegen.
+  Quelle bei, M68.INC enthaelt den Code als Bytes). KITT.PIC und TUT.PIC
+  muessen beim Start im aktuellen Verzeichnis liegen.
   8x8-Zeichensatz: font8x8 von Daniel Hepper, Public Domain.
+
+Bildnachweis
+------------
+  KITT.PIC: Foto Poudou99, Wikimedia Commons, CC BY-SA 4.0, bearbeitet
+  (KITT.TXT). TUT.PIC: Foto "King Tut Burial Mask", Mark Fischer,
+  Wikimedia Commons, CC BY-SA 2.0, bearbeitet (TUT.TXT). Beide Bilder
+  stehen unter ihrer CC-Lizenz, nicht unter der MIT-Lizenz.
 

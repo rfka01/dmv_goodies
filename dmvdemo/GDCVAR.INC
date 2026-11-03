@@ -86,7 +86,7 @@ v_tsec  dw      0
 v_s68run db     0
 v_eng   db      0
 v_has87 db      0
-v_lvl   db      7                       ; 6 = 68008, 7 = 8087, 8 = nur 8088/V20
+v_lvl   db      6                       ; 6 = 68008 (Vorgabe), 7 = 8087, 8 = nur 8088/V20
 v_tok   db      0
         EVEN
 v_mpar  db      0

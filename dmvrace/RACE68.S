@@ -1,13 +1,15 @@
 | RACE68.S - Rechenkerne fuer den 68008 (K234) in DMVRACE
 | (GNU as, m68k:  m68k-linux-gnu-as -m68000 --register-prefix-optional)
 |
-| Wird vom 8088 an die physische Adresse P+100h kopiert und per Zugriff auf
-| Port D8h gestartet (Reset: SSP/PC ab Adresse 0). Je Start ein Test.
+| Wird vom 8088 an die physische Adresse P+100h kopiert. Gestartet wird er
+| vom Z80 mit OUT (DFh) (Reset: SSP/PC ab Adresse 0), je Start ein Test.
+| Am Ende gibt er mit einem Schreiben auf FFFDFh den Bus an den Z80 zurueck
+| (wie NCRs CP/M-68K; mit Port D8h laeuft die echte K234 nicht an).
 | Der Code ist lageunabhaengig (nur PC-relativ).
 |
 | Briefkasten ab P (Bytes, Langworte im 68000-Format = Big Endian):
-|   +0  Status   0 = nicht gestartet, 1 = rechnet, 2 = fertig, 3 = abgebrochen
-|   +1  fertige Zeilen      +2  Abbruchwunsch      +3  Test (1..5)
+|   +0  Status   0 = nicht gestartet, 1 = rechnet, 2 = fertig
+|   +1  fertige Zeilen      +3  Test (1..5; 0 = nur melden, fuer die Probe)
 |   +4  x0 (4.28)  +8 y0 (4.28)  +12 dx (4.28)  +16 dy (4.28)
 |   +20 W  +22 H  +24 maxit (Worte)  +26/+28 Arbeitsvariablen
 |   +32 Ergebnis (Langwort)
@@ -54,8 +56,9 @@ start:  lea     start-256(pc),a5        | Briefkasten
         cmp.b   #5,d0
         beq     circ
 fin:    move.b  #2,(a5)                 | fertig
-halt:   stop    #0x2700                 | anhalten
-        bra.s   halt
+halt:   move.b  d0,0xFFDF.w             | Bus zurueck an den Z80 (K234: FFFDFh)
+1:      stop    #0x2700                 | anhalten
+        bra.s   1b
 
 |------------------------------------------------------------------------
 | 1: Mandelbrot (32 Bit Festkomma 4.28)
@@ -129,13 +132,9 @@ esc:    move.b  d5,(a4)+
         bne     pix
         add.l   16(a5),a2               | ci += dy
         addq.b  #1,1(a5)                | Zeile fertig
-        tst.b   2(a5)                   | Abbruch?
-        bne.s   abort
         subq.w  #1,28(a5)
         bne     row
         bra     fin
-abort:  move.b  #3,(a5)
-        bra     halt
 
 |------------------------------------------------------------------------
 | 2: Sierpinski: Zeile = Zeile XOR (Zeile << 1), 256 Bit als 8 Langworte
