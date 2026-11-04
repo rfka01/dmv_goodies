@@ -38,9 +38,9 @@
 ;*  programmiert (Modus 5, 838 Takte). CLK0 ist der Bildtakt (gemessen *
 ;*  56,09/56,19 Hz). Er zaehlt frei weiter, auch waehrend der 8088     *
 ;*  steht und Z80 oder 68008 rechnen. Sein Takt und die Bildfrequenz   *
-;*  werden beim Start gegen Kanal 2 geeicht (PITCAL.INC); steht er,    *
+;*  werden beim Start gegen Kanal 2 geeicht (GZEIT.INC); steht er,    *
 ;*  wird sein Gate ueber Port 14h angestossen.                         *
-;*  Hardware nach "DMV - Hardware erkennen" (2.11.2026, HWDET.INC):    *
+;*  Hardware nach "DMV - Hardware erkennen" (2.11.2026, GHW.INC):    *
 ;*  V20 nur, wenn PUSH 0 und AAD 16 uebereinstimmen; 8087 am           *
 ;*  Steuerwort; K234 nur auf der K235, gestartet vom Z80 mit OUT DFh.  *
 ;*                                                                     *
@@ -404,7 +404,7 @@ tstop   PROC    NEAR
         mov     dx,v_t0
         sub     dx,ax                   ; Zaehler laeuft abwaerts
         mov     ax,dx
-        mov     bx,c_c0per              ; Takte -> 1/50 s (geeicht)
+        mov     bx,gz_c0per              ; Takte -> 1/50 s (geeicht)
         cmp     bx,20000
         je      tsp8
         mul     bx
@@ -494,51 +494,40 @@ pitchk  ENDP
 ; Steht Kanal 0, wird sein Gate ueber Port 14h (Motor ein) angestossen.
 ; Ohne Kanal 2 bleibt es bei der alten Pruefung und 50 Hz.
 pitset  PROC    NEAR
-        mov     c_c0per,20000
-        mov     c_vper,20000
+        mov     gz_c0per,20000
+        mov     gz_vper,20000
         mov     v_kick,0
-        call    c2learn
+        call    gz_lern
         jnc     pts1
         jmp     pitchk
-pts1:   mov     c_dur,8                 ; je 0,5 s
-        call    cal0
-        cmp     c_c0per,0
-        jne     pts3
-        mov     v_kick,1
-        out     14h,al                  ; Gate von Kanal 0 (Motor ein)
-        mov     cx,10
-pts2:   call    vsync
-        loop    pts2
-        call    cal0
-pts3:   mov     v_pitok,0
-        mov     ax,c_c0per
-        cmp     ax,5000                 ; 16..200 Hz glaubhaft
-        jb      pts4
-        cmp     ax,62500
-        ja      pts4
+pts1:   mov     gz_dur,4                ; je 0,26 s
+        mov     al,1                    ; steht Kanal 0: anstossen
+        call    gz_cal0
+        mov     bl,gz_stoss
+        mov     v_kick,bl
+        mov     v_pitok,0
+        or      ax,ax                   ; 0 = keine oder unglaubhafte Takte
+        jz      pts4
         mov     v_pitok,1
         jmp     short pts5
-pts4:   mov     c_c0per,20000
-pts5:   call    calv
-        mov     ax,c_vper
-        cmp     ax,10000                ; 25..100 Hz glaubhaft
-        jb      pts6
-        cmp     ax,40000
-        jbe     pts7
-pts6:   mov     c_vper,20000
+pts4:   mov     gz_c0per,20000
+pts5:   call    gz_calv
+        or      ax,ax
+        jnz     pts7
+        mov     gz_vper,20000
 pts7:   cmp     v_pitok,0
         je      pts9
         mov     dx,offset T_PITHZ       ; Zeitbasis melden
         mov     ah,09h
         int     21h
-        mov     ax,c_c0per
-        call    calhz
+        mov     ax,gz_c0per
+        call    gz_hz
         call    prhz
         mov     dx,offset T_PITB
         mov     ah,09h
         int     21h
-        mov     ax,c_vper
-        call    calhz
+        mov     ax,gz_vper
+        call    gz_hz
         call    prhz
         mov     dx,offset T_PITE
         cmp     v_kick,0
@@ -596,7 +585,7 @@ prdec   ENDP
 vtick   PROC    NEAR
         push    ax
         mov     ax,v_vacc
-        add     ax,c_vper
+        add     ax,gz_vper
 vt1:    cmp     ax,20000
         jb      vt2
         sub     ax,20000
@@ -607,8 +596,25 @@ vt2:    mov     v_vacc,ax
         ret
 vtick   ENDP
 
-        INCLUDE PITCAL.INC
-        INCLUDE HWDET.INC
+        INCLUDE GZEIT.INC               ; Zeitbasis (aus DMVGRAF, dmvgraf/src)
+        INCLUDE GHW.INC                 ; Hardware erkennen (aus DMVGRAF)
+; Ergebnisse fuer dieses Programm
+h_cpu   db      0                       ; 1 8088, 2 V20, 3 uneins (gh_cpu)
+h_k235  db      0                       ; 1 = K235 (gh_k235)
+h_k234  db      0                       ; 0 nicht geprueft, 1 keiner, 2 K234, 3 K238
+
+; Koprozessor einmal laufen lassen (Startzustand von gh_vec); CF = 1:
+; der Z80 kam nicht zurueck oder kein Weg
+corun   PROC    NEAR
+        push    si
+        push    cx
+        mov     si,offset gh_stz
+        mov     cx,8
+        call    gh_corun
+        pop     cx
+        pop     si
+        ret
+corun   ENDP
 
 ; Zeit AX (1/50 s) als "sss,hh" nach T_NUM (fuehrende Nullen als Leerzeichen)
 fmtime  PROC    NEAR
@@ -1070,23 +1076,24 @@ tcp5:   cmp     v_car,2
 tcp6:   jmp     t_circ
 t_cpu   ENDP
 
-; 8087 suchen (h87: SW/CW mit 5A5Ah vorbelegt, CW <> 5A5Ah = vorhanden)
+; 8087 suchen (gh_87: SW/CW mit 5A5Ah vorbelegt, CW <> 5A5Ah = vorhanden)
 det87   PROC    NEAR
         mov     v_has87,0
         cmp     v_lvl,8
         je      d87x
-        call    h87
-        mov     al,h_87
-        mov     v_has87,al
+        call    gh_87                   ; 0 keiner, 1 8087, 2 anderer
+        or      ax,ax
+        jz      d87x
+        mov     v_has87,1
 d87x:   ret
 det87   ENDP
 
-; 8088 oder V20 (hcpu: PUSH 0 und AAD 16 muessen uebereinstimmen),
+; 8088 oder V20 (gh_cpu: PUSH 0 und AAD 16 muessen uebereinstimmen),
 ; Namen der Wagen anpassen
 detv20  PROC    NEAR
-        call    hcpu
+        call    gh_cpu
+        mov     h_cpu,al
         mov     v_v20,0
-        mov     al,h_cpu
         cmp     al,1
         je      dv9
         mov     bx,offset TV20
@@ -1134,7 +1141,7 @@ rd68    PROC    NEAR
         ret
 rd68    ENDP
 
-; Block vorbereiten: leeren, Code ablegen, Reset-Vektoren (hvec68)
+; Block vorbereiten: leeren, Code ablegen, Startzustand (gh_vec)
 p68     PROC    NEAR
         push    es
         mov     es,v_s68
@@ -1153,13 +1160,13 @@ p68a:   mov     di,100h
         rep     movsb
         pop     es
         mov     ax,v_s68
-        call    hvec68
+        call    gh_vec
         ret
 p68     ENDP
 
 ; Test AL auf dem 68008 (0 = nur melden) -> DX:AX, Zeit -> CX
 ; CF = 1: keine Antwort (Z80 nicht zurueck oder Status nicht "fertig").
-; Der 8088 steht, solange der 68008 rechnet (hrun68).
+; Der 8088 steht, solange der 68008 rechnet (corun).
 q68     PROC    NEAR
         push    es
         mov     es,v_s68
@@ -1171,7 +1178,7 @@ q68     PROC    NEAR
         mov     byte ptr es:[3],al      ; Test
         pop     es
         call    tstart
-        call    hrun68
+        call    corun
         pushf
         call    tstop
         mov     cx,ax
@@ -1207,15 +1214,21 @@ k234probe PROC  NEAR
         je      kp8                     ; K230/K231: Probe verboten
         mov     ax,cs
         mov     cx,offset ENDPROG
-        call    hzhit                   ; Programm ueber dem Z80-Warteplatz?
+        call    gh_zhit                 ; Programm ueber dem Z80-Warteplatz?
         mov     dx,offset T_ZOVL68
         jc      kp8
-        call    hprobe                  ; K234 (68008) oder K238 (Z8001)?
-        mov     al,h_k234
+        call    gh_copro                ; K234 (68008) oder K238 (Z8001)?
+        mov     h_k234,al               ; 2 K234, 3 K238
         cmp     al,2
-        jb      kp9a
+        jb      kp0
+        cmp     al,3
+        jbe     kp0a
+kp0:    mov     al,1                    ; 1 keiner, 4 Z80 nicht zurueck, 5 nicht probiert
+        mov     h_k234,al
+        jmp     short kp9a
+kp0a:
         mov     bx,0400h                ; 16 KB fuer den Koprozessor
-        call    hcoblk
+        call    gh_coblk
         mov     dx,offset T_MEM
         jc      kp8
         mov     v_s68,ax
@@ -1240,7 +1253,14 @@ kp8:    mov     ah,09h
         int     21h
 kp9:    mov     al,v_k234
         mov     h_k234,al
-        ret
+        cmp     al,1                    ; Lauf mit dem Kern misslang: auch
+        jne     kp9b                    ; die Zeile "Erkannt" sagt "keine"
+        cmp     gh_tab[GHI_COPRO*2],2
+        jb      kp9b
+        cmp     gh_tab[GHI_COPRO*2],3
+        ja      kp9b
+        mov     gh_tab[GHI_COPRO*2],1
+kp9b:   ret
 kp9a:   mov     v_k234,al
         ret
 k234probe ENDP
@@ -1527,7 +1547,7 @@ zhit    ENDP
 zplace  PROC    NEAR
         mov     v_zok,0
         mov     ax,Z80ORG
-        mov     cx,HZLEN                ; Warteplatz samt K234-Stummel
+        mov     cx,GH_ZLEN              ; Warteplatz samt K234-Stummel
         call    zhit
         jc      zp9
         mov     ax,(0F000h-Z80SIZE) AND 0FF00h
@@ -4219,7 +4239,12 @@ ma5:    ; Speicher: eigener Block nur so gross wie noetig
         int     21h
         call    det87
         call    detv20
-        call    hpic                    ; K235 oder K230/K231
+        call    gh_k235                 ; 1 K235, 2 K230/K231
+        mov     h_k235,0
+        cmp     al,1
+        jne     mahw
+        mov     h_k235,1
+mahw:
         ; Z80-Bereich; das Programm darf auch fuer die K234-Probe nicht
         ; ueber dem Z80-Warteplatz liegen (dann zieht es um)
         mov     v_zok,0
@@ -4227,7 +4252,7 @@ ma5:    ; Speicher: eigener Block nur so gross wie noetig
         je      ma6
         mov     ax,cs
         mov     cx,offset ENDPROG
-        call    hzhit
+        call    gh_zhit
         jnc     ma7
 ma6:    call    zmove
         cmp     v_noz,0
@@ -4238,7 +4263,8 @@ ma6:    call    zmove
         mov     ah,09h
         int     21h
 ma7:    call    k234probe               ; 68008-Block und Probe
-        call    hwline
+        mov     ax,0100h                ; "Erkannt: ..." deutsch ausgeben
+        call    gh_zeile
 ma8:    call    kbdetect                ; Tastatur-Firmware mit Rennwerk?
         call    pitset
         cmp     v_pitok,0

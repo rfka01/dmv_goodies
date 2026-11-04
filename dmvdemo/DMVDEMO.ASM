@@ -14,12 +14,12 @@
 ;*      /7  Bild 11 ohne 68008: 8087, wenn vorhanden, sonst 8088       *
 ;*      /8  Bild 9, 10 und 11: nur 8088/V20                            *
 ;*      (/6 wird wie die Vorgabe behandelt)                            *
-;*  Hardware nach "DMV - Hardware erkennen" (2.11.2026, HWDET.INC):    *
+;*  Hardware nach "DMV - Hardware erkennen" (2.11.2026, GHW.INC):    *
 ;*  V20 nur, wenn PUSH 0 und AAD 16 uebereinstimmen; 8087 am           *
 ;*  Steuerwort; K234 nur auf der K235: der Z80 startet sie mit OUT DFh,*
 ;*  der 68008 rechnet je Start fuenf Zeilen und gibt ueber FFFDFh      *
 ;*  zurueck. Seine Zeit misst PIT-Kanal 0 (Bildtakt), geeicht gegen    *
-;*  Kanal 2 (PITCAL.INC).                                              *
+;*  Kanal 2 (GZEIT.INC).                                              *
 ;*      /M  Mono erzwingen, /C Farbe erzwingen (sonst Erkennung)       *
 ;*  Taste = naechstes Bild, ESC = Ende                                 *
 ;*                                                                     *
@@ -247,7 +247,6 @@ T12_TXT db      'SPIRALE BEI -0,7759+0,1362i - 16-BIT-FESTKOMMA, DER 8088 RECHNE
         INCLUDE M68.INC
         INCLUDE MZ8.INC
         ENDIF
-v_c0a   dw      0                       ; Kanal 0 vor dem 68008-Lauf
 v_ulo   dw      0                       ; Rechenzeit des 68008 in us
 v_uhi   dw      0
 ROWS68  EQU     20                      ; Zeilen je Koprozessor-Lauf
@@ -341,8 +340,25 @@ T_HELP  db      'DMVDEMO [n] [/M] [/C] [/7|/8]   n = nur Bild 1..15, /M Mono, /C
 
 
         INCLUDE GDCLIB.INC
-        INCLUDE PITCAL.INC
-        INCLUDE HWDET.INC
+        INCLUDE GZEIT.INC               ; Zeitbasis (aus DMVGRAF, dmvgraf/src)
+        INCLUDE GHW.INC                 ; Hardware erkennen (aus DMVGRAF)
+; Ergebnisse fuer dieses Programm
+h_cpu   db      0                       ; 1 8088, 2 V20, 3 uneins (gh_cpu)
+h_k235  db      0                       ; 1 = K235 (gh_k235)
+h_k234  db      0                       ; 0 nicht geprueft, 1 keiner, 2 K234, 3 K238
+
+; Koprozessor einmal laufen lassen (Startzustand von gh_vec); CF = 1:
+; der Z80 kam nicht zurueck oder kein Weg
+corun   PROC    NEAR
+        push    si
+        push    cx
+        mov     si,offset gh_stz
+        mov     cx,8
+        call    gh_corun
+        pop     cx
+        pop     si
+        ret
+corun   ENDP
         INCLUDE BAENDER.INC
 
 ;=======================================================================
@@ -3618,14 +3634,15 @@ m87z:   mov     ax,cx
         ret
 mandel87 ENDP
 
-; 8087 suchen (h87: SW/CW mit 5A5Ah vorbelegt, CW <> 5A5Ah = vorhanden)
+; 8087 suchen (gh_87: SW/CW mit 5A5Ah vorbelegt, CW <> 5A5Ah = vorhanden)
 det87   PROC    NEAR
         mov     v_has87,0
         cmp     v_lvl,8
         je      d87x                    ; /8: nur der 8088/V20
-        call    h87
-        mov     al,h_87
-        mov     v_has87,al
+        call    gh_87                   ; 0 keiner, 1 8087, 2 anderer
+        or      ax,ax
+        jz      d87x
+        mov     v_has87,1
 d87x:   ret
 det87   ENDP
         ENDIF
@@ -3667,7 +3684,7 @@ s6p1:
         rep     movsb
         pop     es
         mov     ax,v_s68
-        call    hvec68
+        call    gh_vec
         ret
 s68prep ENDP
 
@@ -3695,15 +3712,11 @@ s68a:   push    ax
         mov     byte ptr es:[28],ah
         mov     byte ptr es:[29],al
         pop     es
-        call    c0rd
-        mov     v_c0a,ax
-        call    hrun68
+        call    corun
         jc      s68x
-        call    c0rd
-        mov     bx,v_c0a
-        sub     bx,ax                   ; Takte (Kanal 0 zaehlt abwaerts)
-        mov     ax,bx
-        mul     c_c0per                 ; -> us
+        mov     ax,gh_c0a               ; Kanal 0 vor und nach dem Lauf
+        sub     ax,gh_c0b               ; Takte (Kanal 0 zaehlt abwaerts)
+        mul     gz_c0per                ; -> us
         add     v_ulo,ax
         adc     v_uhi,dx
         push    es
@@ -3774,10 +3787,15 @@ sp68    ENDP
 ; Variante beim Start vorbereiten / beim Ende aufraeumen
 ;-----------------------------------------------------------------------
 varinit PROC    NEAR
-        call    hcpu                    ; 8088 oder V20
+        call    gh_cpu                  ; 8088 oder V20
+        mov     h_cpu,al
         call    cpuname
         call    det87
-        call    hpic                    ; K235 oder K230/K231
+        call    gh_k235                 ; 1 K235, 2 K230/K231
+        mov     h_k235,0
+        cmp     al,1
+        jne     vi0
+        mov     h_k235,1
 vi0:    ; 68008 (K234): nur ohne /7 und /8, nur auf der K235
         mov     h_k234,0
         cmp     v_lvl,6
@@ -3788,32 +3806,25 @@ vi0:    ; 68008 (K234): nur ohne /7 und /8, nur auf der K235
         mov     h_k234,1
         mov     ax,cs                   ; Code, Daten, Stapel nicht ueber F10Eh
         mov     cx,offset FREEMEM
-        call    hzhit
+        call    gh_zhit
         mov     dx,offset T68_OVL
         jc      vi4
-        call    hprobe                  ; K234 (68008) oder K238 (Z8001)?
-        cmp     h_k234,2
+        call    gh_copro                ; K234 (68008) oder K238 (Z8001)?
+        cmp     al,2
         jb      vi5
+        cmp     al,3
+        ja      vi5                     ; 4 Z80 nicht zurueck, 5 nicht probiert
+        mov     h_k234,al
         ; nur mit Koprozessor: Zeitbasis (Kanal 0) gegen Kanal 2 eichen,
         ; 0,26 s; steht Kanal 0, sein Gate ueber Port 14h anstossen
-        mov     c_c0per,0
-        call    c2learn
+        call    gz_lern
         jc      vi0e
-        mov     c_dur,4
-        call    cal0
-        cmp     c_c0per,0
-        jne     vi0c
-        out     14h,al
-        mov     cx,10
-vi0w:   call    vsync
-        loop    vi0w
-        call    cal0
-vi0c:   mov     ax,c_c0per
-        cmp     ax,5000
-        jb      vi0e
-        cmp     ax,62500
-        jbe     vi0f
-vi0e:   mov     c_c0per,0
+        mov     gz_dur,4
+        mov     al,1                    ; steht Kanal 0: anstossen
+        call    gz_cal0                 ; 0 = keine oder unglaubhafte Takte
+        or      ax,ax
+        jnz     vi0f
+vi0e:   mov     gz_c0per,0
         mov     h_k234,1                ; ohne Zeitbasis kein Koprozessor
         mov     dx,offset T68_PIT
         jmp     vi4
@@ -3827,7 +3838,7 @@ vi2a:   mov     v_s68,0
         mov     ah,4Ah
         int     21h
         mov     bx,0500h                ; 20 KB fuer den Koprozessor
-        call    hcoblk
+        call    gh_coblk
         mov     dx,offset T68_MEM
         jc      vi4n
         mov     v_s68,ax
@@ -3836,7 +3847,7 @@ vi2a:   mov     v_s68,0
         mov     es,v_s68                ; bereitet den Block neu vor)
         mov     word ptr es:[24],0100h
         pop     es
-        call    hrun68
+        call    corun
         jc      vi3n
         push    es
         mov     es,v_s68
@@ -3848,7 +3859,15 @@ vi3n:   mov     h_k234,1
 vi4n:   mov     h_k234,1
 vi4:    mov     ah,09h
         int     21h
-vi5:    call    hwline
+vi5:    cmp     h_k234,1                ; Lauf mit dem Kern misslang: auch
+        jne     vi5b                    ; die Zeile "Erkannt" sagt "keine"
+        cmp     gh_tab[GHI_COPRO*2],2
+        jb      vi5b
+        cmp     gh_tab[GHI_COPRO*2],3
+        ja      vi5b
+        mov     gh_tab[GHI_COPRO*2],1
+vi5b:   mov     ax,0100h                ; "Erkannt: ..." deutsch ausgeben
+        call    gh_zeile
         mov     dx,offset T_VAR68
         cmp     h_k234,2
         je      vi5a

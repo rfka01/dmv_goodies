@@ -22,7 +22,7 @@ staerkste Rechenwerk, das gefunden wird:
   (/6 gibt es nicht mehr als eigenen Schalter; es wirkt wie die Vorgabe.)
 
 Erkannt wird nach "NCR Decision Mate V - Hardware erkennen" (2.11.2026,
-auf zwei echten Maschinen gemessen), Quelltext in HWDET.INC:
+auf zwei echten Maschinen gemessen), Quelltext in GHW.INC:
   - 8088 oder V20: PUSH 0 (6Ah) und AAD 16 (D5h 10h) muessen
     uebereinstimmen, sonst heisst es "CPU?". Die Beschriftungen nennen den
     gefundenen Prozessor (8088, V20).
@@ -47,7 +47,7 @@ Hundertsteln). Beim 8088 und 8087 kommt die Zeit von der DOS-Uhr
 (Fn 2Ch); laeuft sie nicht, steht dort "?". Waehrend der Koprozessor rechnet,
 steht der 8088 und mit ihm die DOS-Uhr; seine Zeit misst PIT-Kanal 0,
 dessen Takt (der Bildtakt, gemessen 56,1 Hz) beim Start gegen Kanal 2
-geeicht wird (PITCAL.INC). Zaehlt Kanal 0 nicht, rechnet der Koprozessor
+geeicht wird (GZEIT.INC). Zaehlt Kanal 0 nicht, rechnet der Koprozessor
 nicht mit.
 
 Aufruf
@@ -176,8 +176,8 @@ Bauen
   Dateien: DMVDEMO.ASM, GDCTAB.INC, GDCVAR.INC, GDCLIB.INC (GDC-Routinen,
   gemeinsam mit DMVRACE), FONT.INC, SINTAB.INC, MONOPAT.INC, M68.INC,
   MZ8.INC (Z8001-Kern als Bytes, Quelle MANDZ8K.8KN fuer libasm),
-  PITCAL.INC (Zeitbasis) und HWDET.INC (Hardwareerkennung, beide
-  gemeinsam mit DMVRACE), BAENDER.INC (Bild 13) und GPIC.INC (Lader
+  GZEIT.INC (Zeitbasis) und GHW.INC (Hardwareerkennung; beide aus
+  DMVGRAF, dmvgraf/src, gemeinsam mit DMVRACE), BAENDER.INC (Bild 13) und GPIC.INC (Lader
   fuer gepackte Bilder, aus dmvgraf/src).
   Zum Bauen braucht man keinen 68000-Assembler (MANDEL68.S liegt nur als
   Quelle bei, M68.INC enthaelt den Code als Bytes). KITT.PIC und TUT.PIC

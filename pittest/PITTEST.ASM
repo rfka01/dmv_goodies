@@ -11,11 +11,12 @@
 ;*    - mit K803 auf 4B: Kanal 2 selbst gegen die Echtzeituhr           *
 ;*  Dazu: V20 oder 8088 (zwei Verfahren), 8087, 8259 (K235 / K230),    *
 ;*  und wo DMVRACE den Z80-Kern ablegen wuerde.                         *
-;*  CPU, 8087 und K235 erkennt HWDET.INC, wie in DMVRACE und DMVDEMO.  *
+;*  CPU, 8087 und K235 erkennt GHW.INC (DMVGRAF), wie in DMVRACE und  *
+;*  DMVDEMO; die Zeitbasis misst GZEIT.INC (DMVGRAF).                  *
 ;*                                                                     *
 ;*  Stand 3.11.2026: 8087 nach "Hardware erkennen" (Steuerwort <>      *
 ;*  5A5Ah), Status- und Steuerwort roh angezeigt; Groesse von DMVRACE  *
-;*  und Warteplatz des Z80 (F10Eh-F11Ch) wie DMVRACE vom 2.11.2026.    *
+;*  und Warteplatz des Z80 (F10Eh-F11Ch) wie DMVRACE vom 4.11.2026.    *
 ;*                                                                     *
 ;*  Waehrend der Messungen sind die Interrupts aus; die DOS-Uhr geht   *
 ;*  danach um die Messdauer (gut 15 s) nach.                            *
@@ -31,14 +32,14 @@ CSEG    SEGMENT PARA PUBLIC 'CODE'
 
 ; Werte aus DMVRACE (bei Aenderungen an DMVRACE nachziehen, siehe dort
 ; ENDPROG und Z80SIZE)
-R_END   EQU     62754           ; Programm samt Puffern und Stapel (ENDPROG)
+R_END   EQU     65438           ; Programm samt Puffern und Stapel (ENDPROG)
 R_Z80   EQU     12338           ; Z80-Kern (Z80SIZE)
 R_TRAMP EQU     0F10Eh          ; Warteplatz des Z80 samt K234-Stummel
-R_TLEN  EQU     15              ; (HZLEN in HWDET.INC)
+R_TLEN  EQU     15              ; (GH_ZLEN in GHW.INC)
 
 START:  jmp     main
 
-T_HEAD  db      'PITTEST - Zeitbasis und Prozessor der NCR DMV (HWCONFIRM 5, 3.11.2026)',0Dh,0Ah
+T_HEAD  db      'PITTEST - Zeitbasis und Prozessor der NCR DMV (HWCONFIRM 5, 4.11.2026)',0Dh,0Ah
         db      'Code: Claude, Prompts: rfka01',0Dh,0Ah,0Dh,0Ah,'$'
 T_DOS   db      'MS-DOS $'
 T_SEG   db      ', Programm ab Segment $'
@@ -111,8 +112,19 @@ v_psp   dw      0
 v_s0    db      0
 v_key   db      0
 
-        INCLUDE PITCAL.INC
-        INCLUDE HWDET.INC
+        INCLUDE GZEIT.INC               ; Zeitbasis (aus DMVGRAF, dmvgraf/src)
+        INCLUDE GHW.INC                 ; Hardware erkennen (aus DMVGRAF)
+p_cpu   db      0                       ; gh_cpu: 1 8088, 2 V20, 3 uneins
+p_87    db      0                       ; gh_87: 0 keiner
+p_k235  db      0                       ; gh_k235: 1 K235
+
+; Flanken zaehlen ohne Plausibilitaetsgrenzen (Rohwert, wie bisher):
+; DI = gz_c0rd oder gz_cvrd, AL = gz_rise -> AX us je Flanke, gz_cnt
+rawfl   PROC    NEAR
+        mov     gz_rise,al
+        call    gz_flank
+        ret
+rawfl   ENDP
 
 ;-----------------------------------------------------------------------
 ; Ausgabe
@@ -280,13 +292,16 @@ putphys ENDP
 ;-----------------------------------------------------------------------
 showc0  PROC    NEAR
         call    puts
-        call    cal0
-        mov     ax,c_c0per
+        push    di
+        mov     di,offset gz_c0rd
+        mov     al,0
+        call    rawfl
+        pop     di
         or      ax,ax
         jnz     sc1
         mov     dx,offset T_STEHT
         call    puts
-        mov     ax,c_first
+        mov     ax,gz_first
         call    puthex
         mov     dx,offset T_HZE
         call    puts
@@ -298,19 +313,19 @@ sc1:    cmp     ax,62500
         ret
 sc2:    mov     dx,offset T_ZAEHL
         call    puts
-        call    calhz
+        call    gz_hz
         call    puthz
         mov     dx,offset T_HZ
         call    puts
-        mov     ax,c_c0cnt
+        mov     ax,gz_cnt
         call    putdec
         mov     dx,offset T_TAKT
         call    puts
-        mov     ax,c_first
+        mov     ax,gz_first
         call    puthex
         mov     dx,offset T_TO
         call    puts
-        mov     ax,c_last
+        mov     ax,gz_last
         call    puthex
         mov     dx,offset T_HZE
         call    puts
@@ -346,13 +361,13 @@ dortc   PROC    NEAR
         ; Messung: auf Sekundenwechsel warten, dann fuenf weitere
         pushf
         cli
-        call    c2start
+        call    gz_start
         call    rtcsec
         mov     bl,al
         mov     cx,6                    ; erster Wechsel = Start
         mov     si,0
-rt1:    call    c2tick
-        cmp     c_hi,140                ; gut 9 s ohne Ergebnis: Abbruch
+rt1:    call    gz_tick
+        cmp     gz_hi,140                ; gut 9 s ohne Ergebnis: Abbruch
         jae     rtx
         call    rtcsec
         cmp     al,bl
@@ -361,16 +376,16 @@ rt1:    call    c2tick
         or      si,si
         jnz     rt2
         inc     si
-        mov     ax,c_lo
-        mov     c_t0lo,ax
-        mov     ax,c_hi
-        mov     c_t0hi,ax
+        mov     ax,gz_lo
+        mov     gz_t0lo,ax
+        mov     ax,gz_hi
+        mov     gz_t0hi,ax
 rt2:    loop    rt1
         popf
-        mov     ax,c_lo
-        mov     dx,c_hi
-        sub     ax,c_t0lo
-        sbb     dx,c_t0hi               ; us-Schritte in 5 s
+        mov     ax,gz_lo
+        mov     dx,gz_hi
+        sub     ax,gz_t0lo
+        sbb     dx,gz_t0hi               ; us-Schritte in 5 s
         mov     bx,100
         cmp     dx,bx
         jae     rtx2
@@ -543,22 +558,22 @@ stopw   PROC    NEAR
         pushf
         cli
         call    kbget
-        call    c2start
+        call    gz_start
         popf
         mov     dx,offset T_SW2
         call    puts
         pushf
         cli
-        call    c2start
-sw1:    call    c2tick
+        call    gz_start
+sw1:    call    gz_tick
         call    kbhit
         jz      sw1
         in      al,40h
         popf
         mov     dx,offset T_SW3
         call    puts
-        mov     ax,c_lo                 ; us -> 1/100 s (bis 655 s)
-        mov     dx,c_hi
+        mov     ax,gz_lo                 ; us -> 1/100 s (bis 655 s)
+        mov     dx,gz_hi
         mov     bx,10000
         cmp     dx,bx
         jae     sw9
@@ -599,22 +614,25 @@ m0:     call    putdec
         ; Prozessor
         mov     dx,offset T_CPU
         call    puts
-        call    hcpu                    ; HWDET.INC
-        call    h87
-        call    hpic
+        call    gh_cpu                  ; GHW.INC
+        mov     p_cpu,al
+        call    gh_87
+        mov     p_87,al
+        call    gh_k235
+        mov     p_k235,al
         mov     dx,offset T_PUSH
         call    puts
         mov     dx,offset T_P88
-        cmp     h_spd,0
+        cmp     gh_spd,0
         je      m1
         mov     dx,offset T_PV20
-        cmp     h_spd,2
+        cmp     gh_spd,2
         je      m1
         mov     dx,offset T_PXX
 m1:     call    puts
         mov     dx,offset T_AAD
         call    puts
-        mov     al,h_aad
+        mov     al,gh_aad
         call    puthx2
         mov     dx,offset T_A88
         cmp     al,12h
@@ -627,58 +645,58 @@ m2:     call    puts
         mov     dx,offset T_RES
         call    puts
         mov     dx,offset T_R88
-        cmp     h_cpu,1
+        cmp     p_cpu,1
         je      m3
         mov     dx,offset T_RV20
-        cmp     h_cpu,2
+        cmp     p_cpu,2
         je      m3
         mov     dx,offset T_RX
 m3:     call    puts
         mov     dx,offset T_87
         call    puts
         mov     dx,offset T_87N
-        cmp     h_87,0
+        cmp     p_87,0
         je      m4
         mov     dx,offset T_87J
 m4:     call    puts
         mov     dx,offset T_87S
         call    puts
-        mov     ax,h_sw
+        mov     ax,gh_sw
         call    puthex
         mov     dx,offset T_87C
         call    puts
-        mov     ax,h_cw
+        mov     ax,gh_cw
         call    puthex
         mov     dx,offset T_87E
         call    puts
         mov     dx,offset T_PIC
         call    puts
         mov     dx,offset T_PICN
-        cmp     h_k235,0
-        je      m5
+        cmp     p_k235,1
+        jne     m5
         mov     dx,offset T_PICJ
 m5:     call    puts
         ; Kanal 2
         mov     dx,offset T_C2
         call    puts
-        call    c2learn
+        call    gz_lern
         jnc     m6
         mov     dx,offset T_C2N
         call    puts
         jmp     m_zone
-m6:     mov     ax,c_n
+m6:     mov     ax,gz_n
         call    putdec
         mov     dx,offset T_C2R
-        cmp     c_nsnap,0
+        cmp     gz_snap,0
         jne     m7
         mov     dx,offset T_C2E
 m7:     call    puts
-        mov     ax,c_nmax
+        mov     ax,gz_nmax
         call    putdec
         mov     dx,offset T_C2Z
         call    puts
         ; Kanal 0 vorher, Anstoss, nachher (je 2 s)
-        mov     c_dur,31
+        mov     gz_dur,31
         mov     dx,offset T_C0
         call    puts
         mov     dx,offset T_C0V
@@ -694,18 +712,21 @@ m8:     call    calwv
         ; Bildwechsel
         mov     dx,offset T_VS
         call    puts
-        call    calv
-        mov     ax,c_vper
+        push    di
+        mov     di,offset gz_cvrd
+        mov     al,1
+        call    rawfl
+        pop     di
         or      ax,ax
         jnz     m9
         mov     dx,offset T_VSN
         call    puts
         jmp     short m10
-m9:     call    calhz
+m9:     call    gz_hz
         call    puthz
         mov     dx,offset T_VS2
         call    puts
-        mov     ax,c_vcnt
+        mov     ax,gz_cnt
         call    putdec
         mov     dx,offset T_VS3
         call    puts
@@ -720,7 +741,7 @@ m_zone: call    dozone
         and     al,0DFh
         cmp     al,'S'
         jne     m_end
-        cmp     c_n,0
+        cmp     gz_n,0
         je      m_end
         call    stopw
 m_end:  mov     ah,0Ch                  ; Tastenpuffer leeren
@@ -748,4 +769,4 @@ calwv   ENDP
 
 CSEG    ENDS
         END     START
-
+

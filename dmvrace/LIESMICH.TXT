@@ -16,7 +16,7 @@ steht der Grund (AUS, KEIN 8087, KEIN K234/K238, OHNE K235, KEIN RAUM,
 OHNE ZEIT).
 
 Erkannt wird nach "NCR Decision Mate V - Hardware erkennen" (2.11.2026,
-auf zwei echten Maschinen gemessen), Quelltext in HWDET.INC:
+auf zwei echten Maschinen gemessen), Quelltext in GHW.INC:
   - 8088 oder V20: PUSH 0 (6Ah) und AAD 16 (D5h 10h) muessen
     uebereinstimmen, sonst heisst der Wagen "CPU?".
   - 8087: Status- und Steuerwort mit 5A5Ah vorbelegt, FNINIT/FNSTSW/
@@ -123,7 +123,7 @@ PIT-Kanal 0. Das Boot-ROM programmiert ihn als Motor-Auszeit (Modus 5,
 er frei weiter, auch waehrend der 8088 steht. Sein Takt ist der Bildtakt
 (auf echter Hardware gemessen: 56,09 Hz Farbe, 56,19 Hz Mono; MAME 50 Hz).
 Beim Start misst DMVRACE ihn und die Bildfrequenz gegen PIT-Kanal 2
-(500 kHz, von DOS in Modus 3 betrieben, PITCAL.INC) und meldet beides vor
+(500 kHz, von DOS in Modus 3 betrieben, GZEIT.INC) und meldet beides vor
 dem Grafikstart ("Zeitbasis: PIT-Kanal 0 ... Hz, Bildwechsel ... Hz").
 Steht Kanal 0, stoesst DMVRACE ihn selbst ueber Port 14h an (der
 Diskettenmotor laeuft dann kurz an). Zaehlt er trotzdem nicht, nimmt
@@ -171,8 +171,9 @@ Bauen
   Quellen: DMVRACE.ASM, GDCTAB.INC, GDCVAR.INC, GDCLIB.INC (GDC-Routinen,
   gemeinsam mit DMVDEMO), FONT.INC, SINTAB.INC, MONOPAT.INC,
   TRACK.INC (Strecke), FLAG.INC (Start/Ziel-Flagge), CARS.INC (Wagen),
-  ANG.INC (Fahrtrichtung), PITCAL.INC (Zeitbasis), HWDET.INC
-  (Hardwareerkennung, gemeinsam mit DMVDEMO),
+  ANG.INC (Fahrtrichtung), GZEIT.INC (Zeitbasis), GHW.INC
+  (Hardwareerkennung; beide aus DMVGRAF, dmvgraf/src, gemeinsam mit
+  DMVDEMO und PITTEST),
   Z80.INC, R68.INC und RZ8.INC (fertig uebersetzte Kerne).
   Die Kerne selbst: RACEZ80.ASM (z80asm), RACE68.S (GNU as m68k) und
   RACEZ8K.8KN (libasm, asm -C Z8001);
