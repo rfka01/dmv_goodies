@@ -87,6 +87,7 @@ Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate 
 | `src/GHDNUL.C` | andere Systeme: kein direkter Weg, alles über BIOS 66/67 |
 | `src/GHWSIM.C` | Hardwareschicht für die Simulation am PC |
 | `src/GINTERN.H`, `src/GFONT.H` | intern; Schrift aus HOPPLER (`tools/mkfont.py`) |
+| `src/GKONF.H` | Bauoptionen, normal leer; `#define GKLEIN` lässt Figuren, Format 5, Bildsammlungen, `gbget` und den DOS-Schnellweg weg (für knappe CP/M-8000-Programme) |
 | `test/GTEST.C` | Prüf- und Vorführprogramm (drei Bilder, danach Mauszeiger) |
 | `test/STEST.C`, `test/PTEST.C`, `test/BTEST.C`, `test/ITEST.C` | Prüfprogramme: Figuren über GCHRD, Muster, schneller Weg der Bilder, Hardwareauskunft (nur MS-DOS) |
 | `tools/inline/` | Quellen der Maschinensprache in der Pascal-Fassung (Z80 und 8086) |
@@ -102,7 +103,7 @@ Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate 
 
 ### Übersetzen
 
-Unter CP/M-8000 mit DRs `zcc`, `asz8k` und `ld8k` (Quellen, `STARTUP.O` und `LIBCPM.A` auf einer Diskette): `SUBMIT GTEST` (`test/GTEST.SUB`) baut `GTEST.Z8K`. Ein eigenes Programm bindet `GRAF.O GBILD.O GEIN.O GHWCPM.O GHSEG.O GHDIR.O GDIR.O GSC1.O GZ8K.O` dazu; wer keine Bilder braucht, lässt `GBILD.O` weg, sofern er keine Bildfunktion aufruft.
+Unter CP/M-8000 mit DRs `zcc`, `asz8k` und `ld8k` (Quellen, `STARTUP.O` und `LIBCPM.A` auf einer Diskette): `SUBMIT GTEST` (`test/GTEST.SUB`) baut `GTEST.Z8K`. Ein eigenes Programm bindet `GRAF.O GBILD.O GEIN.O GHWCPM.O GHSEG.O GHDIR.O GDIR.O GSC1.O GZ8K.O` dazu; wer keine Bilder braucht, lässt `GBILD.O` weg, sofern er keine Bildfunktion aufruft. `GKONF.H` muss mit auf der Diskette sein. **Platz:** Zilogs `ld8k` bindet jede in `DMVGRAF.H` erklärte Funktion ein, und ein Programm ohne Segmente hat 64 KB für Code, Daten und Stapel. Wird es zu groß (`too big for non-seg load`), schreibt man `#define GKLEIN` in `GKONF.H` und übersetzt Programm und DMVGRAF damit neu (so Mahjongg 0.11).
 
 Unter CP/M-68K: am PC mit `gcc-m68k-linux-gnu` und `binutils-m68k-linux-gnu` `make GTEST.68K` (`make MTEST.68K` für den Maustest); ein eigenes Programm übersetzt `tools/bau68.py` (`GCRT68.S` zuerst, dann Programm, `GRAF.C GBILD.C GEIN.C GKERN.C GHWCPM.C GHD68K.C GHPOOL.C GSUP68.S GARG68.C`). Prüfstand: `make simlib.so`, dann `python3 tools/pruef68.py GTEST.68K test/GTEST.TXT [--block] [--mono]`.
 

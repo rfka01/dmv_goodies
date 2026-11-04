@@ -474,6 +474,7 @@ int nr;
         return 0;
 }
 
+#ifndef GKLEIN
 /* Format 5: int-Worte, [Ebene gruen/rot/blau][SET, RESET][Zeile][Wort] */
 static int bfmt5(nr, wd)
 int nr;
@@ -509,6 +510,7 @@ int *wd;
         }
         return 0;
 }
+#endif
 
 /* Bild nr anlegen; die Daten kommen ueber brd() oder bei Format 5
    aus wd */
@@ -540,7 +542,9 @@ int *wd;
         switch (fmt) {
         case GB_NIB:  r = bfmt3(nr); break;
         case GB_EBN:  r = bfmt4(nr); break;
+#ifndef GKLEIN
         case GB_SETR: r = bfmt5(nr, wd); break;
+#endif
         default:      r = bfmt12(nr, fmt);
         }
         hflush();
@@ -566,12 +570,14 @@ char *daten;
         return r;
 }
 
+#ifndef GKLEIN
 /* Format 5 aus einer Datei: je Bild alle Worte (16 Bit, niederwertiges
    Byte zuerst) in diesen Puffer, dann wie gbdef. Reicht fuer Figuren bis
    32 x 32 Punkte. */
 #define B5MAX 384
 static int b5w[B5MAX];
 
+#endif
 /* Bilder aus einer Datei. b = 0: Bildsammlung (gbldv), jedes Bild mit
    eigenem Kopf: Breite, Hoehe (je 2 Byte, niederwertiges zuerst), Format,
    0; dann die Daten wie bei gbdef. anz <= 0: bis zum Ende der Datei.
@@ -599,7 +605,7 @@ char *name;
         r = 0;
         while (kopf > 0 && !r) {        /* Kopf ueberspringen, auch > 32 KB */
                 k = kopf > 128 ? 128 : kopf;
-                if (brd((char *)b5w, k))
+                if (brd(bpuf, k))       /* bpuf ist hier frei */
                         r = GE_KURZ;
                 kopf -= k;
         }
@@ -618,6 +624,7 @@ char *name;
                                 break;
                         }
                 }
+#ifndef GKLEIN
                 if (fmt == GB_SETR) {
                         n = 6 * h * ((w + 15) >> 4);
                         if (w < 1 || h < 1 || n > B5MAX) {
@@ -634,6 +641,7 @@ char *name;
                                         | (u[2 * k + 1] & 0xFF) << 8;
                         r = bdef(nr0 + i, w, h, fmt, b5w);
                 } else
+#endif
                         r = bdef(nr0 + i, w, h, fmt, (int *)0);
                 if (!r)
                         gbanz++;
@@ -651,6 +659,7 @@ char *name;
         return qbld(nr0, name, b, h, anz, fmt, (unsigned)kopf);
 }
 
+#ifndef GKLEIN
 int gbldv(nr0, name, anz, kopf)
 int nr0, anz;
 unsigned kopf;
@@ -658,6 +667,7 @@ char *name;
 {
         return qbld(nr0, name, 0, 0, anz, 0, kopf);
 }
+#endif
 
 int gbinfo(nr, r)
 int nr;
@@ -851,6 +861,7 @@ int nr, art;
         if (c0 >= c1)
                 return 0;
         rs = bnp[nr] * bbpr[nr];
+#ifndef GKLEIN
         /* schneller Weg wie HOPPLERs BlitAsm: ganze Worte, ohne Zoom und
            Beschnitt, direkt aus dem Bildspeicher an den 7220 */
         if (qbsch && z1 == 1 && !(sx & 15) && c0 == 0 && c1 == W &&
@@ -870,6 +881,7 @@ int nr, art;
                            (UW)(sy * 40 + (sx >> 4)), tu, nt) == 0)
                         return 0;
         }
+#endif
         for (y = 0; y < bh[nr]; y += n) {
                 n = QBUF / rs;
                 if (n > bh[nr] - y)
@@ -908,6 +920,7 @@ int nr, art;
         return 0;
 }
 
+#ifndef GKLEIN
 /* Schirmausschnitt am Zeichenpunkt als Bild nr */
 int gbget(nr, b, h)
 int nr, b, h;
@@ -977,6 +990,7 @@ int nr, b, h;
         hflush();
         return 0;
 }
+#endif
 
 /* ------------------------------------------------------------------ */
 /* Zusammensetzen                                                     */

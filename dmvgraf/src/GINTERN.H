@@ -52,7 +52,9 @@ extern int ghsmov();    /* (blk, UW ziel, UW quelle, UW n), ziel < quelle */
    (blk, UW o, n, rs, nw, lm, UW ad, int *tu, nt) -> 0, -1 kein Weg */
 extern int ghblit();
 extern int qbsch;       /* schneller Weg fuer Bilder an */
+#ifndef GKLEIN
 extern int qbtupel();   /* (np, bb, art, int *tu) -> Zahl der Eintraege */
+#endif
 
 /* ---- GRAF.C ---- */
 extern int qneb;        /* Ebenen 1 oder 3 */

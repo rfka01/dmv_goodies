@@ -8,6 +8,8 @@
  * Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT
  */
 
+#include "GKONF.H"
+
 /* Grundfunktionen (NCRGRAF, TurboGraf) */
 extern int ginit();     /* ()                 Grafik ein, Schirm leer, Vorgaben */
 extern int gexit();     /* ()                 zurueck in den Textbetrieb */
@@ -31,11 +33,17 @@ extern int gorig();     /* (o)                0 y nach oben, 1 y nach unten */
 /* Bilder */
 extern int gbdef();     /* (nr, b, h, format, daten) */
 extern int gbload();    /* (nr0, datei, b, h, anz, format, kopf) */
+#ifndef GKLEIN
 extern int gbldv();     /* (nr0, datei, anz, kopf) Bildsammlung: je Bild Kopf b, h, Format, 0 */
+#endif
+#ifndef GKLEIN
 extern int gbanz;       /* gbldv: geladene Bilder */
+#endif
 extern int gbmap();     /* (farbe, a, b, muster)  Farbnummer 0-15 umsetzen */
 extern int gbput();     /* (nr, art)          am Zeichenpunkt zeichnen */
+#ifndef GKLEIN
 extern int gbget();     /* (nr, b, h)         Schirmausschnitt als Bild */
+#endif
 extern int gbfree();    /* (nr) */
 extern int gbinfo();    /* (nr, int r[6])     B, H, sichtbarer Bereich x0 y0 x1 y1 */
 
@@ -61,9 +69,11 @@ extern int tonidle();   /* () 1 = alles an den 8741 geschickt */
 extern int gputs();     /* (s)                Text auf die Konsole (Textbetrieb) */
 
 /* Figuren ueber GCHRD ("Sprites", schnell, 8 oder 16 Punkte) */
+#ifndef GKLEIN
 extern int gsprdef();   /* (nr, b, h, muster) je Ebene G, R, B: h Zeilen zu b/8 Byte */
 extern int gsprset();   /* (nr, b, h, worte) Format 5: [Ebene][SET, RESET][Zeile] */
 extern int gspr();      /* (nr, x, y, zoom, art) */
+#endif
 
 /* Nur MS-DOS: Hardwareauskunft (GINFO.C), Zeitbasis (GZEIT.C). Unter
    ifdef, weil der Binder von CP/M-8000 jede Vereinbarung aufloesen will. */

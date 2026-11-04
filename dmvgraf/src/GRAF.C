@@ -994,6 +994,7 @@ int d;
         return 0;
 }
 
+#ifndef GKLEIN
 /* ------------------------------------------------------------------ */
 /* Figuren ueber GCHRD ("Sprites"): Muster 8 x 8 im Parameter-RAM, der  */
 /* 7220 zeichnet und vergroessert sie selbst. Schneller als Bilder,     */
@@ -1158,12 +1159,15 @@ int nr, x, y, z, art;
         return 0;
 }
 
+#endif
+
 /* ------------------------------------------------------------------ */
 /* Tabelle fuer den schnellen Weg der Bilder (ghblit): je Ebene, was aus
    einer gespeicherten Bildzeile (np = 1: Punkte in der Farbe, sonst Maske
    und Ebenen zu je bb Byte) zu schreiben ist. Eintrag: Ebenenadresse,
    WDAT-Befehl, Maske (0 aus der Zeile, 1 keine), XOR, Versatz, Nullen. */
 int qbsch = 1;
+#ifndef GKLEIN
 
 static int *qbt;
 
@@ -1201,3 +1205,4 @@ int np, bb, art, *tu;
         }
         return (int)(qbt - tu) / 6;
 }
+#endif
