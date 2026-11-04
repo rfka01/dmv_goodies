@@ -34,3 +34,5 @@ The `.TXT` files are the German descriptions (DOS text, CRLF). · Die `.TXT`-Dat
 | `FARBE.PRN`, `FARBGRAF.PRN` | colour printers (Epson `ESC r`) · Farbdrucker |
 | `*FONT.PRN`, `*FNT.PRN`, `*GRF.PRN`, `MX80*.PRN` | per printer · je Drucker |
 | `LIESMICH.TXT` | description (German) · Beschreibung |
+
+`DMVINFO-1.02.IMG`, `DMVDIAG-0.17.IMG`, `DMVFRAGE-1.01.IMG` – self-booting diagnostic disks, built with [`dmvdiag/mkimg.py`](../dmvdiag/); no DOS needed, the program sits in the reserved sectors and the disk stays writable for the result files · selbststartende Diagnosedisketten, gebaut mit `dmvdiag/mkimg.py`; ohne DOS, das Programm liegt in den reservierten Sektoren, die Diskette bleibt für die Ergebnisdateien beschreibbar. Write to a disk **without** write protection · ohne Schreibschutz auf Diskette schreiben.
