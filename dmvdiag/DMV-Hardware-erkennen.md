@@ -18,11 +18,10 @@ Belegung, was davon erkannt wird.
 - **[D]** aus NCR-Unterlagen (Schaltpläne, Kit-Anleitungen, NCR-Software).
 - **[M]** nur in MAME (Fork rfka01/mame) geprüft.
 
-Quelltexte: `rfka01/dmv_os`, Verzeichnis `diag/` (Zweig `main`); eine
-baubare Kopie mit fertigen Images liegt in `rfka01/dmv_goodies`,
-Verzeichnis `dmvdiag/`.
-Konstanten stehen in `hw/dmvhw.def`, die Kartendaten in
-`hw/dmvmod.json` (dort je Karte auch die Probe, Feld `erkennung`).
+Quelltexte: `rfka01/dmv_goodies`, Verzeichnis `dmvdiag/` (diese
+Anleitung liegt dort mit). Konstanten stehen in `rfka01/dmv_os`,
+`hw/dmvhw.def`, die Kartendaten in `hw/dmvmod.json` (dort je Karte auch
+die Probe, Feld `erkennung`); der Konfigurator in `tools/konfig/`.
 
 ---
 
@@ -161,7 +160,7 @@ Der 68008 holt SSP und PC aus 0:0000–0007, schreibt ein Kennbyte nach
 | **Spurzahl von B:** | Mit einer Diskette bekannten Formats in B: RECALIBRATE, SEEK 2, READ ID. C = 2 heißt 40 Spuren; C = 1 oder N = 3 heißt 80 Spuren. | [H] |
 | **Laufwerk vorhanden** | Ohne Diskette meldet das Laufwerk nicht „bereit“, und der 8272 macht keinen Schritt. „Nicht bereit“ beweist also kein fehlendes Laufwerk. Mit Diskette: RECALIBRATE, SEEK 2, RECALIBRATE; Spur 0 (ST3 Bit 4) geht aus und wieder an. | [H] |
 | **8272-Takt** | SPECIFY D6h 02h, dann je SEEK 0→39 und 39→0 mit Zeitmessung. Gemessen 6,18 ms je Schritt, also 8272 mit **4 MHz**. Mit E6h gemessen 4,1 ms. | [H] |
-| **Motor** | `OUT 14h` schaltet ihn ein. 13h **Bit 0 = 1 heißt „Motor aus“** (in `hw/dmvhw.def` steht es noch falsch herum). READY (13h Bit 2) kommt 0,52–0,63 s nach dem Einschalten. Nicht mit fester Zeit warten, sondern READY mit Zeitgrenze abwarten. | [H] |
+| **Motor** | `OUT 14h` schaltet ihn ein. 13h **Bit 0 = 1 heißt „Motor aus“** (in `hw/dmvhw.def` von dmv_os steht es noch falsch herum). READY (13h Bit 2) kommt 0,52–0,63 s nach dem Einschalten. Nicht mit fester Zeit warten, sondern READY mit Zeitgrenze abwarten. | [H] |
 | **Festplattencontroller K012/C3282** (K012 intern auf Platz 2a, C3282 extern auf Platz 2–6; derselbe WD1001 auf 4A, Software kann sie nicht unterscheiden) | 55h nach C2h und AAh nach C3h schreiben, zurücklesen. Nur **55h/AAh** zählt; C2h/C3h ist das Echo des leeren Busses. Danach ein Status von 00h auf C7h für jede Einheit heißt „Controller da, keine Platte bereit“. Nach jedem Zugriff 18h nach C6h (abwählen). | [H] |
 | **Uhr K803** (MM58167, Vorgabe 4B) | 00h nach C8h (Latch), dann CEh (Sekunden) zweimal im Abstand von 1,2 s lesen. Beide Werte gültiges BCD 00–59 und verschieden: Uhr läuft. Ein Wert von CEh ist das Echo, also keine Uhr. Register nur über x4–x7 ansprechen. Die Karte ist auf jede Hälfte schaltbar; DMVINFO prüft nur 4B. | [H] |
 

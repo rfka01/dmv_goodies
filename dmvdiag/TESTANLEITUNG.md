@@ -80,7 +80,7 @@ Nach dem Booten steht Seite 1. „weiter“ = Leertaste.
 
 Dateien `*.L1`–`*.L3` (oder das Image), die Belegungszettel und die
 Fotos von Seite 6 und 10. Daraus: Steckplatz → IR, 13h-Bits und S1/S2
-nach `docs/`, `hw/dmvmod.json` (Beleg H) und MAME.
+nach rfka01/dmv_os (`docs/`, `hw/dmvmod.json`, Beleg H) und in den MAME-Fork.
 
 ## Gegenprobe in MAME (Fork rfka01/mame)
 
