@@ -107,148 +107,23 @@ char *d;
         return 0;
 }
 
-static UW wlies(a)              /* ein Wort aus dem Bildspeicher */
-UW a;
-{
-        static char b[2];
-
-        gcmd(0x49); gpar(a & 0xFF); gpar((a >> 8) & 0xFF); gpar(0);
-        gcmd(0x4A); gpar(0xFF); gpar(0xFF);
-        gcmd(0x4C); gpar(0x02); gpar(1); gpar(0);
-        gcmd(0xA0);
-        b[0] = b[1] = 0;
-        glies(2, b);
-        return (UW)((b[0] & 0xFF) | ((b[1] & 0xFF) << 8));
-}
-
-static int wschr(a, w)          /* ein Wort schreiben */
-UW a, w;
-{
-        gcmd(0x49); gpar(a & 0xFF); gpar((a >> 8) & 0xFF); gpar(0);
-        gcmd(0x4A); gpar(0xFF); gpar(0xFF);
-        gcmd(0x4C); gpar(0x02); gpar(0); gpar(0);
-        gcmd(0x20); gpar(w & 0xFF); gpar((w >> 8) & 0xFF);
-        return 0;
-}
-
-/* Bildschirm nach HWA 3: die Farbkarte hat drei Ebenen zu 16 K Worten,
-   die Monokarte eine (sie spiegelt 4000h auf 0000h). Alte Worte sichern,
-   A5C3h nach 3FF0h und 3C5Ah nach 7FF0h, in der Reihenfolge 7FF0h,
-   3FF0h zuruecklesen, alte Worte zurueck. Bleiben beide stehen: Farbe.
-   Danach mit dem Kennbuchstaben der Firmware vergleichen (gromz). */
-int ghschirm;                  /* 1 Mono, 2 Farbe, 3 widerspruechlich */
-
-static int farbtest()
-{
-        UW a3, a7, v3, v7;
-        int r, z;
-
-        a3 = wlies((UW)0x3FF0);
-        a7 = wlies((UW)0x7FF0);
-        wschr((UW)0x3FF0, (UW)0xA5C3);
-        wschr((UW)0x7FF0, (UW)0x3C5A);
-        v7 = wlies((UW)0x7FF0);
-        v3 = wlies((UW)0x3FF0);
-        wschr((UW)0x7FF0, a7);
-        wschr((UW)0x3FF0, a3);
-        if (v3 == 0xA5C3 && v7 == 0x3C5A)
-                r = 2;
-        else if (v3 == 0x3C5A && v7 == 0x3C5A)
-                r = 1;
-        else
-                r = 0;
-        z = gromz();
-        if (r == 0)                     /* Probe unklar: nach der Firmware */
-                ghschirm = 3, r = z == 'C' ? 2 : 1;
-        else if ((z == 'C' && r == 1) || (z == 'M' && r == 2))
-                ghschirm = 3;             /* Probe gilt, Abweichung merken */
-        else
-                ghschirm = r;
-        return r == 2;
-}
-
-/* Ist das eine DMV? Statusbits des 7220 an A0h: Bildwechsel (Bit 5) und
-   Zeilenruecklauf (Bit 6) wechseln, FIFO leer (Bit 2) kommt vor, nie FFh.
-   Liest nur. */
-static int dmvtest()
-{
-        int i, s, m;
-
-        m = 0;
-        for (i = 0; i < 30000 && m != 0x1F; i++) {
-                s = inb(GDCST);
-                if (s == 0xFF)
-                        return 0;
-                m |= s & 0x20 ? 1 : 2;
-                m |= s & 0x40 ? 4 : 8;
-                if (s & 0x04)
-                        m |= 0x10;
-        }
-        return m == 0x1F;
-}
-
-/* K806 auf 2A (30h-33h) nach HWA 5. Erst nur lesen: ein leerer Platz
-   liefert das untere Adressbyte zurueck (MAME: FFh). Dann Befehl 00h an
-   31h: Statusbit 3 (F1) zeigt Adressbit 0 des letzten Schreibens, also
-   1, und es kommen genau fuenf Datenbytes. Nichts sonst wird beschrieben. */
-#define MWART 20000
-
-static int maustest()
-{
-        int i, n, v, t;
-
-        n = 0;
-        for (i = 0; i < 4; i++) {
-                v = inb(0x30 + i);
-                if (v == 0x30 + i || v == 0xFF)
-                        n++;
-        }
-        if (n == 4)
-                return 0;
-        for (i = 0; i < 64 && (inb(0x31) & 1); i++)
-                (void)inb(0x30);        /* alte Daten */
-        for (t = 0; t < MWART && (inb(0x31) & 2); t++)
-                ;
-        if (t >= MWART)
-                return 0;
-        outb(0x31, 0);
-        if (!(inb(0x31) & 8))           /* F1 */
-                return 0;
-        for (n = 0; n < 6; n++) {
-                for (t = 0; t < (n < 5 ? MWART : MWART / 8)
-                            && !(inb(0x31) & 1); t++)
-                        ;
-                if (!(inb(0x31) & 1))
-                        break;
-                (void)inb(0x30);
-        }
-        return n == 5 ? 0x30 : 0;
-}
+/* Erkennung nach "NCR Decision Mate V - Hardware erkennen": DMV-Pruefung
+   (nur lesen), Bildschirmprobe mit Wiederherstellen samt Schreibstelle,
+   K806 ueber F1 - im Kern aus src/GHW.INC (GHW86.S), wie in DMVDEMO. */
+extern int ghk(), ghkcf;
+#define K_DMV    0
+#define K_SCHIRM 7
+#define K_MAUS   8
 
 int ghinit()
 {
-        static char ead[4];
-        int a, n;
+        int a;
 
-        if (!dmvtest())
+        ghk(K_DMV, 0, 0, 0, 0);
+        if (ghkcf)
                 return -1;
-        /* Die DOS-Konsole schreibt nach dem Farbtest an der alten Stelle
-           weiter: Adresse (EAD) vorher mit CURD lesen, hinterher mit CURS
-           zurueck, MASK FFFFh */
-        for (n = 0; n < 16 && (inb(GDCST) & 1); n++)
-                (void)inb(GDCCM);
-        gcmd(0xE0);
-        ead[0] = ead[1] = ead[2] = 0;
-        glies(3, ead);
-        for (n = 0; n < 16 && (inb(GDCST) & 1); n++)
-                (void)inb(GDCCM);       /* der echte 7220 schickt noch MASK */
-        farbe = farbtest();
-        gcmd(0x49);
-        gpar(ead[0] & 0xFF);
-        gpar(ead[1] & 0xFF);
-        gpar(ead[2] & 0x03);
-        gcmd(0x4A); gpar(0xFF); gpar(0xFF);
-        k806 = maustest();
+        farbe = ghk(K_SCHIRM, 0, 0, 0, 0) == 2;
+        k806 = ghk(K_MAUS, 0, 0, 0, 0);
         a = 0;
         if (farbe)
                 a |= GH_FARBE;

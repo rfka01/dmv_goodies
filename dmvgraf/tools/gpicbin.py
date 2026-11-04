@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""gpicbin.py - den Kern von src/GPIC.INC (MASM) fuer die Bibliothek
-uebersetzen: JWasm -Zm -bin mit GP_NURKERN, ab Versatz 0, und als
-src/GPIC86.S (GNU as, .byte) mit dem Aufruf aus C ablegen. So gibt es eine
-Quelle fuer DMVDEMO (MASM) und fuer DMVGRAF.
+"""gpicbin.py - die MASM-Kerne der DOS-Bibliothek uebersetzen (JWasm -Zm
+-bin, ab Versatz 0) und als GNU-as-Quellen (.byte) mit dem Aufruf aus C
+ablegen. So gibt es je eine Quelle fuer DMVDEMO/DMVRACE (MASM) und fuer
+DMVGRAF.
 
   gpicbin.py [--jwasm PFAD]       (Vorgabe: jwasm im Suchpfad oder $JWASM)
 
-Schreibt ausserdem pascal/DMVPIC.INC: derselbe Kern als inline fuer
-Turbo Pascal 3 unter MS-DOS.
+- src/GPIC.INC (GP_NURKERN) -> src/GPIC86.S und pascal/DMVPIC.INC
+  (derselbe Kern als inline fuer Turbo Pascal 3 unter MS-DOS)
+- src/GHW.INC und src/GZEIT.INC (GH_NURKERN) -> src/GHW86.S: der Kern
+  liegt im Datensegment auf einer Absatzgrenze und wird fern gerufen
+  (ghk), damit er seine Daten ueber DS erreicht wie in einem MASM-Programm
 
-Nur noetig, wenn sich src/GPIC.INC aendert; src/GPIC86.S und
-pascal/DMVPIC.INC liegen fertig im Repository, der Bau braucht kein JWasm.
+Nur noetig, wenn sich eine der .INC-Dateien aendert; die erzeugten
+Dateien liegen fertig im Repository, der Bau braucht kein JWasm.
 
 Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT
 """
@@ -138,20 +141,110 @@ end;
 """
 
 
+GHWRAHMEN = '''; GHWB.ASM - Kern aus GHW.INC und GZEIT.INC, ab Versatz 0
+GH_NURKERN EQU 1
+GZ_DA = 1
+_TEXT SEGMENT BYTE PUBLIC 'CODE'
+        ASSUME CS:_TEXT, DS:_TEXT
+        ORG 0
+INCLUDE GHW.INC
+INCLUDE GZEIT.INC
+_TEXT ENDS
+        END
+'''
+
+GHWKOPF = '''# GHW86.S - Hardware erkennen, Koprozessor, Zeitbasis fuer MS-DOS.
+# ERZEUGT von tools/gpicbin.py aus src/GHW.INC und src/GZEIT.INC (JWasm,
+# %d Byte) - nicht von Hand aendern, sondern die .INC aendern und neu
+# erzeugen.
+#
+#   int ghk(nr, ax, bx, cx, si)   Prozedur nr der Tabelle gh_ptab rufen
+#   long ghkl(...)                dasselbe, Ergebnis DX:AX
+#   ghkcf                         1, wenn die Prozedur CF gesetzt hat
+#   ghkern                        der Kern; Wort 0 Einsprung, 1 gh_tab,
+#                                 2 gh_roh, 3 gh_stz, 4 gh_ztext, 5 gz_daten
+#
+# Der Kern liegt im Datensegment auf einer Absatzgrenze; ghk ruft ihn fern
+# mit CS = DS = sein Segment, BP = nr * 2.
+#
+# Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT
+
+        .arch   i8086
+        .code16
+        .intel_syntax noprefix
+
+        .section .text.ghk,"ax"
+        .global ghk
+        .global ghkl
+ghk:
+ghkl:   push    bp
+        mov     bp, sp
+        push    si
+        push    di
+        push    es
+        mov     ax, [ghkseg]
+        or      ax, ax
+        jnz     1f
+        mov     ax, offset ghkern
+        mov     cl, 4
+        shr     ax, cl
+        mov     dx, ds
+        add     ax, dx
+        mov     [ghkseg], ax
+1:      mov     ax, [bp+6]
+        mov     bx, [bp+8]
+        mov     cx, [bp+10]
+        mov     si, [bp+12]
+        mov     dx, [bp+4]
+        push    bp
+        push    cs
+        mov     di, offset 2f
+        push    di
+        push    word ptr [ghkseg]
+        push    word ptr [ghkern]
+        mov     bp, dx
+        shl     bp, 1
+        retf
+2:      pop     bp
+        jc      3f
+        mov     word ptr [ghkcf], 0
+        jmp     4f
+3:      mov     word ptr [ghkcf], 1
+4:      pop     es
+        pop     di
+        pop     si
+        pop     bp
+        ret
+
+        .section .data.ghk,"aw"
+        .global ghkcf
+ghkcf:  .word   0
+ghkseg: .word   0
+        .balign 16
+        .global ghkern
+ghkern:
+'''
+
+
+def jw(jwasm, rahmen, name, dateien):
+    with tempfile.TemporaryDirectory() as t:
+        for d in dateien:
+            shutil.copy(os.path.join(SRC, d), t)
+        open(os.path.join(t, name + '.ASM'), 'w').write(rahmen)
+        r = subprocess.run([jwasm, '-Zm', '-bin', name + '.ASM'], cwd=t,
+                           capture_output=True, text=True)
+        b = os.path.join(t, name + '.BIN')
+        if r.returncode or not os.path.exists(b):
+            sys.exit(r.stdout + r.stderr)
+        return open(b, 'rb').read()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--jwasm', default=os.environ.get('JWASM') or
                     shutil.which('jwasm') or 'jwasm')
     a = ap.parse_args()
-    with tempfile.TemporaryDirectory() as t:
-        shutil.copy(os.path.join(SRC, 'GPIC.INC'), t)
-        open(os.path.join(t, 'GPICB.ASM'), 'w').write(RAHMEN)
-        r = subprocess.run([a.jwasm, '-Zm', '-bin', 'GPICB.ASM'], cwd=t,
-                           capture_output=True, text=True)
-        b = os.path.join(t, 'GPICB.BIN')
-        if r.returncode or not os.path.exists(b):
-            sys.exit(r.stdout + r.stderr)
-        k = open(b, 'rb').read()
+    k = jw(a.jwasm, RAHMEN, 'GPICB', ['GPIC.INC'])
     z = [KOPF % len(k)]
     for i in range(0, len(k), 12):
         z.append('        .byte   ' + ', '.join('0x%02X' % c for c in k[i:i + 12]) + '\n')
@@ -164,6 +257,12 @@ def main():
     open(os.path.join(SRC, '..', 'pascal', 'DMVPIC.INC'), 'w', newline='').write(
         pas.replace('\r\n', '\n').replace('\n', '\r\n'))
     print('pascal/DMVPIC.INC')
+    k = jw(a.jwasm, GHWRAHMEN, 'GHWB', ['GHW.INC', 'GZEIT.INC'])
+    z = [GHWKOPF % len(k)]
+    for i in range(0, len(k), 12):
+        z.append('        .byte   ' + ', '.join('0x%02X' % c for c in k[i:i + 12]) + '\n')
+    open(os.path.join(SRC, 'GHW86.S'), 'w').write(''.join(z))
+    print('src/GHW86.S: %d Byte Kern' % len(k))
 
 
 main()

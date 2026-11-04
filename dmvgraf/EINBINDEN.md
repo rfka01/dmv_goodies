@@ -103,6 +103,46 @@ Die Bibliothek selbst lässt sich nicht an MASM-Programme binden (siehe unten), 
 
 `gp_picw` nimmt statt `gp_puf` einen Arbeitsbereich des Programms in ES:DI. Art Bit 7: Daten im Speicher (DS:DX, Länge in SI). Ohne Art-Bit 1 (mono) oder 2 (Farbe) gilt Farbe – das Programm kennt seine Karte selbst.
 
+### MS-DOS: MASM 5.1 (Hardware erkennen, Zeitbasis, Koprozessor)
+
+`src/GZEIT.INC` und `src/GHW.INC` sind dieselben Quellen, aus denen der Kern der DOS-Bibliothek entsteht (MASM 5.1, auch JWasm `-Zm`; Namen `gh_`/`gz_`, Konstanten `GH_`/`GHI_`/`GZ_`). `GZEIT.INC` zuerst einbinden, wenn `gh_takt`, `gh_bild`, `gh_uhr` oder `gh_info` gebraucht werden. DS muss auf die Daten zeigen (wie in einem .COM-Programm). Alle Register bleiben, Ergebnisse in AX, Fehler in CF. Beispiel und Prüfprogramm: [`test/GHWT.ASM`](test/GHWT.ASM).
+
+            INCLUDE GZEIT.INC
+            INCLUDE GHW.INC
+            ...
+            call    gh_cpuk                 ; AX = CPU | FPU << 2 | Karte << 4
+            mov     ax, GH_MITCOPRO
+            call    gh_info                 ; gh_tab wie ghinfo
+            mov     ax, gh_tab[GHI_COPRO*2] ; 1 keiner, 2 K234, 3 K238, ...
+            mov     ax, 0100h               ; deutsch, gleich ausgeben
+            call    gh_zeile                ; "Erkannt: K235 mit V20, ..."
+
+MASM unterscheidet Groß und Klein nicht; darum heißen die Indizes der Tabelle `GHI_ROM` … `GHI_UHR` (in C `GH_ROM` …), weil `gh_rom`, `gh_cpu` usw. die Prozeduren sind.
+
+| Prozedur | Eingabe | Ergebnis |
+|---|---|---|
+| `gh_dmv` | – | AX 1, CF = 1: keine DMV |
+| `gh_rom` | – | AL `C`/`M`, 0 und CF bei Programm oder Stapel unter 2000h |
+| `gh_romv`, `gh_cpu`, `gh_87`, `gh_k235`, `gh_baenke`, `gh_spur` | – | AX wie die Spalte in `gh_tab` |
+| `gh_cpuk` | – | AX wie `ghcpu` |
+| `gh_schirm` | – | AX 1 Mono, 2 Farbe; nur im Grafikbetrieb |
+| `gh_maus` | – | AX 30h (K806) oder 0 |
+| `gh_takt`, `gh_bild`, `gh_uhr`, `gh_info` | `gh_info`: AX = `GH_MITCOPRO` \| `GH_MITUHR` | wie `ghinfo` |
+| `gh_copro` | – | AX = `gh_tab[GHI_COPRO*2]` |
+| `gh_coblk` | BX Absätze | AX Segment, CF = 1 keiner |
+| `gh_vec` | AX Segment P | `gh_stz`: Startzustand (68008: SSP P+1000h, PC P+100h; Z8001 bei K238) |
+| `gh_corun` | DS:SI Startzustand, CX Länge (≤ 40) | AX 0, 1 kein Weg, 2 Z80 nicht zurück (CF); `gh_res` Byte 0:0000, `gh_c0a`/`gh_c0b` Kanal 0 davor und danach |
+| `gh_corz` | AX:SI Z80-Code, CX Länge, BX Segment für CX+8 Byte Sicherung | wie `gh_corun` |
+| `gh_zhit` | AX Segment, CX Byte | CF = 1: liegt über dem Warteplatz F10Eh–F11Ch |
+| `gh_zeile` | AL 0 deutsch, 1 englisch; AH 1: ausgeben | `gh_ztext` (`$`, dann 0) |
+| `gz_lern` | – | Kanal 2 gelernt, Uhr 0; CF = 1: er stand (jetzt Modus 2) |
+| `gz_us` | – | DX:AX µs seit `gz_lern`/`gz_start` |
+| `gz_cal0` | AL 1: anstoßen, wenn er steht | AX µs je Takt Kanal 0 (`gz_c0per`, `gz_stoss`) |
+| `gz_calv` | – | AX µs je Bild (`gz_vper`) |
+| `gz_hz` | AX µs | AX in 1/100 Hz |
+
+Messdauer der Eichung: `gz_dur` in Einheiten von 65 536 µs (Vorgabe 4). Rohwerte: `gh_spd`, `gh_aad`, `gh_sw`, `gh_cw`, `gh_romz`, `gz_n`, `gz_nmax`, `gz_snap`. Gegenüber `HWDET.INC`: `hcpu` → `gh_cpu`, `h87` → `gh_87`, `hpic` → `gh_k235`, `hprobe` → `gh_copro`, `hrunco` → `gh_corun`, `hvec68` → `gh_vec`, `hcoblk` → `gh_coblk`, `hzhit` → `gh_zhit`, `hwline` → `gh_zeile` mit AX = 0100h; aus `PITCAL.INC`: `c2learn` → `gz_lern`, `c2start`/`c2tick` → `gz_start`/`gz_tick`, `cal0` → `gz_cal0` (AL 0: ohne Anstoß), `calv` → `gz_calv`, `calhz` → `gz_hz`, `c_dur` → `gz_dur`. `caledge` setzt die Uhr nicht mehr zurück.
+
 ### CP/M-68K: GNU as
 
 Jedes Argument ist ein Langwort. [`beispiele/DEMO68.S`](beispiele/DEMO68.S):
@@ -145,6 +185,7 @@ DMVGRAF is written in C and ships ready-built in [`lib/`](lib/) for MS-DOS (gcc-
 - **Calling conventions:** MS-DOS: arguments on the stack, last first, 2 bytes each, caller pops, result in `AX`, `SI`/`DI`/`BP`/`DS`/`SS`/`ES` preserved, `DS = SS` required. CP/M-68K: 4 bytes per argument (32-bit `int`), result in `d0`, `d2`–`d7`/`a2`–`a6` preserved. CP/M-8000: names with a leading underscore, 2 bytes per argument from `2(r15)`, result in `r7`, `r8`–`r14` preserved.
 - **Assembler:** NASM with `-f elf32` and `cpu 8086` or GNU as under MS-DOS, GNU as under CP/M-68K, asz8k under CP/M-8000.
 - **Not directly:** Microsoft OMF tools (MASM, MS-C, Turbo C, BASCOM), DR's Alcyon C on CP/M-68K (16-bit `int`), and Turbo Pascal 3, which has no linker – for TP3 there is a Pascal include version in `pascal/`.
+- **Hardware detection, time base, coprocessor:** for MASM programs `src/GZEIT.INC` and `src/GHW.INC`, the same sources as the library kernel; results in `gh_tab` in `ghinfo` order (indices `GHI_…`), registers preserved, CF on error. Example: `test/GHWT.ASM`.
 - **Packed full-screen pictures** (`gpic`, `gpicm`): declared in `src/DMVPIC.H`. For MASM programs (DMVDEMO) the same 8086 kernel is a standalone include, `src/GPIC.INC` (MASM 5.1 / JWasm `-Zm`): DS:DX file name, AL art, BX xw, CX y, `call gp_pic`; CF/AX on error. Example: `test/GPT.ASM`.
 - **Tested:** the C and assembler examples ran in the test benches under MS-DOS and CP/M-68K; `DEMO.8KN` assembles and links under CP/M-8000 but has not been run.
 

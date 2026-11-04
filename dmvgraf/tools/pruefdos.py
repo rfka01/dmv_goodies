@@ -6,9 +6,19 @@ unter einem nachgebildeten MS-DOS auf der DMV (8086 in Unicorn).
 
 - INT 21h: 02h Zeichen, 06h DL=FFh Taste ohne Warten (je Aufruf eine
   Skriptzeile wie GHWSIM: maus x y k / taste c / bild datei.ppm),
-  3Dh/3Fh/3Eh/42h Dateien im aktuellen Verzeichnis, 48h Speicher, 4Ch Ende.
+  3Dh/3Fh/3Eh/42h Dateien im aktuellen Verzeichnis, 48h/49h Speicher,
+  51h/62h PSP, 4Ch Ende.
 - 7220 an A0h/A1h/A2h ueber simlib.so (dieselbe Nachbildung wie
   GHWSIM.C, make simlib.so); K806 an 30h-33h, 8741 an 40h/41h.
+- Hardware fuer GHW.INC/GZEIT.INC: --cpu 8088|v20 (PUSH 0 und AAD 16 an
+  den Stellen im Kern), --fpu keiner|8087, --karte k235|k230|keine (13h,
+  8259 an 90h/91h), --kopro keiner|k234|k238|weg (OUT D0h laesst den
+  Z80 ab F110h laufen, Paket z80; OUT DFh startet den 68008 in Unicorn,
+  der Z8001 kennt nur die Probe; weg: der Z80 kommt nicht zurueck),
+  --kanal0 steht (bis OUT 14h), --bild echt (Bildwechsel alle 17825 us
+  statt nach Abfragen), --rom M5|M6|C6 (Kennung bei 0FF7h).
+- --zaehl: ausgefuehrte Befehle zaehlen und bei jeder Skriptzeile
+  "bild" melden.
 
 Die Bilder lassen sich mit denen der PC-Simulation vergleichen (gleiches
 Skript, gleiche Spielnummer). Braucht das Python-Paket unicorn (2.x).
@@ -29,12 +39,21 @@ ap.add_argument('--arg', default='')
 ap.add_argument('--nomaus', action='store_true')
 ap.add_argument('--max', type=int, default=4000)
 ap.add_argument('--speicher', type=int, default=2, help='freie 64-KB-Bloecke')
+ap.add_argument('--cpu', default='v20', choices=['8088', 'v20'])
+ap.add_argument('--fpu', default='keiner', choices=['keiner', '8087'])
+ap.add_argument('--karte', default='k235', choices=['k235', 'k230', 'keine'])
+ap.add_argument('--kopro', default='keiner', choices=['keiner', 'k234', 'k238', 'weg'])
+ap.add_argument('--kanal0', default='laeuft', choices=['laeuft', 'steht'])
+ap.add_argument('--bild', default='abfrage', choices=['abfrage', 'echt'])
+ap.add_argument('--rom', default='')
+ap.add_argument('--zaehl', action='store_true', help='Befehle zaehlen, bei jedem bild melden')
+ap.add_argument('--psp', type=lambda x: int(x, 16), default=0x0FF0, help='Segment des PSP (hex)')
 a = ap.parse_args()
 
 mu = Uc(UC_ARCH_X86, UC_MODE_16)
 mu.mem_map(0, 0x100000)
 d = open(a.prog, 'rb').read()
-PSP = 0x0FF0
+PSP = a.psp
 LAD = PSP + 0x10
 COM = d[:2] != b'MZ'
 if COM:         # .COM (etwa Turbo Pascal 3): alles in einem Segment ab 100h
@@ -78,6 +97,8 @@ def zeile():
         w = z[1]; taste = int(w, 16) if w.startswith('0x') else ord(w[0])
     elif z and z[0] == 'bild':
         gdc_flush(); sim.w_bild(z[1].encode())
+        if a.zaehl:
+            print('%s: %d Befehle' % (z[1], zl[0]), flush=True)
     return taste
 
 # ---- 7220: Eintraege sammeln, RDAT/CURD beantworten (wie pruef68.py) ----
@@ -109,10 +130,15 @@ def maus_antwort(c):
 # unter DOS 3.3 (Modus 3, 27463), nach Steuerwort B4h Modus 2 (2 us je
 # Schritt); Kanal 0 mit rund 56 Hz.
 pit = dict(t=0, m2=False, latch={0: 0, 2: 0}, lo={0: True, 2: True})
+if a.kanal0 == 'laeuft':
+    pit['k0an'] = 0
+pic = dict(maske=0xB8)
 def pit_wert(k):
     t = pit['t']
     if k == 0:
-        return (0x323 - t // 17825) & 0xFFFF
+        if 'k0an' not in pit:
+            return 0x323
+        return (0x323 - (t - pit['k0an']) // 17825) & 0xFFFF
     if pit['m2']:
         return (65536 - (t // 2) % 65536) & 0xFFFF
     return 27463 - t % 27463
@@ -129,7 +155,17 @@ def port_in(uc, port, size, ud):
         return v
     if p == 0xA0:
         gdc['vs'] += 1
-        v = 0x04 | (0x20 if (gdc['vs'] // 7) & 1 else 0) | (0x40 if (gdc['vs'] // 2) & 1 else 0) | (1 if gdc['lese'] else 0)
+        if a.bild == 'echt':
+            vs = 0x20 if pit['t'] % 17825 < 1200 else 0
+        else:
+            vs = 0x20 if (gdc['vs'] // 7) & 1 else 0
+        v = 0x04 | vs | (0x40 if (gdc['vs'] // 2) & 1 else 0) | (1 if gdc['lese'] else 0)
+    elif p == 0x13:
+        v = 0x02 if a.karte == 'keine' else 0x00
+    elif p == 0x91:
+        v = pic['maske'] if a.karte == 'k235' else 0x91
+    elif p == 0xCE:
+        v = 0xCE
     elif p == 0xA1:
         gdc_flush()
         v = gdc['lese'].pop(0) if gdc['lese'] else 0
@@ -167,10 +203,21 @@ def port_out(uc, port, size, value, ud):
         elif v == 0xB4:
             pit['m2'] = True
     elif p == 0x11:                     # ROM ueber 0-1FFFh: Kennbuchstabe
-        st['rom'] = bytes(mu.mem_read(0x0FF9, 1))
-        mu.mem_write(0x0FF9, b'M' if a.mono else b'C')
+        st['rom'] = bytes(mu.mem_read(0x0FF7, 8))
+        k = bytearray(st['rom'])
+        k[2] = ord('M' if a.mono else 'C')
+        if a.rom:
+            k[0] = 8; k[2] = ord(a.rom[0]); k[4] = ord('.'); k[5] = ord('0')
+            k[6] = ord(a.rom[1]); k[7] = ord('.')
+        mu.mem_write(0x0FF7, bytes(k))
     elif p == 0x10 and 'rom' in st:
-        mu.mem_write(0x0FF9, st.pop('rom'))
+        mu.mem_write(0x0FF7, st.pop('rom'))
+    elif p == 0x91 and a.karte == 'k235':
+        pic['maske'] = v
+    elif p == 0x14 and 'k0an' not in pit:
+        pit['k0an'] = pit['t']
+    elif p == 0xD0 and a.karte == 'k235':
+        z80lauf()
 
 def R(r): return mu.reg_read(r)
 def W(r, v): mu.reg_write(r, v & 0xFFFF)
@@ -209,8 +256,10 @@ def intr(uc, no, ud):
             st['frei'] = PSP + bx
         else:
             W(UC_X86_REG_AX, 8); W(UC_X86_REG_BX, 0xA000 - PSP); flag(0, 1)
-    elif ah in (0x25, 0x1A):
+    elif ah in (0x25, 0x1A, 0x49):
         pass
+    elif ah in (0x51, 0x62):
+        W(UC_X86_REG_BX, PSP)
     elif ah == 0x35:
         W(UC_X86_REG_BX, 0); mu.reg_write(UC_X86_REG_ES, 0)
     elif ah == 0x30:
@@ -258,6 +307,116 @@ def intr(uc, no, ud):
     else:
         print('INT 21h AH=%02Xh nicht nachgebildet' % ah)
         stop()
+
+# ---- Z80 und Koprozessor (OUT D0h vom 8088) ----
+kopro = dict(laeufe=0)
+def k68():
+    from unicorn.m68k_const import UC_M68K_REG_PC, UC_M68K_REG_A7, UC_CPU_M68K_M68000
+    m = Uc(UC_ARCH_M68K, UC_MODE_BIG_ENDIAN)
+    m.ctl_set_cpu_model(UC_CPU_M68K_M68000)
+    m.mem_map(0, 0x100000)
+    m.mem_map(0xFFFFF000, 0x1000)
+    m.mem_write(0, bytes(mu.mem_read(0, 0x100000)))
+    ssp, pc = struct.unpack('>II', bytes(m.mem_read(0, 8)))
+    m.reg_write(UC_M68K_REG_A7, ssp); m.reg_write(UC_M68K_REG_PC, pc)
+    fertig = []
+    def schreib(uc, acc, adr, size, val, ud):
+        if adr & 0xFFFFF == 0xFFFDF:
+            fertig.append(1); uc.emu_stop()
+    m.hook_add(UC_HOOK_MEM_WRITE, schreib)
+    try:
+        m.emu_start(pc, 0xFFFFFFFF, count=5000000)
+    except UcError as e:
+        print('68008: Fehler', e)
+    if not fertig:
+        print('68008 kam nicht zurueck - die Maschine stuende'); stop(); return
+    mu.mem_write(0, bytes(m.mem_read(0, 0x100000)))
+PROBE = bytes.fromhex('0000C00000000008600400 00E80711FC0036000011C0FFDF4E722700C85A6E0800003A8600DF7A00'.replace(' ', ''))
+def kstart():                           # OUT DFh vom Z80
+    kopro['laeufe'] += 1
+    if a.kopro == 'k234':
+        k68()
+    elif a.kopro == 'k238':
+        if bytes(mu.mem_read(0, 40)) == PROBE:
+            mu.mem_write(0, b'\x5a')
+        else:
+            print('Z8001: nur die Probe nachgebildet')
+
+def z80lauf():
+    if a.kopro == 'weg':
+        return
+    import z80
+    zm = z80.Z80Machine()
+    zm.set_memory_block(0, bytes(mu.mem_read(0, 0x10000)))
+    zs = dict(aus=False)
+    def zein(port):
+        return 0xFF
+    def zaus(port, v):
+        port &= 0xFF
+        if port == 0xD0:
+            zs['aus'] = True
+            zm.ticks_to_stop = 0
+        elif port == 0xDF:
+            mu.mem_write(0, bytes(zm.memory[0:0x10000]))
+            kstart()
+            zm.set_memory_block(0, bytes(mu.mem_read(0, 0x10000)))
+    zm.set_input_callback(zein)
+    zm.set_output_callback(zaus)
+    zm.pc = 0xF110
+    zm.sp = 0xFF00
+    n = 0
+    while not zs['aus'] and n < 200000 and not st['ende']:
+        zm.ticks_to_stop = 1                # je Befehl, damit nach OUT D0h Schluss ist
+        zm.run()
+        n += 1
+    if not zs['aus']:
+        print('Z80 kam nicht zurueck (PC %04X) - die Maschine stuende' % zm.pc); stop(); return
+    mu.mem_write(0, bytes(zm.memory[0:0x10000]))
+
+# ---- 8088/V20 und 8087 an den Stellen in GHW.INC ----
+def cpu_hooks():
+    m = bytes(mu.mem_read(0, 0xA0000))
+    def alle(muster):
+        i = m.find(muster)
+        while i >= 0:
+            yield i
+            i = m.find(muster, i + 1)
+    def setze(adr, f):
+        mu.hook_add(UC_HOOK_CODE, f, None, adr, adr)
+    def ip(n):
+        W(UC_X86_REG_IP, R(UC_X86_REG_IP) + n)
+    for i in alle(b'\x8b\xdc\x6a\x00'):           # PUSH 0: 8088 = JPE $+2
+        if a.cpu == '8088':
+            setze(i + 2, lambda uc, ad, sz, ud: ip(2))
+    for i in alle(b'\xb8\x02\x01\xd5\x10'):       # AAD 16: V20 rechnet mit 10
+        if a.cpu == 'v20':
+            def aadv(uc, ad, sz, ud):
+                ax = R(UC_X86_REG_AX); W(UC_X86_REG_AX, ((ax >> 8) * 10 + (ax & 0xFF)) & 0xFF); ip(2)
+            setze(i + 3, aadv)
+    for i in alle(b'\xdb\xe3\xb9'):                # FNINIT
+        setze(i, lambda uc, ad, sz, ud: ip(2))
+    for i in alle(b'\xdd\x3e'):                     # FNSTSW [mem]
+        if m[i + 4:i + 5] == b'\xb9':
+            def sw(uc, ad, sz, ud):
+                if a.fpu == '8087':
+                    o = struct.unpack('<H', bytes(mu.mem_read(ad + 2, 2)))[0]
+                    mu.mem_write(lin(R(UC_X86_REG_DS), o), b'\0\0')
+                ip(4)
+            setze(i, sw)
+    for i in alle(b'\xd9\x3e'):                     # FNSTCW [mem]
+        if m[i + 4:i + 5] == b'\xb9':
+            def cw(uc, ad, sz, ud):
+                if a.fpu == '8087':
+                    o = struct.unpack('<H', bytes(mu.mem_read(ad + 2, 2)))[0]
+                    mu.mem_write(lin(R(UC_X86_REG_DS), o), b'\xff\x03')
+                ip(4)
+            setze(i, cw)
+cpu_hooks()
+zl = [0]
+if a.zaehl:
+    def zhook(uc, ad, sz, ud):
+        zl[0] += 1
+    mu.hook_add(UC_HOOK_CODE, zhook)
 
 mu.hook_add(UC_HOOK_INSN, port_in, None, 1, 0, UC_X86_INS_IN)
 mu.hook_add(UC_HOOK_INSN, port_out, None, 1, 0, UC_X86_INS_OUT)

@@ -658,6 +658,136 @@ int r;
 /* ------------------------------------------------------------------ */
 /* Zeilen wortweise                                                   */
 
+/* Verschobene Bitzeile: einmal rechnen, dann fuer jede Ebene und jeden
+   Durchgang nur kopieren. qzd Daten, qzb Maske (nb Einsen), qzi Maske
+   ohne Daten; je k Byte ab Bit sx & 15. qzl: leer (Daten, umgekehrt). */
+static char qzd[84], qzb[84], qzi[84];
+#ifdef __ia16__
+extern int qshz();
+#endif
+static int qzk, qzld, qzli, qzhi;
+
+static int qshift(sx, b, nb)
+int sx, nb;
+char *b;
+{
+        register int j, v, m, altv, altm;
+        int i, sh, n8, rest, letzt;
+
+        sh = sx & 15;
+        qzk = 2 * ((sh + nb + 15) >> 4);
+        n8 = (nb + 7) >> 3;
+        rest = nb & 7;
+        letzt = rest ? (1 << rest) - 1 : 0xFF;
+        i = -(sh >> 3);
+        sh &= 7;
+        qzhi = 0;               /* qzi erst bei Bedarf */
+        if (sh == 0) {          /* auf Bytegrenze: nur kopieren */
+                j = -i;         /* 0 oder 1 Byte davor */
+                for (m = 0; m < qzk; m++) {
+                        qzd[m] = 0;
+                        qzb[m] = m >= j && m < j + n8 ? 0xFF : 0;
+                }
+                gkopi(&qzd[j], b, n8);
+                qzd[j + n8 - 1] &= letzt;
+                qzb[j + n8 - 1] = letzt;
+                qzld = 1;
+                for (m = j; m < j + n8; m++)
+                        if (qzd[m]) {
+                                qzld = 0;
+                                break;
+                        }
+                return 0;
+        }
+#ifdef __ia16__
+        qzld = qshz(qzd, qzb, b, qzk, i, n8, sh, letzt);    /* GCRTDOS.S */
+        return 0;
+#endif
+        altv = altm = 0;
+        qzld = 1;
+        for (j = 0; j < qzk; j++, i++) {
+                v = m = 0;
+                if (i >= 0 && i < n8) {
+                        v = b[i] & 0xFF;
+                        m = 0xFF;
+                        if (i == n8 - 1) {
+                                v &= letzt;
+                                m = letzt;
+                        }
+                }
+                qzd[j] = (v << sh) | altv;
+                qzb[j] = (m << sh) | altm;
+                if (qzd[j])
+                        qzld = 0;
+                altv = sh ? v >> (8 - sh) : 0;
+                altm = sh ? m >> (8 - sh) : 0;
+        }
+        return 0;
+}
+
+static int qinv()               /* Maske ohne Daten (a = 1) */
+{
+        register int j;
+
+        if (!qzhi) {
+                qzli = 1;
+                for (j = 0; j < qzk; j++)
+                        if ((qzi[j] = qzb[j] & ~qzd[j]) != 0)
+                                qzli = 0;
+                qzhi = 1;
+        }
+        return 0;
+}
+
+/* Eintrag CURS, MASK, FIGS, WDAT w mit k Byte aus q (0: Nullen) */
+static int qrowk(sy, sx, e, w, q)
+int sy, sx, e, w;
+char *q;
+{
+        UW adr;
+        char *p;
+        int k;
+
+        k = qzk;
+        qplatz(40 + k);         /* kein Ausgeben mittendrin (Ruecknahme) */
+        adr = qadr(e, sx, sy);
+        p = &ql[qn];
+        *p++ = 4; *p++ = 0x49;                          /* CURS */
+        *p++ = adr & 0xFF; *p++ = (adr >> 8) & 0xFF; *p++ = 0;
+        *p++ = 3; *p++ = 0x4A; *p++ = 0xFF; *p++ = 0xFF;  /* MASK */
+        *p++ = 4; *p++ = 0x4C; *p++ = 0x02; *p++ = 0; *p++ = 0;  /* FIGS */
+        *p++ = 1 + k; *p++ = w;                         /* WDAT */
+        qe = qn + 14;
+        qn += 16;
+        if (q)
+                gkopi(p, q, k);
+        else
+                while (k-- > 0)
+                        *p++ = 0;
+        qn += qzk;
+        return 0;
+}
+
+/* Bitzeile aus qshift in Ebene e, Art a wie qrow */
+static int qrowa(sy, sx, e, w, a)
+int sy, sx, e, w, a;
+{
+        char *q;
+        int leer;
+
+        if (sy < 0 || sy > 399 || qzk <= 0)
+                return 0;
+        switch (a) {
+        case 0:  q = qzd; leer = qzld; break;
+        case 1:  qinv(); q = qzi; leer = qzli; break;
+        case 2:  q = qzb; leer = 0; break;
+        default: q = (char *)0; leer = 1;
+        }
+        if (leer && w != 0x20)          /* nichts zu tun */
+                return 0;
+        return qrowk(sy, sx, e, w, q);
+}
+
 /* Eine Bitzeile (Bit 0 = Punkt sx) in Ebene e mit WDAT-Befehl w.
    a: 0 Bits, 1 Bits umgekehrt, 2 lauter Einsen, 3 lauter Nullen.
    Setzen, Loeschen und Umkehren lassen Nullbits unberuehrt; so stoeren
@@ -666,64 +796,30 @@ int qrow(sy, sx, b, nb, e, w, a)
 int sy, sx, nb, e, w, a;
 char *b;
 {
-        register int j, v, alt;
-        int nw, sh, n8, k, letzt, rest, i, leer;
         UW adr;
         char *p;
+        int k;
 
         if (nb <= 0 || sy < 0 || sy > 399)
                 return 0;
-        sh = sx & 15;
-        nw = (sh + nb + 15) >> 4;
-        n8 = (nb + 7) >> 3;
-        rest = nb & 7;
-        letzt = rest ? (1 << rest) - 1 : 0xFF;
-        qplatz(40 + 2 * nw);    /* kein Ausgeben mittendrin (Ruecknahme) */
-        adr = qadr(e, sx, sy);
-        p = &ql[qn];
-        *p++ = 4; *p++ = 0x49;                          /* CURS */
-        *p++ = adr & 0xFF; *p++ = (adr >> 8) & 0xFF; *p++ = 0;
-        *p++ = 3; *p++ = 0x4A; *p++ = 0xFF; *p++ = 0xFF;  /* MASK */
-        *p++ = 4; *p++ = 0x4C; *p++ = 0x02; *p++ = 0; *p++ = 0;  /* FIGS */
-        k = 2 * nw;
-        *p++ = 1 + k; *p++ = w;                         /* WDAT */
-        qe = qn + 14;
-        qn += 16;
-        if (sh == 0 && a == 0 && (nb & 15) == 0) {      /* ganze Worte */
+        if ((sx & 15) == 0 && a == 0 && (nb & 15) == 0) {   /* ganze Worte */
+                k = nb >> 3;
+                qplatz(40 + k);
+                adr = qadr(e, sx, sy);
+                p = &ql[qn];
+                *p++ = 4; *p++ = 0x49;
+                *p++ = adr & 0xFF; *p++ = (adr >> 8) & 0xFF; *p++ = 0;
+                *p++ = 3; *p++ = 0x4A; *p++ = 0xFF; *p++ = 0xFF;
+                *p++ = 4; *p++ = 0x4C; *p++ = 0x02; *p++ = 0; *p++ = 0;
+                *p++ = 1 + k; *p++ = w;
+                qe = qn + 14;
+                qn += 16;
                 gkopi(p, b, k);
                 qn += k;
                 return 0;
         }
-        ql[qe] = 1;
-        /* Quelle um sh Bit nach rechts versetzt (ganze Bytes + Rest) */
-        i = -(sh >> 3);
-        sh &= 7;
-        alt = 0;
-        leer = 1;
-        for (j = 0; j < k; j++, i++) {
-                v = 0;
-                if (i >= 0 && i < n8) {
-                        switch (a) {
-                        case 0: v = b[i] & 0xFF; break;
-                        case 1: v = ~b[i] & 0xFF; break;
-                        case 2: v = 0xFF; break;
-                        }
-                        if (i == n8 - 1)
-                                v &= letzt;
-                }
-                *p++ = ((v << sh) | alt) & 0xFF;
-                if (((v << sh) | alt) & 0xFF)
-                        leer = 0;
-                alt = sh ? v >> (8 - sh) : 0;
-        }
-        if (leer && w != 0x20) {        /* nichts zu tun: Eintrag zurueck */
-                qn = qe - 14;   /* CURS 5, MASK 4, FIGS 5 Byte */
-                qe = -1;
-                return 0;
-        }
-        qn += k;
-        ql[qe] += k;
-        return 0;
+        qshift(sx, b, nb);
+        return qrowa(sy, sx, e, w, a);
 }
 
 /* Bitzeile in der aktuellen Farbe und Betriebsart auf alle Ebenen */
@@ -733,28 +829,34 @@ char *b;
 {
         int e, an, ganz;
 
+        if (nb <= 0 || sy < 0 || sy > 399)
+                return 0;
         ganz = (sx & 15) == 0 && (nb & 15) == 0;
+        qshift(sx, b, nb);              /* einmal fuer alle Ebenen */
         for (e = 0; e < qneb; e++) {
                 an = qebon(e, qcol);
                 switch (qmode) {
                 case 0:
-                        if (ganz)
-                                qrow(sy, sx, b, nb, e, 0x20, an ? 0 : 3);
-                        else if (an) {
-                                qrow(sy, sx, b, nb, e, 0x22, 1);
-                                qrow(sy, sx, b, nb, e, 0x23, 0);
+                        if (ganz) {
+                                if (an)
+                                        qrow(sy, sx, b, nb, e, 0x20, 0);
+                                else
+                                        qrowa(sy, sx, e, 0x20, 3);
+                        } else if (an) {
+                                qrowa(sy, sx, e, 0x22, 1);
+                                qrowa(sy, sx, e, 0x23, 0);
                         } else
-                                qrow(sy, sx, b, nb, e, 0x22, 2);
+                                qrowa(sy, sx, e, 0x22, 2);
                         break;
                 case 1:
                         if (an)
-                                qrow(sy, sx, b, nb, e, 0x21, 0);
+                                qrowa(sy, sx, e, 0x21, 0);
                         break;
                 case 2:
-                        qrow(sy, sx, b, nb, e, 0x22, 0);
+                        qrowa(sy, sx, e, 0x22, 0);
                         break;
                 default:
-                        qrow(sy, sx, b, nb, e, an ? 0x23 : 0x22, 0);
+                        qrowa(sy, sx, e, an ? 0x23 : 0x22, 0);
                 }
         }
         return 0;
@@ -783,18 +885,25 @@ char *s;
 int n;
 {
         static char z[80];
-        int z1, gr, zr, i, j, k, v, sy, bit, nb;
+        static int gx[80];
+        int z1, gr, zr, i, j, k, v, sy, bit, nb, nz;
 
         z1 = qzoom + 1;
         nb = n * 8 * z1;
+        nz = (nb + 7) >> 3;
+        if (nz > 80)
+                nz = 80;
         sy = qsy(qy);
         if (!qorig)
                 sy -= 16 * z1 - 1;
+        for (i = 0; i < n; i++)
+                gx[i] = qglyph(s[i]) * 16;
         for (gr = 0; gr < 16; gr++) {
-                for (i = 0; i < 80; i++)
-                        z[i] = 0;
+                if (z1 > 1)
+                        for (i = 0; i < nz; i++)
+                                z[i] = 0;
                 for (i = 0; i < n; i++) {
-                        v = fntbit[qglyph(s[i]) * 16 + gr] & 0xFF;
+                        v = fntbit[gx[i] + gr] & 0xFF;
                         if (z1 == 1) {
                                 z[i] = v;
                                 continue;

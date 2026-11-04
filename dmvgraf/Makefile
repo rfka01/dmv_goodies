@@ -40,7 +40,7 @@ MTEST.68K: test/MTEST.C $(LIB68) src/*.H
 
 # MS-DOS (8088/V20, small) mit gcc-ia16 (/opt/ia16/bin oder IA16=...)
 LIBDOS = src/GARG68.C src/GRAF.C src/GBILD.C src/GEIN.C src/GKERN.C src/GHWDOS.C \
-         src/GINFO.C src/GZEIT.C src/GPIC.C src/GPIC86.S
+         src/GINFO.C src/GZEIT.C src/GPIC.C src/GPIC86.S src/GHW86.S
 
 GTEST.EXE: test/GTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/GTEST.C $(LIBDOS)
@@ -57,6 +57,9 @@ PTEST.EXE: test/PTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 
 BTEST.EXE: test/BTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/BTEST.C $(LIBDOS)
+
+KTEST.COM: test/KTEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
+	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/KTEST.C $(LIBDOS)
 
 ITEST.COM: test/ITEST.C src/GCRTDOS.S $(LIBDOS) src/*.H
 	python3 tools/baudos.py -I src -o $@ src/GCRTDOS.S test/ITEST.C $(LIBDOS)

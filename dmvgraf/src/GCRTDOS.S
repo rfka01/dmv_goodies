@@ -422,6 +422,66 @@ grom:   push    bp                      # grom(puffer, versatz, n)
 gdsg:   mov     ax, ds
         ret
 
+# qshz(d, m, b, k, i0, n8, sh, letzt) -> 1, wenn die Daten leer sind.
+# Bitzeile b (n8 Byte, letztes mit letzt maskiert) um sh Bit (1-7) nach
+# links versetzt nach d (k Byte), ab Quellbyte i0 (0 oder -1); m bekommt
+# dasselbe fuer eine Zeile aus Einsen (GRAF.C, qshift)
+        .global qshz
+qshz:   push    bp
+        mov     bp, sp
+        push    si
+        push    di
+        mov     di, [bp+4]
+        mov     bx, [bp+6]
+        mov     si, [bp+8]
+        add     si, [bp+12]
+        mov     ax, [bp+8]
+        add     ax, [bp+14]
+        dec     ax
+        push    ax                      # [bp-6] letztes Quellbyte
+        xor     ax, ax
+        push    ax                      # [bp-8] ODER der Daten
+        mov     cl, [bp+16]
+        xor     dx, dx                  # DL, DH: Uebertrag Daten, Maske
+1:      xor     ax, ax
+        cmp     si, [bp+8]
+        jb      3f
+        cmp     si, [bp-6]
+        ja      3f
+        mov     al, [si]
+        mov     ah, 0xFF
+        jne     3f
+        and     al, [bp+18]
+        mov     ah, [bp+18]
+3:      push    ax
+        xor     ah, ah
+        shl     ax, cl
+        or      al, dl
+        mov     dl, ah
+        mov     [di], al
+        or      [bp-8], al
+        inc     di
+        pop     ax
+        mov     al, ah
+        xor     ah, ah
+        shl     ax, cl
+        or      al, dh
+        mov     dh, ah
+        mov     [bx], al
+        inc     bx
+        inc     si
+        dec     word ptr [bp+10]
+        jnz     1b
+        xor     ax, ax
+        cmp     byte ptr [bp-8], 0
+        jne     4f
+        inc     ax
+4:      lea     sp, [bp-4]
+        pop     di
+        pop     si
+        pop     bp
+        ret
+
 # gblit(p): ganzes Bild direkt an den 7220 wie HOPPLERs BlitAsm (aus
 # tools/inline/I86BLIT.ASM). p: Quelle Segment, Versatz, Zeilen,
 # Zeilenabstand, Worte je Ebene, Maske fuer das letzte Wort, Wortadresse

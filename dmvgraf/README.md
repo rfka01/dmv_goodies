@@ -15,11 +15,15 @@ A graphics, image, mouse and sound library for the **NCR Decision Mate V**, link
 - Mouse (K806), keyboard, frame wait, tone via the keyboard 8741
 - Image collections of mixed sizes and formats in one file (`gbldv`, each image with its own 6-byte header; writer `tools/mkgbl.py`)
 - Packed full-screen pictures (`.PIC`, LZSS, `gpic`, `gpicm`, header `DMVPIC.H`) written straight into the image store; the same 8086 kernel as a standalone MASM include (`src/GPIC.INC`) and a packer `tools/dmvpack.py`
-- MS-DOS only: hardware report (`ghinfo`, `ghcpu`), time base from the 8253 (`gtinit`, `gtus`), running a code block on the coprocessor (`gcorun`, K235), and a tiny-model (.COM) library
+- MS-DOS only: hardware report (`ghinfo`, `ghcpu`, `ghzeile`), time base from the 8253 (`gtinit`, `gtus`), running a code block on the coprocessor (`gcorun`, `gcoblk`, K235), and a tiny-model (.COM) library. Detection, coprocessor and time base are one 8086 kernel (`src/GHW.INC`, `src/GZEIT.INC`, MASM) shared with DMVDEMO and DMVRACE
 
-Status 0.3 (2.11.2026): a fast image path like HOPPLER's `BlitAsm` (word-aligned, unzoomed images go straight from the image store to the 7220), sprites, patterns anchored to the screen and in two colours, hardware probes after the hardware detection guide (empty bus echoes its address, K806 via F1, screen probe that restores memory), MS-DOS hardware report, time base and coprocessor run, tiny model. Since then: masked format-5 sprites (`gsprset`), packed full-screen pictures (`gpic`, also from Turbo Pascal 3), image collections (`gbldv`), a C tone queue that no longer waits for the 8741. All screens unchanged or as intended in the test benches. Tested in MAME (3.11.2026, MS-DOS): `gpic`/`gpicm` from C, MASM and Pascal, `gbldv` from C and Pascal, the tone queue, `gcorun` with a K234 (ITEST K: the 68008 did the sum).
+Status 0.3 (2.11.2026): a fast image path like HOPPLER's `BlitAsm` (word-aligned, unzoomed images go straight from the image store to the 7220), sprites, patterns anchored to the screen and in two colours, hardware probes after the hardware detection guide (empty bus echoes its address, K806 via F1, screen probe that restores memory), MS-DOS hardware report, time base and coprocessor run, tiny model. Since then: masked format-5 sprites (`gsprset`), packed full-screen pictures (`gpic`, also from Turbo Pascal 3), image collections (`gbldv`), a C tone queue that no longer waits for the 8741. All screens unchanged or as intended in the test benches. Tested in MAME (3.11.2026, MS-DOS): `gpic`/`gpicm` from C, MASM and Pascal, `gbldv` from C and Pascal, the tone queue, `gcorun` with a K234 (ITEST K: the 68008 did the sum). On 4.11.2026: detection, coprocessor and time base as one MASM kernel (`GHW.INC`, `GZEIT.INC`) shared with DMVDEMO and DMVRACE, checked in the test bench for all hardware cases, not yet in MAME; horizontal text about 40 % faster (GTEST tested in MAME).
 
 Status 0.2: CP/M-8000 tested in MAME with Mahjongg (rfka01/dmv_games). CP/M-68K in a test bench (`tools/pruef68.py`, 68000 in Unicorn): the same screens as the PC simulation, with and without the BIOS block, colour and mono; Mahjongg tested in MAME under our CP/M-68K 1.3 v005 and NCR's 1.2. MS-DOS: the same screens as the PC simulation in its test bench (`tools/pruefdos.py`, 8086 in Unicorn), Mahjongg tested in MAME under MS-DOS 3.30.
+
+### Hardware detection, time base, coprocessor (MS-DOS)
+
+One source for every 8086 program: `src/GHW.INC` and `src/GZEIT.INC` (MASM 5.1 / JWasm `-Zm`), included by DMVDEMO, DMVRACE and PITTEST and turned into the library kernel `src/GHW86.S` by `tools/gpicbin.py`; the C calls (`ghinfo`, `ghcpu`, `gtinit`, `gtus`, `gtbild`, `gt0per`, `gt0`, `gcorun`) are unchanged, new are `ghzeile`, `gcoblk` and `gteich`. Rules (also for the CP/M versions): DMV check first, read only; the empty bus echoes the low address byte; firmware letter at 0FF9h with interrupts off; CPU by `PUSH 0` and `AAD 16`, which must agree; 8087 by a 5A5Ah-preset control word; K235 by port 13h bit 1 and the 8259 mask register; the screen probe only in graphics mode (or with the write address EAD saved, as `ginit` does); channel 0 and frame rate calibrated separately and only on request (0.26 s each). Coprocessor only on a K235: the Z80 waits at F10Eh, starts the K234/K238 with `OUT DFh` (never D8h; the real K234 did not start with D8h), `DI` first, F10Eh–F11Ch and the overwritten vectors are restored; the bilingual 40-byte probe from DMVDIAG tells K234 (36h) from K238 (5Ah). The test bench emulates 8088/V20, 8087, K235/K230, no coprocessor, K234 (a real 68008 run in Unicorn), K238 (probe only), a Z80 that does not come back and a stopped channel 0; C and MASM give the same table.
 
 ### Packed full-screen pictures (.PIC)
 
@@ -29,7 +33,7 @@ Status 0.2: CP/M-8000 tested in MAME with Mahjongg (rfka01/dmv_games). CP/M-68K 
 
 Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate V**, die ins Programm gebunden wird – wie NCRGRAF (CP/M-80, MS-BASIC) und TurboGraf (Turbo Pascal 3). Was es dort schon gibt, heißt und verhält sich wie dort; so laufen alte Programme mit wenig Aufwand weiter. Sie ist K&R-C für **CP/M-8000** (Z8001-Karte K238, mit einem Kern in Z8000-Assembler) **CP/M-68K** (68008-Karte K234, mit gcc übersetzt, auch auf NCRs eigenem CP/M-68K 1.2 ohne DMV-BIOS-Block) und **MS-DOS** (8088/V20, mit gcc-ia16 übersetzt), dazu eine Simulation für den PC. Fertig übersetzte Bibliotheken für alle drei liegen in [`lib/`](lib/); wie man sie aus C und Assembler aufruft, steht in [`EINBINDEN.md`](EINBINDEN.md). Für **Turbo Pascal 3** unter MS-DOS und CP/M-80 gibt es eine Übersetzung nach Pascal als Include-Dateien in [`pascal/`](pascal/).
 
-**Stand 0.3** (2.11.2026): schneller Weg für Bilder wie HOPPLERs `BlitAsm`, Figuren über GCHRD (`gsprdef`, `gspr`), Muster am Schirm verankert, zweifarbig und selbst festgelegt (`gpdef`, `gbcol`), Hardwareproben nach der Anleitung „Hardware erkennen“ (Echo des leeren Busses, K806 über F1, Bildschirmprobe mit Wiederherstellen, DMV-Prüfung vor `ginit`), unter MS-DOS Hardwareauskunft (`ghinfo`, `ghcpu`), Zeitbasis (`gtinit` …), Koprozessor (`gcorun`) und eine Bibliothek im Speichermodell tiny. Danach: Figuren im Format 5 mit Maske (`gsprset`), Anzahl der Figuren frei, `gbload` auch für Format 5, gepackte Vollbilder (`gpic`, auch aus Turbo Pascal 3), Bildsammlungen (`gbldv`), Tonwarteschlange in C ohne Warten auf den 8741. In den Prüfständen dieselben Bilder wie die PC-Simulation. In MAME getestet (3.11.2026, MS-DOS): `gpic`/`gpicm` in C, MASM und Pascal, `gbldv` in C und Pascal (`DMVBILD.INC`, `DMVBKL.INC`), die Tonwarteschlange, `gcorun` mit K234 (ITEST K: der 68008 hat gerechnet).
+**Stand 0.3** (2.11.2026): schneller Weg für Bilder wie HOPPLERs `BlitAsm`, Figuren über GCHRD (`gsprdef`, `gspr`), Muster am Schirm verankert, zweifarbig und selbst festgelegt (`gpdef`, `gbcol`), Hardwareproben nach der Anleitung „Hardware erkennen“ (Echo des leeren Busses, K806 über F1, Bildschirmprobe mit Wiederherstellen, DMV-Prüfung vor `ginit`), unter MS-DOS Hardwareauskunft (`ghinfo`, `ghcpu`), Zeitbasis (`gtinit` …), Koprozessor (`gcorun`) und eine Bibliothek im Speichermodell tiny. Danach: Figuren im Format 5 mit Maske (`gsprset`), Anzahl der Figuren frei, `gbload` auch für Format 5, gepackte Vollbilder (`gpic`, auch aus Turbo Pascal 3), Bildsammlungen (`gbldv`), Tonwarteschlange in C ohne Warten auf den 8741. In den Prüfständen dieselben Bilder wie die PC-Simulation. In MAME getestet (3.11.2026, MS-DOS): `gpic`/`gpicm` in C, MASM und Pascal, `gbldv` in C und Pascal (`DMVBILD.INC`, `DMVBKL.INC`), die Tonwarteschlange, `gcorun` mit K234 (ITEST K: der 68008 hat gerechnet). Am 4.11.2026: Erkennung, Koprozessor und Zeitbasis als gemeinsamer MASM-Kern (`GHW.INC`, `GZEIT.INC`) für DMVGRAF, DMVDEMO und DMVRACE, im Prüfstand mit allen Hardwarefällen geprüft, in MAME noch nicht; waagrechter Text rund 40 % schneller (GTEST in MAME getestet).
 
 **Stand 0.2** (1.11.2026): CP/M-8000 mit Mahjongg (rfka01/dmv_games) in MAME getestet, direkt am 7220 und über BIOS 66/67; der Z8000-Kern erzeugt dieselben GDC-Listen wie die C-Fassung. CP/M-68K im Prüfstand (`tools/pruef68.py`, 68000 in Unicorn): dieselben Bilder wie die PC-Simulation, mit und ohne BIOS-Block, Farbe und mono. Mahjongg in MAME getestet unter unserem CP/M-68K 1.3 v005 und unter NCRs 1.2. MS-DOS im Prüfstand (`tools/pruefdos.py`, 8086 in Unicorn) wie die PC-Simulation, Mahjongg in MAME unter MS-DOS 3.30 getestet.
 
@@ -77,7 +81,9 @@ Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate 
 | `src/GHD68K.C`, `src/GSUP68.S` | CP/M-68K: 7220 direkt, ohne BIOS-Block auch Grafikbetrieb, Farbe, K806 und Ton; Supervisorzustand über BDOS 62 |
 | `src/GCRT68.S`, `src/GARG68.C` | CP/M-68K: Startstück, BDOS-Aufruf, Kommandozeile, 32-Bit-Rechnen (statt libgcc, die 68020-Befehle enthält) |
 | `src/GHWDOS.C`, `src/GCRTDOS.S` | MS-DOS: Hardwareschicht (7220, K806, 8741 direkt, Tastatur/Text/Dateien über INT 21h, Bildspeicher von DOS); Startstück (small, mit `-DTINY` tiny), Anschlüsse, Kopieren in fremde Segmente, GDC-Liste, Proben (Firmware, Prozessor, 8087, 8253) |
-| `src/GINFO.C`, `src/GZEIT.C` | nur MS-DOS: Hardwareauskunft und Koprozessor; Zeitbasis aus dem 8253 |
+| `src/GHW.INC`, `src/GZEIT.INC`, `src/GHW86.S` | nur MS-DOS: Erkennung, Koprozessor und Zeitbasis in MASM, gemeinsam mit DMVDEMO/DMVRACE; `GHW86.S` ist der daraus erzeugte Kern der Bibliothek |
+| `src/GINFO.C`, `src/GZEIT.C` | nur MS-DOS: C-Aufrufe dazu (`ghinfo`, `gcorun`, `gtinit` …) |
+| `test/KTEST.C`, `test/GHWT.ASM`, `test/ITEST.C` | Koprozessor und Hardwaretabelle aus C und MASM (Vergleich), Hardwareauskunft |
 | `src/GHDNUL.C` | andere Systeme: kein direkter Weg, alles über BIOS 66/67 |
 | `src/GHWSIM.C` | Hardwareschicht für die Simulation am PC |
 | `src/GINTERN.H`, `src/GFONT.H` | intern; Schrift aus HOPPLER (`tools/mkfont.py`) |
@@ -225,7 +231,9 @@ Für Brettspiele und alles, wo sich Bilder überdecken: nichts flackert, und jed
 
 Nach der Anleitung „NCR Decision Mate V – Hardware erkennen“ (2.11.2026) und den PITTEST-Messungen. Ein Wert 0 heißt immer „unbekannt“ oder „nicht da“, nie geraten.
 
-`ghinfo(r)` füllt `int r[16]`; vorher in `r[15]` `GH_MITCOPRO` (Koprozessor probieren, nur K235) und/oder `GH_MITUHR` (K803, dauert 1,2 s) setzen, sonst bleiben diese Einträge 0.
+**Eine Fassung für alle 8086-Programme:** Die Arbeit tun `src/GHW.INC` (Erkennung, Koprozessor) und `src/GZEIT.INC` (Zeitbasis), MASM 5.1 und JWasm `-Zm`. DMVDEMO, DMVRACE und PITTEST binden sie aus MASM ein (siehe [EINBINDEN.md](EINBINDEN.md)); für die Bibliothek macht `tools/gpicbin.py` daraus `src/GHW86.S`, und `GINFO.C`, `GZEIT.C` und `ghinit` in `GHWDOS.C` rufen nur noch diesen Kern. Die C-Aufrufe sind dieselben wie vorher. CP/M-68K und CP/M-8000 behalten ihre C-Fassung und richten sich nach den Regeln unten.
+
+`ghinfo(r)` füllt `int r[16]`; vorher in `r[15]` `GH_MITCOPRO` (Koprozessor probieren, nur K235) und/oder `GH_MITUHR` (K803, dauert 1,2 s) setzen, sonst bleiben diese Einträge 0. Der Kern füllt dieselbe Tabelle (`gh_tab`), die Hülle kopiert sie nur.
 
 | Index | Inhalt |
 |---|---|
@@ -234,18 +242,44 @@ Nach der Anleitung „NCR Decision Mate V – Hardware erkennen“ (2.11.2026) u
 | `GH_KARTE` | 1 K235 (8259 antwortet), 2 K230/K231, 0 keine 16-Bit-Karte (13h Bit 1) |
 | `GH_CPU` | 1 8088, 2 V20, 3 die Proben `PUSH 0` und `AAD 16` widersprechen sich |
 | `GH_FPU` | 0 keiner, 1 8087 (Steuerwort 03FFh), 2 anderer (etwa MAME: 037Fh) |
-| `GH_COPRO` | 0 nicht geprüft, 1 keiner, 2 K234, 4 Z80 kam nicht zurück (die zweisprachige Probe für die K238 fehlt noch) |
+| `GH_COPRO` | 0 nicht geprüft (oder keine K235), 1 keiner, 2 K234, 3 K238, 4 der Z80 kam nicht zurück, 5 nicht probiert (Kern oder Stapel liegen über dem Warteplatz F10Eh–F11Ch) |
 | `GH_BAENKE` | Erweiterungsbänke (Muster je Bank bei n:FFF0, erst alle schreiben, dann lesen, danach zurück) |
 | `GH_SPUR_A` | 40 oder 80 (0:FE08) |
 | `GH_TAKT` | Prozessortakt in 10 kHz (1600 × AAM gegen Kanal 2; V20 15 Takte, 8088 vorläufig 77) |
-| `GH_BILD` | Bildfrequenz in 1/100 Hz |
+| `GH_BILD` | Bildfrequenz in 1/100 Hz (Bildwechsel über 0,26 s) |
 | `GH_UHR` | 1 = K803 auf 4B läuft |
 
-`ghcpu()` ist die Kurzform für den Start, auch aus Assembler: `GH_CPU | GH_FPU << 2 | GH_KARTE << 4` in AX.
+`ghcpu()` ist die Kurzform für den Start: `GH_CPU | GH_FPU << 2 | GH_KARTE << 4`. `ghzeile(p, engl)` schreibt nach `ghinfo` die Zeile „Erkannt: K235 mit V20, 8087, K234 (68008)“ (Wortwahl wie DMVDEMO; mit `engl` = 1 „Found: K235 with V20, …“) nach `p` (80 Byte).
 
-**Zeitbasis** (`GZEIT.C`): `gtinit()` lernt Kanal 2 des 8253 kennen (unter DOS Modus 3, Startwert 5000 oder 27463, 1 µs je Schritt; ohne DOS setzt es ihn auf Modus 2 mit vollem Umfang) und eicht Kanal 0 (Bildtakt) und den Bildwechsel; steht Kanal 0, stößt es ihn über Port 14h an. `gtus()` liefert µs seit `gtinit` als `long` und muss öfter gerufen werden als einmal je Halbperiode von Kanal 2 (5 bzw. 27 ms). `gtbild()` µs je Bild, `gt0per()` µs je Takt von Kanal 0 (0 = steht), `gt0()` Kanal 0 roh. Kanal 0 und 1 werden nie umprogrammiert.
+#### Regeln (für alle Fassungen)
 
-**Koprozessor** (nur K235): `gcorun(art, seg, start, len, &us)` lässt ein Programm auf dem Z80 (art 1), dem 68008 der K234 (2) oder dem Z8001 der K238 (3) laufen; der 8088 steht so lange, die Unterbrechungen sind gesperrt. Z80: `len` Byte Code ab `seg:start`, endet mit `OUT (D0h),A` und `JP F111h`; DMVGRAF legt ihn in Bank 0 unter das eigene Programm (2000h–F100h) und stellt den Speicher danach wieder her. 68008/Z8001: ab `seg:start` 8 Byte Startblock (68008: SSP und PC, Big Endian), die nach 0:0000 kommen; das Programm gibt mit einem Schreibzugriff auf FFFDFh zurück (68008: `move.b d0,$FFDF.w`, danach `stop #$2700`). Gestartet wird der Koprozessor vom Z80 mit `OUT DFh`, nie D8h. `us`: Laufzeit über Kanal 0 (auf ein Bild genau). Ergebnis 0 gut, 1 keine K235 oder kein Platz, 2 der Z80 kam nicht zurück. Lange Rechnungen in Stücken laufen lassen: nach mehr als 15 s Sperre ist der Diskettenmotor aus.
+- **Reihenfolge:** DMV-Prüfung (nur lesen: Bit 5 und 6 an A0h wechseln, FIFO leer kommt vor, nie FFh) vor allem anderen. Leerer Bus liefert das untere Adressbyte zurück; das gilt für jede Probe auf einen freien Steckplatz.
+- **Kennbuchstabe** 0FF9h (`OUT 11h`, lesen, `OUT 10h`, Unterbrechungen gesperrt): C Farbe, M Mono. Nur wenn weder Programm noch Stapel unter 2000h liegen.
+- **CPU:** `PUSH 0` (6Ah; 8088: JPE) senkt SP nur auf dem V20, `AAD 16` auf 0102h gibt 12h (8088) oder 0Ch (V20, rechnet immer mit 10). Beide müssen übereinstimmen.
+- **8087:** Status- und Steuerwort mit 5A5Ah vorbelegen, FNINIT, FNSTSW, FNSTCW; Steuerwort ≠ 5A5Ah heißt vorhanden.
+- **K235:** 13h Bit 1 = 0 und der 8259 auf 90h/91h nimmt AAh und 55h ins Maskenregister an (alter Wert zurück).
+- **Bildschirmprobe nur im Grafikbetrieb** (oder wie `ginit` mit gesicherter Schreibstelle EAD): A5C3h nach 3FF0h, 3C5Ah nach 7FF0h, 7FF0h dann 3FF0h zurücklesen, alte Worte zurück. Im Textbetrieb verstellt das Schreiben sonst die Schreibstelle der DOS-Konsole (Zeichenmüll in Zeile 0). Für eine Meldung vor dem Grafikbetrieb den Kennbuchstaben nehmen.
+- **K806** über F1 (Statusbit 3 = A0 des letzten Schreibens) und genau fünf Datenbytes; sonst wird nichts beschrieben.
+- **Unterbrechungen:** beim Kennbuchstaben, bei der Eichung und beim Koprozessorlauf gesperrt; danach gilt der alte Zustand, nicht einfach STI.
+- **Zeitbasis nur, wenn sie gebraucht wird:** Kanal 2 lernen ist kurz (bis 8 Neuladungen), Kanal 0 und Bildwechsel werden getrennt und erst auf Anfrage geeicht.
+
+#### Zeitbasis
+
+`gtinit()` lernt Kanal 2 des 8253 kennen (unter DOS Modus 3, Startwert 5000 oder 27463, 1 µs je Schritt, wird nie umprogrammiert; ohne DOS steht er, dann setzt `gtinit` Modus 2 mit vollem Umfang) und setzt die Uhr auf 0; Ergebnis 1, wenn Kanal 2 stand. `gtus()` liefert µs seit `gtinit` als `long` und muss öfter gerufen werden als einmal je Halbperiode von Kanal 2 (5 bzw. 27 ms). `gtbild()` (µs je Bild, plausibel 10 000–40 000) und `gt0per()` (µs je Takt von Kanal 0, plausibel 5000–62 500; steht er, wird er über Port 14h angestoßen und nach 10 Bildwechseln noch einmal gemessen) eichen beim ersten Aufruf über 0,26 s; `gteich(art, n)` eicht neu über n × 65 536 µs (art 0 Kanal 0, 1 Bild). Außerhalb der Plausibilität: 0. `gt0()` Kanal 0 roh. Früher eichte `gtinit` beides gleich mit (über 1 s).
+
+#### Koprozessor (nur K235)
+
+Auf der K230/K231 ist jedes `OUT D8h`–`DFh` eine Prozessorumschaltung; ohne K235 wird nichts probiert.
+
+- **Warteplatz des Z80:** ab F10Eh `OUT (D0h),A / NOP` (dort wartet der Z80, solange der 8088 läuft), ab F111h `DI / OUT (DFh),A / LD A,5Ah / LD (F11Ch),A / JP F10Eh`. F10Eh–F11Ch wird gesichert und zurückgelegt. DI zuerst: sonst sähe ein anstehender Z80-Interrupt (IM 1) bei 0038h die 8088-Vektoren als Code. Die Marke 5Ah in F11Ch zeigt, dass der Z80 zurückkam.
+- **Start nur mit `OUT DFh`, nie D8h** (damit lief die echte K234 nicht an). Der 68008 gibt mit `move.b d0,$FFDF.w` zurück und hält mit `stop`, der Z8001 mit `OUTB DFh` und `HALT`; danach gibt der Z80 mit `OUT D0h` an den 8088 zurück.
+- **Startzustand ab 0:0000:** 68008 SSP und PC (Big Endian); Z8001 Wort 0, FCW C000h, PC als (80h | Segment) << 8 und Versatz. Die überschriebenen 8088-Vektoren werden gesichert und zurückgelegt.
+- **Probe:** die zweisprachige 40-Byte-Probe aus DMVDIAG; der 68008 schreibt 36h nach 0:0000, der Z8001 5Ah. Vorher: liegen Kern oder Stapel über dem Warteplatz, wird nicht probiert (`GH_COPRO` 5).
+- **Kurze Probe mit dem echten Kern:** wer den Koprozessor rechnen lässt, macht nach der Erkennung einen kurzen Lauf mit seinem Kern (DMVDEMO: eine Zeile bei Tiefe 1); das zeigt, ob Briefkasten und Kern stimmen.
+
+`gcorun(art, seg, start, len, &us)` lässt ein Programm auf dem Z80 (art 1), dem 68008 der K234 (2) oder dem Z8001 der K238 (3) laufen; der 8088 steht so lange, die Unterbrechungen sind gesperrt. Z80: `len` Byte Code ab `seg:start`; DMVGRAF legt ihn in Bank 0 unter das eigene Programm (2000h–F100h), hängt den Rückweg an (der Code läuft bis zu seinem Ende durch, kein eigener Rücksprung) und stellt den Speicher danach wieder her. 68008/Z8001: ab `seg:start` 8 Byte Startzustand, die nach 0:0000 kommen. `us`: Laufzeit über Kanal 0 (auf ein Bild genau). Ergebnis 0 gut, 1 kein Weg (keine K235, kein Platz, Warteplatz belegt), 2 der Z80 kam nicht zurück. `gcoblk(absaetze, &seg)` holt einen DOS-Block, der nicht über dem Warteplatz liegt und für den Z8001 ganz in einem 64-KB-Segment (bis zu vier Versuche). Lange Rechnungen in Stücken laufen lassen: nach mehr als 15 s Sperre ist der Diskettenmotor aus.
+
+**Prüfung:** `tools/pruefdos.py` bildet 8088 und V20, mit und ohne 8087, K235/K230/keine Karte, keinen Koprozessor, K234 (der 68008 rechnet in Unicorn), K238 (nur die Probe), einen Z80, der nicht zurückkommt, stehenden Kanal 0, Farbe und Mono nach. `test/KTEST.C` (C) und `test/GHWT.ASM` (MASM) liefern in allen Fällen dieselbe `ghinfo`-Tabelle, die Summe des 68008 stimmt, Vektoren und Warteplatz sind danach unverändert; liegt das Programm über dem Warteplatz, wird nicht probiert. `ITEST` zeigt die Tabelle und die Zeile. Den Takt misst der Prüfstand nicht (seine Uhr läuft nur bei Portzugriffen).
 
 ### Gepackte Vollbilder (.PIC)
 

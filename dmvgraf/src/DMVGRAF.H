@@ -71,18 +71,21 @@ extern int gspr();      /* (nr, x, y, zoom, art) */
 extern int ghinfo();    /* (int r[16]) r[15] vorher GH_MIT... */
 extern int ghcpu();     /* () GH_CPU | GH_FPU << 2 | GH_KARTE << 4 */
 extern int gcorun();    /* (art, seg, start, len, long *us) Koprozessor (K235) */
-extern int gtinit();    /* () Kanal 2 kennenlernen, Kanal 0 und Bild eichen */
+extern int gtinit();    /* () Kanal 2 kennenlernen, Uhr auf 0; 1 = er stand */
 extern long gtus();     /* () us seit gtinit */
 extern int gtbild();    /* () us je Bild */
 extern int gt0per();    /* () us je Takt von Kanal 0, 0 = steht */
 extern int gt0();       /* () Kanal 0 gelatcht */
+extern int gteich();    /* (art, n) neu eichen, n x 65536 us: 0 Kanal 0, 1 Bild */
+extern int ghzeile();   /* (char *p, engl) "Erkannt: ..." nach ghinfo (80 Byte) */
+extern int gcoblk();    /* (absaetze, unsigned *seg) DOS-Block fuer den Koprozessor */
 #endif
 #define GH_ROM    0     /* 1 M.07.00, 2 C.07.00, 3 M.05.00, 4 M.06.00, 5 C.06.00 */
 #define GH_SCHIRM 1     /* 1 Mono, 2 Farbe, 3 widerspruechlich */
 #define GH_KARTE  2     /* 1 K235, 2 K230/K231, 0 keine 16-Bit-Karte */
 #define GH_CPU    3     /* 1 8088, 2 V20, 3 die Proben widersprechen sich */
 #define GH_FPU    4     /* 0 keiner, 1 8087, 2 anderer */
-#define GH_COPRO  5     /* 0 nicht geprueft, 1 keiner, 2 K234, 3 K238, 4 Z80 kam nicht zurueck */
+#define GH_COPRO  5     /* 0 nicht geprueft, 1 keiner, 2 K234, 3 K238, 4 Z80 kam nicht zurueck, 5 nicht probiert (Warteplatz belegt) */
 #define GH_BAENKE 6     /* Erweiterungsbaenke */
 #define GH_SPUR_A 7     /* 40 oder 80 */
 #define GH_TAKT   8     /* CPU-Takt in 10 kHz */

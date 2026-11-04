@@ -25,7 +25,7 @@ int argc;
 char **argv;
 {
         int r[16], i;
-        char *a;
+        char *a, z[80];
 
         r[15] = 0;
         for (a = argc > 1 ? argv[1] : ""; *a; a++) {
@@ -44,5 +44,9 @@ char **argv;
         gputs("\r\nKanal 0 us: ");
         gputs(zahl(gt0per()));
         gputs("\r\n");
+        ghzeile(z, 0);
+        gputs(z);
+        ghzeile(z, 1);
+        gputs(z);
         return 0;
 }
