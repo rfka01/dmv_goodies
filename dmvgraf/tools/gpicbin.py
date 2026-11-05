@@ -6,8 +6,12 @@ DMVGRAF.
 
   gpicbin.py [--jwasm PFAD]       (Vorgabe: jwasm im Suchpfad oder $JWASM)
 
-- src/GPIC.INC (GP_NURKERN) -> src/GPIC86.S und pascal/DMVPIC.INC
-  (derselbe Kern als inline fuer Turbo Pascal 3 unter MS-DOS)
+- src/GPIC.INC (GP_NURKERN) -> src/GPIC86.S, src/GPIC86.BIN und
+  pascal/DMVPIC.INC (derselbe Kern als inline fuer Turbo Pascal 3 unter
+  MS-DOS). GPIC86.BIN ist derselbe Kern als rohe Bytes, damit ihn auch
+  Programme ausserhalb dieses Repos einbinden koennen, die nicht mit MASM
+  uebersetzt werden - etwa DMVSNAP (NASM) in rfka01/dmv_os. Aufruf siehe
+  README, Abschnitt "Kern als Blob".
 - src/GHW.INC und src/GZEIT.INC (GH_NURKERN) -> src/GHW86.S: der Kern
   liegt im Datensegment auf einer Absatzgrenze und wird fern gerufen
   (ghk), damit er seine Daten ueber DS erreicht wie in einem MASM-Programm
@@ -232,7 +236,8 @@ def jw(jwasm, rahmen, name, dateien):
             shutil.copy(os.path.join(SRC, d), t)
         open(os.path.join(t, name + '.ASM'), 'w').write(rahmen)
         r = subprocess.run([jwasm, '-Zm', '-bin', name + '.ASM'], cwd=t,
-                           capture_output=True, text=True)
+                           capture_output=True, text=True,
+                           errors='replace')
         b = os.path.join(t, name + '.BIN')
         if r.returncode or not os.path.exists(b):
             sys.exit(r.stdout + r.stderr)
@@ -250,6 +255,11 @@ def main():
         z.append('        .byte   ' + ', '.join('0x%02X' % c for c in k[i:i + 12]) + '\n')
     open(os.path.join(SRC, 'GPIC86.S'), 'w').write(''.join(z))
     print('src/GPIC86.S: %d Byte Kern' % len(k))
+    # Derselbe Kern roh, fuer Einbinder ausserhalb dieses Repos.
+    open(os.path.join(SRC, 'GPIC86.BIN'), 'wb').write(k)
+    import hashlib
+    print('src/GPIC86.BIN: %d Byte, SHA-256 %s'
+          % (len(k), hashlib.sha256(k).hexdigest()))
     zeilen = []
     for i in range(0, len(k), 14):
         zeilen.append('    ' + '/'.join('$%02X' % c for c in k[i:i + 14]))
