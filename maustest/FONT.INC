@@ -1,4 +1,4 @@
-; FONT.INC - 8x8 font for MOUSETST, characters 20h..7Eh, 8 bytes each,
+; FONT.INC - 8x8 font for MAUSTEST, characters 20h..7Eh, 8 bytes each,
 ; rows top to bottom, bit 0 = leftmost pixel (GDC word order).
 ; Converted from dmvrace/FONT.INC (font8x8 by D. Hepper, public domain).
 FONT_H  EQU     8

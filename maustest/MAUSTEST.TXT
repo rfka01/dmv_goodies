@@ -1,0 +1,152 @@
+MAUSTEST - Maustest fuer den K806 der NCR Decision Mate V
+==========================================================
+
+Fuer MS-DOS ab 2.0 auf der DMV mit 8088/V20-Karte (K230/K231/K235) und
+Maus-Adapter K806. Die Grafikbetriebsart laeuft mit Farb- und
+Monografikkarte (nur die gruene Ebene wird benutzt), die Textbetriebsart
+braucht gar keine Grafikkarte.
+
+Das Programm vereinigt zwei Vorgaenger: MOUSETST (grafisch) aus diesem
+Repository und MAUSTEST (Text) von den MS-DOS-3.30-Disketten. Beide
+benutzten dieselbe Zugriffsschicht auf den K806; zwei Programme hiessen
+zwei Kopien davon.
+
+Aufruf
+------
+  MAUSTEST        grafisch: Koordinatenkreuz und Spur
+  MAUSTEST /T     Text: Interrupts, Statusbyte, Zaehler
+  MAUSTEST 38     Adresse 38h (hexadezimal) statt suchen
+  MAUSTEST /T 38  beides zusammen
+
+Ohne Adressangabe wird der K806 auf allen IFSEL-Adressen gesucht:
+zuerst 30h (IFSEL 2A), dann 38h, 60h, 68h, 70h, 78h, B0h, B8h, C0h,
+C8h. Als K806 gilt eine Karte, die Befehl 02 annimmt und auf Befehl 00
+genau fuenf Bytes liefert. Bei der Suche erhaelt jede geprueften
+Adresse ein Befehlsbyte; wer das bei anderen Karten vermeiden will,
+gibt die Adresse an.
+
+
+Grafisch (ohne /T)
+==================
+
+Zeichnet ein Koordinatenkreuz mit dem Nullpunkt in der Bildmitte und
+verfolgt die absolute Position des K806 als Spur. Nach rechts und nach
+oben werden die Werte positiv, wie in der NCR-Diagnose. Oben stehen X,
+Y, die gedrueckten Tasten (L, M, R), der Massstab und die Begrenzung,
+unten die Tastenhilfe und die Adresse des K806.
+
+Tasten
+------
+  ESC       Ende
+  0         Nullpunkt hierher setzen, die Spur bleibt stehen
+  C         Spur loeschen und Nullpunkt setzen
+  1 2 4 8   Massstab: Zaehlschritte pro Bildpunkt (Start: 2)
+  B         Begrenzung umschalten:
+            Bild  - der Zeiger bleibt am Bildrand stehen, wie bei einem
+                    Maustreiber (Start)
+            frei  - Zaehler von -32768 bis +32767, zum Messen langer
+                    Strecken
+
+Skalenstriche alle 100 Zaehlschritte, lange Striche alle 500.
+
+Die Spur wird gespeichert (bis 7000 Positionen) und beim Wechsel des
+Massstabs neu gezeichnet.
+
+Aufloesung der Maeuse
+---------------------
+Die NCR-Diagnose (Test 9, Phase 6) erwartet fuer 5 Zoll nach rechts und
+5 Zoll nach oben:
+
+  Alps, Mouse Systems Quad        400 - 600
+  Hawley Mark II, Logitech LM-P5  900 - 1100
+  Depraz Souris P4, Logitech P4   1700 - 2000
+
+Mit "B" auf "frei" und Massstab 2 sind 1000 Zaehlschritte genau zwei
+lange Skalenstriche.
+
+Begrenzung
+----------
+Der K806 haelt seine Zaehler selbst an den Grenzen XMIN/XMAX und
+YMIN/YMAX fest (Befehle 0Ah und 05h), aber nur, wenn ein Zaehler die
+Grenze genau erreicht. Liegt die Position beim Umschalten schon
+ausserhalb, setzt MAUSTEST sie vorher an den Rand (Befehl 04h).
+
+
+Text (/T)
+=========
+
+Beantwortet eine andere Frage: kommt der Interrupt des K806 ueberhaupt
+bei der CPU an? Eine Zeile wird laufend ueberschrieben:
+
+  [QIS] 0A=  209 0D=    0 St=04 INT=n X=+00250 Y=+00000 T=... s=  0 a=  0
+
+  [QIS] die drei Schalter; ein Strich heisst aus
+        Q  quittiert der Behandler?        (Taste Q)
+        I  Modulinterrupts eingeschaltet?  (Taste I)
+        S  Abfrage gegen den Behandler gesperrt? (Taste S)
+  0A=   Interrupts auf INT 0Ah (IRQ2)
+  0D=   Interrupts auf INT 0Dh (IRQ5)
+  St=   Statusbyte, INT= das INT-Bit daraus
+  X= Y= Position, T= die Tasten (L R M, Punkt heisst los)
+  s=    stumm: wie oft die Hauptschleife das INT-Bit gesetzt sah, OHNE
+        dass ein Interrupt angekommen ist
+  a=    abgebrochene Positionsabfragen
+
+Nach ESC stehen die Zaehler noch einmal ausgeschrieben da, dazu die
+weggeraeumten Restbytes.
+
+Der Zaehler "stumm" ist der wichtigste. Steigt er, zieht das Modul
+seine Leitung, aber die CPU springt nicht - dann liegt es an der Maske
+des 8259, am Vektor oder daran, dass gar kein Interruptcontroller
+steckt. In der Kopfzeile steht die Maske; liest sie FFh, ist schon
+klar, dass nichts kommen kann (K230/K231).
+
+Warum das Quittieren umschaltbar ist
+------------------------------------
+Der 8259 der DMV laeuft flankengesteuert (NCR basinit.asm, ICW1 = 17h).
+Der K806 zieht seine Leitung bei jeder Bewegung und bei jedem
+Tastenwechsel und laesst sie aktiv, bis Befehl 03 sie quittiert. Wer
+nicht quittiert, bekommt genau EINEN Interrupt und danach keinen mehr.
+Mit Q laesst sich das vorfuehren: mit Quittieren muss der Zaehler
+munter steigen, ohne bei 1 stehenbleiben.
+
+Warum die Abfrage gesperrt wird
+-------------------------------
+Die Firmware prueft nach jedem der fuenf Positionsbytes, ob inzwischen
+ein Befehl eingetroffen ist, und bricht dann ab (K806-ROM 33378, 055h
+und 05Ch). Ein Quittieren aus dem Interruptbehandler mitten in einer
+Abfrage zerstoert diese also. Gesperrt ist die richtige Einstellung:
+der Behandler merkt sich das Quittieren nur, und die Hauptschleife holt
+es nach. Mit S laesst sich die Sperre abschalten, um den alten Fall
+vorzufuehren - dann zaehlt "a" hoch, und im Abschluss stehen die
+weggeraeumten Restbytes.
+
+Die Statuszeile des Kopfes nennt die Bedeutung der Bits:
+Bit0 OBF, Bit1 IBF, Bit2 F0, Bit3 F1, Bit4 ROM, Bit5 RAM, Bit6 INT.
+Bit 2 und Bit 3 sind NICHT unbenutzt, anders als die Anleitung sagt -
+beim UPI-41 kommen sie aus der Hardware: F0 wird gesetzt, wenn die
+Firmware ein Ereignis verarbeitet hat (ROM 180h), F1 zeigt, dass der
+letzte Schreibzugriff ein Befehl war (ROM 022h). Bit 6 ist active high.
+
+Die Textbetriebsart benutzt nichts jenseits von DOS 2.0 (AH=09h, 02h,
+06h, 25h, 35h, 30h), damit dasselbe Programm unter MS-DOS 2.11 und
+unter 3.30 messen kann - dafuer wurde sie geschrieben.
+
+
+Hinweis zu MAME
+---------------
+Die Grafikbetriebsart setzt Bildpunkte mit WDAT im Modus "setzen"
+(23h). Der uPD7220 in MAME beachtet beim Modus "ersetzen" (20h) die
+Maske nicht und loescht die uebrigen Punkte des Wortes. Die Bewegung
+der Windows-Maus haengt von deren Aufloesung ab; in MAME laesst sie
+sich ueber die Empfindlichkeit (Analog Input Adjustments) anpassen.
+
+Bauen
+-----
+  MASM MAUSTEST;  LINK MAUSTEST;  EXE2BIN MAUSTEST.EXE MAUSTEST.COM
+
+oder BUILD.BAT.
+
+Code: Claude (Anthropic), Idee und Prompts: rfka01. MIT-Lizenz.
+Zeichensatz: font8x8 von D. Hepper, Public Domain.
+Quellen: https://github.com/rfka01/dmv_goodies
