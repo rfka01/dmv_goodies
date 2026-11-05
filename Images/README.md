@@ -36,3 +36,11 @@ The `.TXT` files are the German descriptions (DOS text, CRLF). · Die `.TXT`-Dat
 | `LIESMICH.TXT` | description (German) · Beschreibung |
 
 `DMVINFO-1.02.IMG`, `DMVDIAG-0.17.IMG`, `DMVFRAGE-1.01.IMG` – self-booting diagnostic disks, built with [`dmvdiag/mkimg.py`](../dmvdiag/); no DOS needed, the program sits in the reserved sectors and the disk stays writable for the result files · selbststartende Diagnosedisketten, gebaut mit `dmvdiag/mkimg.py`; ohne DOS, das Programm liegt in den reservierten Sektoren, die Diskette bleibt für die Ergebnisdateien beschreibbar. Write to a disk **without** write protection · ohne Schreibschutz auf Diskette schreiben.
+
+`CPM16TEST-1.01.IMG` – test disk for 16-bit CP/M (CP/M-68K and CP/M-8000), a 320 KB data disk (NCR DD320, no system tracks), built with [`dmvdiag/grafik/mkcpm16.py`](../dmvdiag/grafik/); boot the system from A:, put the disk in B:, type `GTEST` or `MTEST` · Testdiskette für 16-Bit-CP/M, 320-KB-Datendiskette, gebaut mit `dmvdiag/grafik/mkcpm16.py`; System von A: starten, Diskette in B:, `GTEST` oder `MTEST` eingeben. The `.Z8K` programs contain Digital Research's C runtime · Die `.Z8K`-Programme enthalten die C-Laufzeit von Digital Research.
+
+| File | |
+|---|---|
+| `GTEST.68K`, `GTEST.Z8K` | DMVGRAF test: figures, text, images, mouse pointer · Grafiktest: Figuren, Text, Bilder, Mauszeiger |
+| `MTEST.68K`, `MTEST.Z8K` | detection and mouse in text mode · Erkennung und Maus im Textbetrieb |
+| `LIESMICH.TXT` | description (German) · Beschreibung |

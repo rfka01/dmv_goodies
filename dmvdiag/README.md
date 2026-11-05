@@ -12,6 +12,8 @@ Self-booting diagnostic disks for the **NCR Decision Mate V**. They start withou
 
 `DMV-Hardware-erkennen.md` (German) is the guide for operating systems and programs: how to detect the known DMV hardware and where each rule comes from. `BESCHREIBUNG.md` (German) describes every page and key of DMVDIAG, `TESTANLEITUNG.md` a measurement run. The slot configurator, which shows what software will detect for a planned layout, is in [rfka01/dmv_os](https://github.com/rfka01/dmv_os), `tools/konfig/index.html`.
 
+**[`grafik/`](grafik/)**: GTEST and MTEST, test programs for the DMVGRAF graphics library, and a test disk for 16-bit CP/M (CP/M-68K, CP/M-8000) built by `grafik/mkcpm16.py`.
+
 Build (needs `nasm` and Python 3): `python3 mkimg.py dmvinfo` (or `dmvdiag`, `dmvfrage`) → `build/DMVINFO-x.yy.IMG`. Ready-made images are in [`../Images/`](../Images/). This directory is the only place these programs are maintained. `dmvhw.nas` is generated in [rfka01/dmv_os](https://github.com/rfka01/dmv_os) by `hw/gen_inc.py` from `hw/dmvhw.def`; copy it here when the constants change. Tested in MAME (fork [rfka01/mame](https://github.com/rfka01/mame)); earlier versions of DMVDIAG and DMVFRAGE also on two real machines.
 
 ## Deutsch
@@ -23,5 +25,7 @@ Selbststartende Diagnosedisketten für die **NCR Decision Mate V**. Sie laufen o
 - **DMVFRAGE** – kleine Probe mit fester Belegung und einer Taste für die offenen Fragen zu den Brücken S1/S2, den Steckplatzleitungen und den Interruptquellen.
 
 `DMV-Hardware-erkennen.md` ist die Anleitung für Betriebssysteme und Programme: wie man die bekannte Hardware der DMV feststellt und woher jede Regel kommt. `BESCHREIBUNG.md` beschreibt jede Seite und Taste von DMVDIAG. Der Steckplatz-Konfigurator, der zu einer geplanten Belegung zeigt, was Software erkennt, liegt in [rfka01/dmv_os](https://github.com/rfka01/dmv_os), `tools/konfig/index.html`.
+
+**[`grafik/`](grafik/)**: GTEST und MTEST, Prüfprogramme für die Grafikbibliothek DMVGRAF, und eine Testdiskette für 16-Bit-CP/M (CP/M-68K, CP/M-8000), gebaut von `grafik/mkcpm16.py`.
 
 Bauen (braucht `nasm` und Python 3): `python3 mkimg.py dmvinfo` (oder `dmvdiag`, `dmvfrage`) → `build/DMVINFO-x.yy.IMG`. Fertige Images liegen in [`../Images/`](../Images/). Gepflegt werden die Programme nur hier. `dmvhw.nas` erzeugt [rfka01/dmv_os](https://github.com/rfka01/dmv_os) mit `hw/gen_inc.py` aus `hw/dmvhw.def`; ändern sich die Konstanten, hierher kopieren. In MAME getestet; frühere Fassungen von DMVDIAG und DMVFRAGE auch auf zwei echten Maschinen.

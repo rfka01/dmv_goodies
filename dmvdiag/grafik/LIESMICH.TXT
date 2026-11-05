@@ -1,0 +1,19 @@
+DMV-Grafiktest fuer 16-Bit-CP/M (DMVGRAF) - Datendiskette DD320
+
+CP/M-68K oder CP/M-8000 von A: starten, diese Diskette in B:, dann B:
+und eines der Programme:
+
+  GTEST.68K  GTEST.Z8K   drei Bilder (Figuren, Text, Bilder), weiter mit
+                         einer Taste; im dritten Bild folgt ein Zeiger
+                         der Maus, ESC beendet
+  MTEST.68K  MTEST.Z8K   im Textbetrieb: was DMVGRAF erkennt (Farbe,
+                         Maus, Weg zum 7220), danach jede Mausbewegung;
+                         Ende mit einer Taste
+
+Man tippt nur GTEST bzw. MTEST: CP/M-68K nimmt die .68K-Datei,
+CP/M-8000 die .Z8K-Datei. Die .Z8K-Programme brauchen CP/M-8000 v015
+mit K208 fuer Bilder (BIOS 72); sie enthalten die C-Laufzeit von
+Digital Research (STARTUP.O, LIBCPM.A).
+
+Quellen: rfka01/dmv_goodies, dmvdiag/grafik. Code: Claude (Anthropic),
+Idee und Prompts: rfka01. Lizenz: MIT

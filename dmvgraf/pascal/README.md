@@ -17,7 +17,7 @@ Dieselbe Bibliothek wie die C-Fassung, nach Pascal übersetzt, als Include-Datei
 | `PICTEST.PAS` | Prüfprogramm dazu, wie `test/PICTEST.C` |
 | `DMVBILD.INC` | Bilder vollständig: alle Formate, `gbmap`, `gbget`, Zusammensetzen (`glayer`, `glput`, `gldraw`), Mauszeiger (`gzeig`) |
 | `DMVBKL.INC` | Bilder, kleine Fassung: Formate 1, 2, 4 und 5 mit `gbdef`, `gbload`, `gbldv` (ohne 5), `gbput`, `gbfree`, `gbinfo`; die übrigen Bildfunktionen setzen `gerr` (`GE_FORM`, `GE_LAGE`). Die Zahl der Bilder legt das Programm fest (`const BKMAX`). |
-| `GTEST.PAS`, `GTESTZ.PAS`, `GTESTK.INC` | Prüf- und Vorführprogramm (wie `test/GTEST.C`) für MS-DOS bzw. CP/M-80, gemeinsamer Hauptteil |
+| `GTEST.PAS`, `GTESTZ.PAS`, `GTESTK.INC` | Prüf- und Vorführprogramm (wie `dmvdiag/grafik/GTEST.C`) für MS-DOS bzw. CP/M-80, gemeinsamer Hauptteil |
 | `STEST.PAS`, `STESTZ.PAS`, `STESTK.INC` | Figuren über GCHRD (wie `test/STEST.C`) |
 | `PTEST.PAS`, `PTESTZ.PAS`, `PTESTK.INC` | Muster (wie `test/PTEST.C`) |
 | `BTEST.PAS`, `BTESTZ.PAS`, `BTESTK.INC` | schneller Weg der Bilder: links mit, rechts ohne (wie `test/BTEST.C`) |

@@ -43,7 +43,7 @@ Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate 
 ![Figuren über GCHRD](screenshots/figuren-gchrd.png)
 ![Muster](screenshots/muster.png)
 
-*Bilder aus der PC-Simulation (`test/GTEST.C`, `test/STEST.C`, `test/PTEST.C`).*
+*Bilder aus der PC-Simulation (`../dmvdiag/grafik/GTEST.C`, `test/STEST.C`, `test/PTEST.C`).*
 
 ### Voraussetzungen unter CP/M-8000
 
@@ -88,7 +88,7 @@ Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate 
 | `src/GHWSIM.C` | Hardwareschicht für die Simulation am PC |
 | `src/GINTERN.H`, `src/GFONT.H` | intern; Schrift aus HOPPLER (`tools/mkfont.py`) |
 | `src/GKONF.H` | Bauoptionen, normal leer; `#define GKLEIN` lässt Figuren, Format 5, Bildsammlungen, `gbget` und den DOS-Schnellweg weg (für knappe CP/M-8000-Programme) |
-| `test/GTEST.C` | Prüf- und Vorführprogramm (drei Bilder, danach Mauszeiger) |
+| `../dmvdiag/grafik/GTEST.C`, `MTEST.C` | Prüf- und Vorführprogramm (drei Bilder, danach Mauszeiger) und Maustest; gepflegt in `dmvdiag/grafik`, dort entsteht auch die Testdiskette für CP/M-68K und CP/M-8000 |
 | `test/STEST.C`, `test/PTEST.C`, `test/BTEST.C`, `test/ITEST.C` | Prüfprogramme: Figuren über GCHRD, Muster, schneller Weg der Bilder, Hardwareauskunft (nur MS-DOS) |
 | `tools/inline/` | Quellen der Maschinensprache in der Pascal-Fassung (Z80 und 8086) |
 | `tools/bau68.py`, `tools/elf2cpm.py` | CP/M-68K: mit `m68k-linux-gnu-gcc` übersetzen, `.68K` erzeugen (`elf2cpm.py` aus rfka01/dmv_os, um `.rodata` erweitert) |
@@ -103,15 +103,15 @@ Eine Bibliothek für Grafik, Bilder, Maus und Klang auf der **NCR Decision Mate 
 
 ### Übersetzen
 
-Unter CP/M-8000 mit DRs `zcc`, `asz8k` und `ld8k` (Quellen, `STARTUP.O` und `LIBCPM.A` auf einer Diskette): `SUBMIT GTEST` (`test/GTEST.SUB`) baut `GTEST.Z8K`. Ein eigenes Programm bindet `GRAF.O GBILD.O GEIN.O GHWCPM.O GHSEG.O GHDIR.O GDIR.O GSC1.O GZ8K.O` dazu; wer keine Bilder braucht, lässt `GBILD.O` weg, sofern er keine Bildfunktion aufruft. `GKONF.H` muss mit auf der Diskette sein. **Platz:** Zilogs `ld8k` bindet jede in `DMVGRAF.H` erklärte Funktion ein, und ein Programm ohne Segmente hat 64 KB für Code, Daten und Stapel. Wird es zu groß (`too big for non-seg load`), schreibt man `#define GKLEIN` in `GKONF.H` und übersetzt Programm und DMVGRAF damit neu (so Mahjongg 0.11).
+Unter CP/M-8000 mit DRs `zcc`, `asz8k` und `ld8k` (Quellen, `STARTUP.O` und `LIBCPM.A` auf einer Diskette): `SUBMIT GTEST` (`../dmvdiag/grafik/GTEST.SUB`) baut `GTEST.Z8K`. Ein eigenes Programm bindet `GRAF.O GBILD.O GEIN.O GHWCPM.O GHSEG.O GHDIR.O GDIR.O GSC1.O GZ8K.O` dazu; wer keine Bilder braucht, lässt `GBILD.O` weg, sofern er keine Bildfunktion aufruft. `GKONF.H` muss mit auf der Diskette sein. **Platz:** Zilogs `ld8k` bindet jede in `DMVGRAF.H` erklärte Funktion ein, und ein Programm ohne Segmente hat 64 KB für Code, Daten und Stapel. Wird es zu groß (`too big for non-seg load`), schreibt man `#define GKLEIN` in `GKONF.H` und übersetzt Programm und DMVGRAF damit neu (so Mahjongg 0.11).
 
-Unter CP/M-68K: am PC mit `gcc-m68k-linux-gnu` und `binutils-m68k-linux-gnu` `make GTEST.68K` (`make MTEST.68K` für den Maustest); ein eigenes Programm übersetzt `tools/bau68.py` (`GCRT68.S` zuerst, dann Programm, `GRAF.C GBILD.C GEIN.C GKERN.C GHWCPM.C GHD68K.C GHPOOL.C GSUP68.S GARG68.C`). Prüfstand: `make simlib.so`, dann `python3 tools/pruef68.py GTEST.68K test/GTEST.TXT [--block] [--mono]`.
+Unter CP/M-68K: am PC mit `gcc-m68k-linux-gnu` und `binutils-m68k-linux-gnu` `make GTEST.68K` (`make MTEST.68K` für den Maustest); ein eigenes Programm übersetzt `tools/bau68.py` (`GCRT68.S` zuerst, dann Programm, `GRAF.C GBILD.C GEIN.C GKERN.C GHWCPM.C GHD68K.C GHPOOL.C GSUP68.S GARG68.C`). Prüfstand: `make simlib.so`, dann `python3 tools/pruef68.py GTEST.68K ../dmvdiag/grafik/GTEST.TXT [--block] [--mono]`.
 
-Unter MS-DOS: am PC mit gcc-ia16 (`ia16-elf-gcc` in `/opt/ia16/bin`, sonst `IA16=…`) `make GTEST.EXE` und `make MTEST.EXE`, im Speichermodell tiny `make GTEST.COM` (`baudos.py` erkennt es an `.COM` oder `--tiny`); ein eigenes Programm wie in `lib/README.md`. Prüfstand: `make simlib.so`, dann `python3 tools/pruefdos.py GTEST.EXE test/GTEST.TXT [--mono]`.
+Unter MS-DOS: am PC mit gcc-ia16 (`ia16-elf-gcc` in `/opt/ia16/bin`, sonst `IA16=…`) `make GTEST.EXE` und `make MTEST.EXE`, im Speichermodell tiny `make GTEST.COM` (`baudos.py` erkennt es an `.COM` oder `--tiny`); ein eigenes Programm wie in `lib/README.md`. Prüfstand: `make simlib.so`, dann `python3 tools/pruefdos.py GTEST.EXE ../dmvdiag/grafik/GTEST.TXT [--mono]`.
 
 Fertige Bibliotheken: `make lib` (MS-DOS small und tiny, CP/M-68K), Gebrauch in `lib/README.md`.
 
-Simulation am PC: `make gtest`, dann `GSKRIPT=test/GTEST.TXT ./gtest`. Die Simulation führt die GDC-Listen so aus wie der µPD7220 im Mischbetrieb (nach MAMEs `upd7220.cpp`) und schreibt auf Befehl Bildschirmabzüge (PPM). Skriptzeilen: `maus x y knopf` (Bildzeilen von oben), `taste c` oder `taste 0xNN`, `bild datei.ppm`. Umgebung: `GMONO=1` monochrom, `GMAUS=0` ohne Maus, `GPROT=1` jeden GDC-Befehl melden, `GSUMME=1` Prüfsumme der Listen.
+Simulation am PC: `make gtest`, dann `GSKRIPT=../dmvdiag/grafik/GTEST.TXT ./gtest`. Die Simulation führt die GDC-Listen so aus wie der µPD7220 im Mischbetrieb (nach MAMEs `upd7220.cpp`) und schreibt auf Befehl Bildschirmabzüge (PPM). Skriptzeilen: `maus x y knopf` (Bildzeilen von oben), `taste c` oder `taste 0xNN`, `bild datei.ppm`. Umgebung: `GMONO=1` monochrom, `GMAUS=0` ohne Maus, `GPROT=1` jeden GDC-Befehl melden, `GSUMME=1` Prüfsumme der Listen.
 
 ### Grundsätze
 
