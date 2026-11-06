@@ -235,9 +235,19 @@ def jw(jwasm, rahmen, name, dateien):
         for d in dateien:
             shutil.copy(os.path.join(SRC, d), t)
         open(os.path.join(t, name + '.ASM'), 'w').write(rahmen)
+        #  JWasm liest die Umgebungsvariable JWASM als seine eigene
+        #  VORGABE-BEFEHLSZEILE (src/main.c: argv[0] = getenv("JWASM")).
+        #  Wer dort - wie wir oben - den PFAD der Binaerdatei hinterlegt,
+        #  gibt ihn JWasm als Quelldatei zurueck: es versucht, sich selbst
+        #  zu uebersetzen, und schuettet rund 50 Fehlermeldungen aus
+        #  ("Syntax error: ELF"), in denen echte Fehler untergehen.
+        #  Deshalb hier ohne diese Variable. Das Ergebnis aendert sich
+        #  dadurch nicht - am 6.11.2026 nachgerechnet.
+        umgebung = dict(os.environ)
+        umgebung.pop('JWASM', None)
         r = subprocess.run([jwasm, '-Zm', '-bin', name + '.ASM'], cwd=t,
                            capture_output=True, text=True,
-                           errors='replace')
+                           errors='replace', env=umgebung)
         b = os.path.join(t, name + '.BIN')
         if r.returncode or not os.path.exists(b):
             sys.exit(r.stdout + r.stderr)
