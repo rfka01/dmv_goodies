@@ -4,6 +4,9 @@ DMVDEMO - Grafikdemo fuer die NCR Decision Mate V
 Fuer MS-DOS ab 2.0 (getestet mit 3.30) auf der DMV mit Farb-Grafikkarte
 (uPD7220, 640 x 400, 8 Farben). Laeuft auch auf der Mono-DMV (dann
 Graustufen als Raster).
+In MAME und auf zwei echten DMV getestet (Farbe mit 8088, Mono mit
+V20 und 8087, beide mit K235 und K234); den Z8001 (K238) gibt es nur
+in MAME.
 
 Ein Programm. Den blauen Mandelbrot-Tentakel (Bild 11) rechnet das
 staerkste Rechenwerk, das gefunden wird:
@@ -190,4 +193,4 @@ Bildnachweis
   (KITT.TXT). TUT.PIC: Foto "King Tut Burial Mask", Mark Fischer,
   Wikimedia Commons, CC BY-SA 2.0, bearbeitet (TUT.TXT). Beide Bilder
   stehen unter ihrer CC-Lizenz, nicht unter der MIT-Lizenz.
-
+

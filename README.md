@@ -51,7 +51,7 @@ The directories hold the sources, the disk image holds the ready-to-run files. �
 
 ## Requirements · Voraussetzungen
 
-NCR Decision Mate V with 8088/V20 card (K230/K231/K235). DMVDEMO and DMVRACE run under MS-DOS 2.0 or later (tested with 3.30), MAUSTEST under MS-DOS 2.0 or later with a K806 mouse adapter (no graphics board needed for `/T`), ECODRIVE needs MS-DOS 3.1–3.3. Colour graphics board for ECODRIVE and the colour screens. · DMVDEMO und DMVRACE laufen ab MS-DOS 2.0 (getestet mit 3.30), MAUSTEST ab MS-DOS 2.0 mit Maus-Adapter K806 (für `/T` ohne Grafikkarte), ECODRIVE braucht MS-DOS 3.1–3.3. Tested in MAME (driver `dmv`, fork [rfka01/mame](https://github.com/rfka01/mame)).
+NCR Decision Mate V with 8088/V20 card (K230/K231/K235). DMVDEMO and DMVRACE run under MS-DOS 2.0 or later (tested with 3.30), MAUSTEST under MS-DOS 2.0 or later with a K806 mouse adapter (no graphics board needed for `/T`), ECODRIVE needs MS-DOS 3.1–3.3. Colour graphics board for ECODRIVE and the colour screens. · DMVDEMO und DMVRACE laufen ab MS-DOS 2.0 (getestet mit 3.30), MAUSTEST ab MS-DOS 2.0 mit Maus-Adapter K806 (für `/T` ohne Grafikkarte), ECODRIVE braucht MS-DOS 3.1–3.3. Tested in MAME (driver `dmv`, fork [rfka01/mame](https://github.com/rfka01/mame)). DMVDEMO and DMVRACE also on two real DMVs · DMVDEMO und DMVRACE auch auf zwei echten DMV getestet (Farbe/colour 8088, Mono V20 + 8087, K235, K234).
 
 ## License · Lizenz
 

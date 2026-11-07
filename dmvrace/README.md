@@ -4,7 +4,7 @@
 
 ## English
 
-A processor race for the **NCR Decision Mate V** under MS-DOS (2.0 or later, tested with 3.30). Four cars stand for the four processors a DMV can hold:
+A processor race for the **NCR Decision Mate V** under MS-DOS (2.0 or later, tested with 3.30). Tested in MAME and on two real DMVs (colour with 8088, mono with V20 and 8087, both with K235 and K234); the Z8001 (K238) exists only in MAME. Four cars stand for the four processors a DMV can hold:
 
 | Car | Processor |
 |---|---|
@@ -37,7 +37,7 @@ After the Grand Prix, `D` starts the drag race. The 8741 really computes the tes
 
 ## Deutsch
 
-Ein Prozessor-Rennen für die **NCR Decision Mate V** unter MS-DOS (ab 2.0, getestet mit 3.30). Vier Wagen stehen für die vier Prozessoren, die in einer DMV stecken können:
+Ein Prozessor-Rennen für die **NCR Decision Mate V** unter MS-DOS (ab 2.0, getestet mit 3.30). In MAME und auf zwei echten DMV getestet (Farbe mit 8088, Mono mit V20 und 8087, beide mit K235 und K234); den Z8001 (K238) gibt es nur in MAME. Vier Wagen stehen für die vier Prozessoren, die in einer DMV stecken können:
 
 | Wagen | Prozessor |
 |---|---|

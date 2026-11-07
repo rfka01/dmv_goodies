@@ -3,6 +3,10 @@ DMVRACE - Prozessor-Rennen fuer die NCR Decision Mate V
 
 Fuer MS-DOS ab 2.0 (getestet mit 3.30) auf der DMV mit Grafikkarte
 (uPD7220, 640 x 400).
+In MAME und auf zwei echten DMV getestet (Farbe mit 8088, Mono mit
+V20 und 8087, beide mit K235 und K234); den Z8001 (K238) gibt es nur
+in MAME.
+
 Vier Wagen, vier Rechenwerke der DMV:
 
   rot    Z80 auf der Hauptplatine (4 MHz)
@@ -178,4 +182,4 @@ Bauen
   Die Kerne selbst: RACEZ80.ASM (z80asm), RACE68.S (GNU as m68k) und
   RACEZ8K.8KN (libasm, asm -C Z8001);
   zum Bauen von DMVRACE braucht man diese Assembler nicht.
-
+

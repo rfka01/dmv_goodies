@@ -4,7 +4,7 @@
 
 ## English
 
-A graphics demo with fifteen screens for the **NCR Decision Mate V** under MS-DOS (2.0 or later, tested with 3.30). It shows what the µPD7220 graphics controller and the DMV colour board can do; on a monochrome DMV the colours appear as dither patterns.
+A graphics demo with fifteen screens for the **NCR Decision Mate V** under MS-DOS (2.0 or later, tested with 3.30). It shows what the µPD7220 graphics controller and the DMV colour board can do; on a monochrome DMV the colours appear as dither patterns. Tested in MAME and on two real DMVs (colour with 8088, mono with V20 and 8087, both with K235 and K234); the Z8001 (K238) exists only in MAME.
 
 1. Title: "NCR" with the GDC character zoom, 3D layers and a gloss stripe
 2. Remake of NCR's planning chart from DEMO5/DEMO7 (1983), in colour
@@ -28,7 +28,7 @@ Screen 11 is computed by the strongest processor found: a coprocessor in slot 7 
 
 ## Deutsch
 
-Eine Grafikdemo mit fünfzehn Bildern für die **NCR Decision Mate V** unter MS-DOS (ab 2.0, getestet mit 3.30). Sie zeigt, was der Grafikcontroller µPD7220 und die Farbkarte der DMV können; auf einer Mono-DMV erscheinen die Farben als Raster.
+Eine Grafikdemo mit fünfzehn Bildern für die **NCR Decision Mate V** unter MS-DOS (ab 2.0, getestet mit 3.30). Sie zeigt, was der Grafikcontroller µPD7220 und die Farbkarte der DMV können; auf einer Mono-DMV erscheinen die Farben als Raster. In MAME und auf zwei echten DMV getestet (Farbe mit 8088, Mono mit V20 und 8087, beide mit K235 und K234); den Z8001 (K238) gibt es nur in MAME.
 
 1. Titel: „NCR“ mit dem Zeichenzoom des GDC, 3D-Schichten und Glanzstreifen
 2. Remake des NCR-Planungscharts aus DEMO5/DEMO7 (1983), in Farbe
