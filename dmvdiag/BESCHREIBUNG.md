@@ -13,7 +13,7 @@ auf der kein Betriebssystem hochkommt.
 | `results.inc` | jede Seite und jeder Sondertest automatisch als Textdatei mit festem Namen auf die Startdiskette |
 | `TESTANLEITUNG.md` | drei Starts an zwei Maschinen: Bestückung, Tasten je Seite, was zurückkommt |
 | `dmvfrage.nasm`, `frage.inc`, `VERSION.dmvfrage` | DMVFRAGE: kleine Testdiskette aus demselben Kern (mit FRAGE gebaut), feste Belegung, eine Taste, eine Seite – Brücken S1/S2, 13h-Bit von Platz 2, Leitungen von K211/K803, Interruptquelle der K211. Bauen: `python3 diag/mkimg.py dmvfrage` |
-| `dmvinfo.nasm`, `info.inc`, `VERSION.dmvinfo` | DMVINFO: übersichtliche Hardwareinfo aus demselben Kern (mit INFO gebaut). Seite 1 Übersicht (Firmware, Prozessoren, CPU-Karte, Koprozessor K234/K238 nur mit K235, Speicher, Tastatur, Laufwerk, Platte, Uhr, Steckkarten mit Modulnummer zuerst, in Farbe rot), Seite 2 Steckplätze und Interrupts; `R` Rohwertseiten, `D` schreibt `DMVINFO.TXT`, `W` misst neu, `X` startet neu. Bauen: `python3 diag/mkimg.py dmvinfo` |
+| `dmvinfo.nasm`, `info.inc`, `VERSION.dmvinfo` | DMVINFO: übersichtliche Hardwareinfo aus demselben Kern (mit INFO gebaut). Seite 1 Übersicht (Firmware, Prozessoren, CPU-Karte, Koprozessor K234/K238 nur mit K235, Speicher, gemeinsames RAM K233 (ab 1.03, nur wenn IFSEL 1B frei ist oder einen 2651/2661 trägt), Tastatur, Laufwerk, Platte, Uhr, Steckkarten mit Modulnummer zuerst, in Farbe rot), Seite 2 Steckplätze und Interrupts; `R` Rohwertseiten, `D` schreibt `DMVINFO.TXT`, `W` misst neu, `X` startet neu. Bauen: `python3 mkimg.py dmvinfo` |
 | `irqtest.inc` | Seite „Interrupts“: Leitungen der Steckplätze (Taste I) |
 | `motor.inc` | Taste M: Motoranlauf und Schrittzeit an A: |
 | `mkimg.py` | baut das 360-KB-Image |

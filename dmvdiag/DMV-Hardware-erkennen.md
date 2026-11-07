@@ -6,7 +6,7 @@ Diese Anleitung sagt, wie Software die bekannte Hardware der DMV
 selbst feststellt, und woher jede Regel kommt. Sie fasst zusammen, was
 mit den Diagnosedisketten DMVDIAG (0.02–0.17) und DMVFRAGE (1.00/1.01)
 auf zwei echten Maschinen gemessen und in MAME gegengeprüft wurde.
-DMVINFO (ab 1.00) setzt die Regeln als übersichtliche Hardwareinfo um;
+DMVINFO (ab 1.00, K233 ab 1.03) setzt die Regeln als übersichtliche Hardwareinfo um;
 der Konfigurator (`tools/konfig/index.html`) zeigt zu jeder geplanten
 Belegung, was davon erkannt wird.
 
@@ -196,7 +196,7 @@ alle weiteren Proben.
 | **K215** gepuffert | 8741 und 2651 | Vorprüfung: Status x1 = 00h. Dann Befehl 0Bh (Echo) an x1, ein Byte an x0, die Antwort an x0 abholen, dabei auf Status Bit 0 warten. 55h und AAh kommen zurück: K215. Befehle: 00h Befehlsregister und 01h Modusregister des 2651, 03h dessen Status, 08h Zeichen lesen, 09h Zeichen schreiben, 10h Selbsttest. Vorgabe 1A; neben einer K211 auf 3A (B0h). | [H] |
 | **K806** Maus | 8741 | Statusbit 3 (F1) zeigt Adressbit 0 des letzten Schreibens. Danach liefert Befehl 00h genau fünf Datenbytes. Vorgabe 2A, erste zwei Anschlüsse. | [H] |
 | **K216** | Z8530 SCC, je Viertel | WR12 schreiben, RR12 lesen (55h/AAh). | [D] (keine Hardware) |
-| **K233** gemeinsames RAM | – | Schaltet bei jedem Schreiben auf 7Eh/7Fh um, das Fenster liegt bei C000h. Die Probe kippt 7Fh und vergleicht 0:C000. **Nicht laufen lassen, wenn eine K211 auf IFSEL 1 steckt:** 7Fh trifft deren Befehlsregister. | [D, M] |
+| **K233** gemeinsames RAM | – | Schaltet bei jedem Schreiben auf 7Eh/7Fh um, das Fenster liegt bei C000h; kein Statusregister, beim Lesen von 1B antwortet sie nicht (sieht aus wie „frei“). Probe: `0:C000` retten, kippen, 5Ah schreiben, kippen, A5h schreiben und lesen („aus“), kippen und lesen („ein“), 3Ch schreiben, kippen und lesen, `0:C000` zurück. Karte da, wenn „aus“ = A5h und „ein“ = 5Ah; der letzte Wert 3Ch heißt „Hauptplatine schreibt mit“. Während die Karte an ist: CLI, kein Firmwareaufruf, Stapel unter C000h. **Nur, wenn auf 7Fh nichts Fremdes hört:** 1B frei, oder ein 2651/2661 dort (K211-Gruppe auf IFSEL 1, K801 auf 1B) – dann vor jedem Kippen dessen Befehlsregister über 7Bh lesen und genau diesen Wert auf 7Fh schreiben [M, auf echter Hardware unbestätigt]. Eine 8741-Karte (K215, K806) oder Unbekanntes auf 1B: nicht prüfen. DMVINFO ab 1.03 hält sich daran. | [D, M] |
 
 ---
 

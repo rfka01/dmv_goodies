@@ -74,6 +74,7 @@ inf_measure:
         call    inf_hd
         call    inf_rtc
         call    inf_irq
+        call    inf_k233
         ; Koprozessor nur mit K235 (die K230/K231 naehme DFh als D0h)
         mov     byte [c_ran],0
         cmp     word [j_card],s_k235
@@ -84,6 +85,38 @@ inf_measure:
         call    copro_run
 im_e:   cli
         ret
+
+; K233 (16 KB gemeinsames RAM, kippt mit Schreiben auf 7Eh/7Fh): nur
+; pruefen, wenn auf 7Fh nichts Fremdes hoert - IFSEL 1B frei, oder ein
+; 2651/2661 (K211-Gruppe auf IFSEL 1, K801 auf 1B), dem k233_kipp sein
+; ueber 7Bh gelesenes Befehlsregister zurueckschreibt. Eine 8741-Karte
+; (K215, K806) oder Unbekanntes auf 1B: nicht pruefen.
+inf_k233:
+        mov     byte [k_ran],0
+        mov     word [inf_k3b],0
+        mov     cx,2                    ; 1A: K211-Gruppe belegt auch 1B
+        call    inf_card
+        cmp     si,s_if_c211
+        je      ik3_go
+        mov     cx,3                    ; 1B
+        call    inf_card
+        or      si,si
+        jz      ik3_go
+        cmp     si,s_if_c801
+        je      ik3_go
+        mov     [inf_k3b],si            ; diese Karte verhindert die Probe
+        ret
+ik3_go: call    k233_run
+        cli
+        ret
+
+inf_k233ok:                             ; ZF = 1: K233 gefunden
+        cmp     byte [k_ran],1
+        jne     ik3o_e
+        cmp     byte [k_r2],0x5A
+        jne     ik3o_e
+        cmp     byte [k_r1],0xA5
+ik3o_e: ret
 
 inf_k806:                               ; K806 in freien, belegten Haelften ab 1A
         mov     di,inf_k8
@@ -317,6 +350,32 @@ i1_ms:  push    di
         jz      i1_mz
         call    puts
 i1_mz:  call    nl
+        ; gemeinsames RAM K233
+        mov     si,s_if_k3
+        call    puts
+        call    inf_k233ok
+        jne     i1_k3n
+        mov     si,s_if_k3y
+        call    puts
+        mov     si,s_if_k3w1
+        cmp     byte [k_wt],0x3C
+        je      i1_k3w
+        mov     si,s_if_k3w0
+        cmp     byte [k_wt],0xA5
+        je      i1_k3w
+        mov     si,s_if_k3wu
+i1_k3w: call    puts
+        jmp     i1_k3e
+i1_k3n: mov     si,s_if_k30
+        cmp     byte [k_ran],1
+        je      i1_k3p
+        mov     si,s_if_k3x
+        call    puts
+        mov     si,[inf_k3b]
+        call    puts                    ; Modulnummer der Karte auf 1B (rot)
+        mov     si,s_if_k3x2
+i1_k3p: call    puts
+i1_k3e: call    nl
         ; Tastatur
         mov     si,s_if_kbd
         call    puts
@@ -429,7 +488,15 @@ i1_m1:  mov     dl,IF_COLT
         call    inf_next                ; SI = Text hinter der Modulnummer
         call    puts
         call    nl
-i1_mn:  inc     cx
+i1_mn:  cmp     cx,3                    ; nach 1B: K233 (kein Echo, eigene Probe)
+        jne     i1_mn2
+        call    inf_k233ok
+        jne     i1_mn2
+        inc     byte [inf_n]
+        mov     si,s_if_l233
+        call    puts
+        call    nl
+i1_mn2: inc     cx
         cmp     cx,8
         jb      i1_ml
         cmp     byte [inf_hdc],1        ; Plattencontroller (fest auf 4A)
@@ -724,6 +791,15 @@ s_if_hd0  db    'kein Controller auf 4A',0
 s_if_hd1  db    6,'K012/C3282',3,'  auf 4A, Einheit 0 nicht bereit',0
 s_if_hd2  db    6,'K012/C3282',3,'  auf 4A, Einheit 0 bereit',0
 s_if_rtc  db    2,'Uhr:           ',3,0
+s_if_k3   db    2,'Gem. RAM:      ',3,0
+s_if_k3y  db    6,'K233',3,'  16 KB auf C000h, ',0
+s_if_k3w1 db    'Hauptplatine schreibt mit',0
+s_if_k3w0 db    'nur in die Karte',0
+s_if_k3wu db    'Schreiben unklar',0
+s_if_k30  db    'keine ',6,'K233',3,0
+s_if_k3x  db    'nicht pruefbar (',0
+s_if_k3x2 db    3,' auf 1B)',0
+s_if_l233 db    '  ',6,'K233',2,'            1B     ',3,'gemeinsames RAM (16 KB, C000h)',0
 s_if_rtc0 db    'keine ',6,'K803',3,' (oder steht)',0
 s_if_rtc1 db    6,'K803',3,'  laeuft, ',0
 s_if_rtc2 db    ' am ',0
@@ -770,6 +846,7 @@ inf_pg    db    0
 inf_raw   db    0
 inf_n     db    0
 inf_grp   db    0
+inf_k3b   dw    0                       ; Karte auf 1B, die die K233-Probe verhindert
 inf_hdc   db    0
 inf_hds   db    0
 inf_rtcok db    0
