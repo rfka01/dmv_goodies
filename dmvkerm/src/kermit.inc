@@ -541,6 +541,18 @@ mpa1:	stosb
 	ret
 mparam	endp
 
+; Unsere Parameter als Antwort auf S/I: als Pruefart die vereinbarte
+; (gparam vorher), nicht unseren Wunsch. Kermit-MS 2.32 nimmt sonst
+; die 3 aus unserer Antwort, obwohl es selbst 1 angeboten hat.
+mparamy	proc	near
+	call	mparam
+	push	ax
+	mov	al,chkn
+	mov	byte ptr sdat+7,al
+	pop	ax
+	ret
+mparamy	endp
+
 ; Parameter der Gegenseite aus dem Paket (rdat, rlen) uebernehmen
 gparam	proc	near
 	push	ax

@@ -608,7 +608,7 @@ ke1b:	inc	versuch
 	jmp	short ke1
 ke2:	mov	habS,0
 	call	gparam			; Parameter tauschen
-	call	mparam
+	call	mparamy
 	mov	al,rseq
 	mov	sseq,al
 	mov	chkt,1
@@ -851,7 +851,8 @@ eo9:	lodsb
 	stosb
 	or	al,al
 	jnz	eo9
-	mov	cl,'1'			; schon da? dann umbenennen
+	call	merkname		; schon da? dann umbenennen
+	mov	unum,1
 eo10:	mov	ax,3D00h
 	mov	dx,offset fpfad
 	int	21h
@@ -859,9 +860,9 @@ eo10:	mov	ax,3D00h
 	mov	bx,ax
 	mov	ah,3Eh
 	int	21h
-	call	umbenenn		; letzte Stelle des Grundnamens = CL
-	inc	cl
-	cmp	cl,'9'
+	call	umbenenn		; wie Kermit-MS: T1.BIN -> T1000001.BIN
+	inc	unum
+	cmp	unum,9999
 	jbe	eo10
 eo12:	mov	ah,3Ch			; anlegen
 	xor	cx,cx
@@ -918,26 +919,97 @@ gu8:	clc
 	ret
 gueltig	endp
 
-; Letzte Stelle des Grundnamens in fname und fpfad durch CL ersetzen
-umbenenn proc	near
+; Neuer Name fuer eine schon vorhandene Datei, wie bei Kermit-MS: der
+; Grundname wird mit Nullen auf 8 Stellen gebracht und endet auf die Nummer
+; unum (T1.BIN -> T1000001.BIN, T1000002.BIN ...). merkname haelt vorher
+; Grundname und Erweiterung des empfangenen Namens fest.
+unum	dw	0
+ugrund	db	9 dup (0)	; Grundname, mit 0 abgeschlossen
+uerw	db	5 dup (0)	; '.' und Erweiterung oder leer
+
+merkname proc	near
 	push	si
+	push	di
 	mov	si,offset fname
-umb1:	mov	al,[si]
+	mov	di,offset ugrund
+mkn1:	lodsb
 	or	al,al
-	jz	umb2
+	jz	mkn2
 	cmp	al,'.'
-	je	umb2
-	inc	si
-	jmp	short umb1
-umb2:	cmp	si,offset fname
-	je	umb9
-	dec	si
-	mov	[si],cl
-	push	si
-	sub	si,offset fname
-	mov	byte ptr fpfad[si],cl
+	je	mkn2
+	cmp	di,offset ugrund+8
+	jae	mkn1
+	stosb
+	jmp	short mkn1
+mkn2:	mov	byte ptr [di],0
+	mov	di,offset uerw
+	or	al,al
+	jz	mkn4
+mkn3:	stosb				; '.' und der Rest
+	cmp	di,offset uerw+4
+	jae	mkn4
+	lodsb
+	or	al,al
+	jnz	mkn3
+mkn4:	mov	byte ptr [di],0
+	pop	di
 	pop	si
-umb9:	pop	si
+	ret
+merkname endp
+
+umbenenn proc	near
+	push	ax
+	push	bx
+	push	cx
+	push	dx
+	push	si
+	push	di
+	mov	ax,unum			; Ziffern rueckwaerts auf den Stapel
+	mov	bx,10
+	xor	cx,cx
+umb1:	xor	dx,dx
+	div	bx
+	push	dx
+	inc	cx
+	or	ax,ax
+	jnz	umb1
+	mov	dx,8			; DX = Stellen vor der Nummer
+	sub	dx,cx
+	mov	si,offset ugrund
+	mov	di,offset fname
+umb2:	or	dx,dx			; Grundname, so weit er Platz hat
+	jz	umb4
+	lodsb
+	or	al,al
+	jz	umb3
+	stosb
+	dec	dx
+	jmp	short umb2
+umb3:	mov	al,'0'			; Rest mit Nullen
+umb3a:	stosb
+	dec	dx
+	jnz	umb3a
+umb4:	pop	ax			; Nummer
+	add	al,'0'
+	stosb
+	loop	umb4
+	mov	si,offset uerw		; Erweiterung und Ende
+umb5:	lodsb
+	stosb
+	or	al,al
+	jnz	umb5
+	mov	si,offset fname		; Pfad: aktuelles Verzeichnis
+	mov	di,offset fpfad
+umb6:	lodsb
+	stosb
+	or	al,al
+	jnz	umb6
+	pop	di
+	pop	si
+	pop	dx
+	pop	cx
+	pop	bx
+	pop	ax
 	ret
 umbenenn endp
 
@@ -1020,7 +1092,7 @@ ksv2:	call	rpack
 ksv3:	cmp	al,'I'			; Parameter
 	jne	ksv4
 	call	gparam
-	call	mparam
+	call	mparamy
 	mov	al,rseq
 	mov	sseq,al
 	mov	al,'Y'

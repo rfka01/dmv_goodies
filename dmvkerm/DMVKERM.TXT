@@ -1,4 +1,4 @@
-DMVKERM 1.1 - Kermit und Terminal fuer die NCR Decision Mate V
+DMVKERM 1.2 - Kermit und Terminal fuer die NCR Decision Mate V
 ===============================================================
 
 DMVKERM ist ein kleines Kermit fuer die seriellen Module K211, K212,
@@ -130,8 +130,8 @@ die Zeilenenden umgesetzt werden.
 
 Empfangene Namen werden fuer DOS zurechtgeschnitten (8.3, grosse
 Buchstaben, ungueltige Zeichen entfallen). Gibt es die Datei schon,
-ersetzt DMVKERM die letzte Stelle des Namens durch 1 bis 9
-(BRIEF.TXT -> BRIE1.TXT).
+fuellt DMVKERM den Namen wie Kermit-MS mit Nullen auf 8 Stellen und
+zaehlt am Ende hoch (BRIEF.TXT -> BRIEF001.TXT, BRIEF002.TXT ...).
 
 
 Befehle an einen Kermit-Server

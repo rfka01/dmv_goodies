@@ -519,7 +519,7 @@ irseins	proc	near			; ein Versuch, bis 50 ms
 	in	al,dx			; Empfaenger leeren
 	in	al,dx
 	add	dx,CRW
-	mov	al,87h			; Loopback, RxEN, DTR, TxEN
+	mov	al,0A7h		; Loopback, RTS (= CTS), RxEN, DTR, TxEN
 	out	dx,al
 	sub	dx,CRW-THR
 	mov	al,55h
