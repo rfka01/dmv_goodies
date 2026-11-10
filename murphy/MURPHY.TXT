@@ -1,0 +1,131 @@
+MURPHY - Murphys Gesetze fuer die AUTOEXEC.BAT
+==============================================
+
+MURPHY zeigt bei jedem Aufruf ein zufaellig gewaehltes Gesetz von Murphy
+und seinen Verwandten. In die AUTOEXEC.BAT geschrieben, begruesst es
+einen bei jedem Start mit einer neuen Weisheit.
+
+Es ist eine Neufassung von MURPHY 2.0 (Juni 1986) von Charles J. C.
+Lyall. Bei Lyall waren die Sprueche in das Programm hineinuebersetzt;
+jetzt stehen sie in der Textdatei MURPHY.LAW, die man mit jedem Editor
+ergaenzen kann. Bedienung und Ausgaben sind dieselben wie bei Lyall.
+
+Fuer MS-DOS ab 2.0. MURPHY benutzt nur DOS-Aufrufe und laeuft deshalb
+auf der DMV wie auf jedem anderen MS-DOS-Rechner.
+
+
+Aufruf
+------
+
+  MURPHY            ein zufaellig gewaehltes Gesetz
+  MURPHY n          Gesetz Nummer n (gezaehlt ab 0)
+  MURPHY n m        die Gesetze n bis m, z. B. MURPHY 0 8 fuer die
+                    ersten neun
+  MURPHY ?          kurze Hilfe und die Zahl der Gesetze
+
+Vor dem Spruch stehen zwei Leerzeilen, danach eine.
+
+Hervorheben der Quelle
+----------------------
+
+Die Quellzeile eines Spruchs, z. B. "Murphy's Corollary:", erscheint
+invers. Als Quellzeile gilt die erste Zeile eines Spruchs, wenn sie
+mit ":" endet.
+
+  /A   Hervorhebung mit ANSI-Codes: ESC [7m invers, ESC [0m normal.
+       Das ist die Vorgabe.
+  /T   reiner Text ohne Steuerzeichen - fuer PCs ohne ANSI.SYS.
+
+Invers ist das einzige Attribut, das auf allen Konsolen gleich wirkt:
+unter NCR MS-DOS 2.11, den DMV-Ports von MS-DOS 3.30 und DR-DOS 3.41
+und mit ANSI.SYS auf IBM-Kompatiblen. Hell (ESC [1m) heisst auf der
+DMV "volle Helligkeit" und ist dort normal; halbhell (ESC [8m) ist auf
+dem PC "unsichtbar"; und ESC [0m laesst unter NCR 2.11 die Farbe
+stehen. Auf einem PC ohne ANSI.SYS erscheint Zeichensalat vor und
+hinter der Quelle - dann MURPHY /T benutzen.
+
+Die Schalter duerfen an beliebiger Stelle stehen (MURPHY /T 5 oder
+MURPHY 5 /T). Geht die Ausgabe nicht auf den Bildschirm (MURPHY >PRN),
+ist sie immer reiner Text.
+
+Rueckgabewert (ERRORLEVEL): 0 in Ordnung, 1 MURPHY.LAW nicht gefunden
+oder nicht lesbar, 2 falsche Argumente.
+
+
+Einbau in die AUTOEXEC.BAT
+--------------------------
+
+MURPHY.COM und MURPHY.LAW in dasselbe Verzeichnis kopieren, z. B.
+nach C:\DOS, und in die AUTOEXEC.BAT schreiben:
+
+  C:\DOS\MURPHY
+
+MURPHY sucht MURPHY.LAW
+  1. im Verzeichnis von MURPHY.COM selbst (erst ab MS-DOS 3.0; DOS 2
+     teilt Programmen ihren Pfad nicht mit),
+  2. im aktuellen Verzeichnis,
+  3. in allen Verzeichnissen des PATH.
+Unter MS-DOS 2.11 liegen beide Dateien deshalb am besten im
+Hauptverzeichnis der Startdiskette oder in einem Verzeichnis des PATH.
+
+
+Die Datei MURPHY.LAW
+--------------------
+
+Reiner Text. Die Gesetze sind durch Zeilen getrennt, auf denen nur ein
+"%" steht (das Format der fortune-Dateien von Unix):
+
+  Murphy's Law:
+    If anything can go wrong, it will.
+  %
+  O'Toole's Commentary:
+    Murphy was an optimist.
+  %
+
+Ein Gesetz darf beliebig viele Zeilen haben; eine Zeile sollte nicht
+laenger als 79 Zeichen sein. Leerzeilen vor einem Gesetz werden
+uebergangen. Endet die erste Zeile mit ":", gilt sie als Quelle und
+wird invers hervorgehoben. Zeilenenden CR/LF (DOS) und LF (Unix) gehen beide,
+Ctrl-Z beendet die Datei. Neue Gesetze haengt man einfach an; die
+Nummern der vorhandenen bleiben dabei gleich.
+
+Die Sammlung umfasst 296 Gesetze:
+  Nr.   0-200  Lyalls Sammlung aus MURPHY 2.0 (1986), unveraendert bis
+               auf das doppelt enthaltene Peer's Law und sechs
+               ergaenzte Doppelpunkte hinter Quellen
+  Nr. 201-277  weitere Klassiker aus Arthur Blochs Murphy's-Law-Buechern
+               und der Computer-Folklore: Murphys Folgerungen, Gesetze
+               fuers Programmieren, fuer die Elektronik-Werkstatt, fuer
+               Labor und Buero
+  Nr. 278-295  "Lucas, Prince of Darkness" - die Witze ueber die
+               Elektrik von Joseph Lucas in englischen Autos und
+               Motorraedern
+
+Die Zuschreibungen ("Chisholm's Law" usw.) sind die ueberlieferten,
+nicht im Einzelnen nachgeprueft. Die Sprueche sind englisch wie bei
+Lyall.
+
+
+Zufall
+------
+
+MURPHY liest die Datei nur einmal: Das k-te Gesetz ersetzt das bisher
+gewaehlte mit der Wahrscheinlichkeit 1/k. So hat jedes Gesetz dieselbe
+Chance, und die Datei muss nicht erst gezaehlt werden - ein zweiter
+Durchgang durch 30 KB dauert von der Diskette merklich. Der
+Zufallsgenerator wird aus Datum und Uhrzeit von DOS gesetzt. Ohne Uhr
+K803 beginnt DOS bei jedem Start mit derselben Zeit; dann kommt beim
+Start oft dasselbe Gesetz.
+
+
+Dateien
+-------
+
+  MURPHY.COM   das Programm (gut 2 KB)
+  MURPHY.LAW   die Gesetze
+  MURPHY.TXT   diese Beschreibung
+
+Quellen: https://github.com/rfka01/dmv_goodies (Verzeichnis murphy).
+Code: Claude (Anthropic), Idee und Prompts: rfka01. MIT-Lizenz; die
+Sammlung aus MURPHY 2.0 hat Charles J. C. Lyall 1986 als Public Domain
+freigegeben (nicht fuer gewerbliche Zwecke ohne seine Erlaubnis).

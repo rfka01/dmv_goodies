@@ -1,7 +1,7 @@
 GOODIES-Diskette fuer die NCR Decision Mate V
-Stand 0.18 vom 10.11.2026
+Stand 0.19 vom 10.11.2026
 
-Die Endung dieser Datei ist der Stand der Diskette (GOODIES.018 = 0.18).
+Die Endung dieser Datei ist der Stand der Diskette (GOODIES.019 = 0.19).
 
 Inhalt:
   DMVDEMO   Grafikdemo (DMVDEMO.TXT)
@@ -9,7 +9,16 @@ Inhalt:
   ECODRIVE  RAM-Disk im Grafikspeicher der Farb-DMV (ECODRIVE.TXT)
   MAUSTEST  Test der K806-Maus (MAUSTEST.TXT)
   DMVKERM   Kermit und Terminal, Version 1.2 (DMVKERM.TXT)
+  MURPHY    Murphys Gesetze fuer die AUTOEXEC.BAT (MURPHY.TXT)
   KITT.PIC, TUT.PIC  Bilder zu DMVDEMO (KITT.TXT, TUT.TXT)
+
+Neu in 0.19:
+  MURPHY 3.0: Neufassung von MURPHY 2.0 (Charles J. C. Lyall, 1986);
+  die Gesetze stehen jetzt in der Textdatei MURPHY.LAW und lassen sich
+  ergaenzen. 296 Gesetze: Lyalls 201, dazu 77 weitere Murphyismen und
+  18 Sprueche ueber "Lucas, Prince of Darkness".
+  Zwei Leerzeilen vor und eine nach dem Spruch; die Quelle erscheint
+  invers (ANSI, auf PCs mit ANSI.SYS), MURPHY /T gibt reinen Text aus.
 
 Neu in 0.18:
   DMVKERM.TXT: Abschnitt "Kabel" (K212-Druckerkabel ist schon ein
