@@ -78,6 +78,9 @@ anfang:	cld
 	mov	dx,offset titel
 	call	textd
 	call	zeitini			; Warteschleife eichen
+	mov	ax,2523h		; Ctrl-C: nicht DOS beenden lassen
+	mov	dx,offset brkisr
+	int	21h
 	call	kbinit			; Tastaturland
 	call	vtini			; Konsolenart
 	call	ifprobe			; serielle Module
@@ -96,7 +99,7 @@ anf2:	mov	dx,offset ini		; DMVKERM.INI, wenn vorhanden
 	mov	ax,4C00h
 	int	21h
 
-m_keinmod db	'Kein serielles Modul (K211, K212, K801) gefunden.',cr,lf,'$'
+m_keinmod db	'Kein serielles Modul (K211, K212, K215, K801) gefunden.',cr,lf,'$'
 dosver	db	0
 
 ; Stapel und Puffer am Ende

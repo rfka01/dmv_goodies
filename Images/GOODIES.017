@@ -1,0 +1,23 @@
+GOODIES-Diskette fuer die NCR Decision Mate V
+Stand 0.17 vom 10.11.2026
+
+Die Endung dieser Datei ist der Stand der Diskette (GOODIES.017 = 0.17).
+
+Inhalt:
+  DMVDEMO   Grafikdemo (DMVDEMO.TXT)
+  DMVRACE   Beschleunigungsrennen mit der 8741-Rennmaschine (DMVRACE.TXT)
+  ECODRIVE  RAM-Disk im Grafikspeicher der Farb-DMV (ECODRIVE.TXT)
+  MAUSTEST  Test der K806-Maus (MAUSTEST.TXT)
+  DMVKERM   Kermit und Terminal, Version 1.2 (DMVKERM.TXT)
+  KITT.PIC, TUT.PIC  Bilder zu DMVDEMO (KITT.TXT, TUT.TXT)
+
+Neu in 0.17:
+  DMVKERM 1.2: geprueft mit K211, K215 und K801 gegen einen NCR PC4i
+  mit Kermit-MS 2.32 und gegen Kermit 95; vereinbarte Pruefart in der
+  Antwort auf das S-Paket, IRQ-Suche der K211 mit RTS im Loopback,
+  vorhandene Dateien werden wie bei Kermit-MS umbenannt
+  (BRIEF.TXT -> BRIEF001.TXT), Ctrl-C bricht ab, Hinweis beim Warten
+  auf den Server, Tastatur auch mit der Keyclick- und der
+  Synthesizer-Firmware des 8741 zuverlaessig.
+
+https://github.com/rfka01/dmv_goodies

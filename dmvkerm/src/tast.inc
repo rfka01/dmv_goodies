@@ -17,35 +17,47 @@ kbkopf	db	0		; Ringpuffer der Tasten
 kbende	db	0
 kbpuf	dw	16 dup (0)
 kbdos	db	0		; Zaehler fuer die DOS-Nachfrage
+kbbrk	db	0		; DOS hat Ctrl-C gesehen (Int 23h)
+kbwartl	db	0		; 1 = Antwort auf 01h (Landescode) steht aus
+
+; Int 23h: Hat DOS selbst ein Ctrl-C gelesen (sein Tastaturinterrupt ist
+; schneller als wir), wird es hier zur Taste 03h, statt DMVKERM zu beenden.
+; DMVKERM haengt am seriellen Interrupt; ein Ende durch DOS liesse den
+; Vektor ins Leere zeigen. DOS stellt Int 23h am Programmende selbst zurueck.
+brkisr	proc	far
+	mov	cs:kbbrk,1
+	iret
+brkisr	endp
 
 ; Landescode erfragen (Befehl 01h). Ein altes 8741 antwortet vielleicht
-; nicht: nach einer Weile aufgeben.
+; nicht: nach einer Weile aufgeben; kommt die Antwort spaeter, faengt
+; kbfuell sie ab, solange kbwartl steht.
+; Geaenderte Firmware (rfka01/dmv_firmware) benutzt die Statusbits 7..4
+; selbst: Keyclick Bit 6..4, der Synthesizer 7..4 dauernd ('C', 'E', 'D').
+; Dort bedeutet Bit 7 nicht "Landescode", und 01h fragen wir nicht.
+; Die Tastatur gilt dann als deutsch.
 kbinit	proc	near
 	push	ax
 	push	cx
-	xor	cx,cx
+	in	al,KBDSTA
+	test	al,0F0h
+	jz	kbi0
+	mov	kbland,3
+	jmp	short kbi9
+kbi0:	xor	cx,cx
 kbi1:	in	al,KBDSTA
 	test	al,KBDIBF
 	jz	kbi2
 	loop	kbi1
 	jmp	short kbi9
-kbi2:	mov	al,1
+kbi2:	mov	kbwartl,1
+	mov	al,1
 	out	KBDSTA,al
 	xor	cx,cx
-kbi3:	in	al,KBDSTA
-	test	al,KBDOBF
-	jz	kbi5
-	test	al,KBDLAND
-	jz	kbi4
-	in	al,KBDDAT
-	and	al,7
-	mov	kbland,al
-	jmp	short kbi9
-kbi4:	in	al,KBDDAT		; eine Taste dazwischen
-	call	kbumsetz
-	jz	kbi5
-	call	kbrein
-kbi5:	loop	kbi3
+kbi3:	call	kbfuell			; Tasten dazwischen kommen in den Puffer
+	cmp	kbwartl,0
+	je	kbi9
+	loop	kbi3
 kbi9:	pop	cx
 	pop	ax
 	ret
@@ -95,11 +107,14 @@ kbfuell	proc	near
 kbf1:	in	al,KBDSTA
 	test	al,KBDOBF
 	jz	kbf5
+	cmp	kbwartl,0		; Bit 7 heisst nur dann Landescode, wenn
+	je	kbf2			;  wir danach gefragt haben
 	test	al,KBDLAND
 	jz	kbf2
 	in	al,KBDDAT
 	and	al,7
 	mov	kbland,al
+	mov	kbwartl,0
 	jmp	short kbf1
 kbf2:	in	al,KBDDAT
 	call	kbumsetz
@@ -109,12 +124,20 @@ kbf2:	in	al,KBDDAT
 kbf5:	mov	bl,kbkopf
 	cmp	bl,kbende
 	jne	kbf9
+	cmp	kbbrk,0			; Ctrl-C hat DOS schon abgefangen
+	jne	kbf7
 	inc	kbdos
 	test	kbdos,0Fh
 	jnz	kbf9
 	mov	ah,0Bh			; DOS: liegt etwas an?
 	int	21h
-	or	al,al
+	cmp	kbbrk,0
+	je	kbf6
+kbf7:	mov	kbbrk,0
+	mov	ax,3
+	call	kbrein
+	jmp	short kbf9
+kbf6:	or	al,al
 	jz	kbf9
 	mov	ah,6			; holen, ohne Echo und ohne Warten
 	mov	dl,0FFh
@@ -178,6 +201,19 @@ kbd9:	pop	cx
 	pop	si
 	ret
 kbdosum	endp
+
+; Tastenpuffer leeren: unser Ring, was der 8741 noch hat, der DOS-Puffer
+kbleer	proc	near
+	push	ax
+	call	kbfuell
+	mov	al,kbende
+	mov	kbkopf,al
+	mov	ax,0C00h
+	int	21h
+	mov	kbbrk,0
+	pop	ax
+	ret
+kbleer	endp
 
 ; Auf eine Taste warten -> AX
 kbwarte	proc	near

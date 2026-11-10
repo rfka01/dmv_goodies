@@ -588,7 +588,7 @@ mn1:	call	textd
 modname	endp
 
 hilfe	db	'Befehle (abkuerzbar):',cr,lf
-	db	'  CONNECT            Terminal (Ctrl-CLR: Befehl, C zurueck)',cr,lf
+	db	'  CONNECT            Terminal (Ctrl-CLR C: zur Befehlszeile)',cr,lf
 	db	'  SET PORT n         serielles Modul n (1, 2, ...)',cr,lf
 	db	'  SET SPEED n        Baudrate (300 ... 19200), auch SET BAUD n',cr,lf
 	db	'  SET PARITY p       NONE, EVEN, ODD, MARK, SPACE',cr,lf

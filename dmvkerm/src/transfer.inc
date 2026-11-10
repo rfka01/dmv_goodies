@@ -232,6 +232,7 @@ kstart	proc	near
 	mov	qbin,0
 	mov	rpref,0
 	mov	kabbr,0
+	call	kbleer			; alte Tasten (^C-Wiederholung) weg
 	mov	kbytes,0
 	mov	kbytes+2,0
 	mov	kpakete,0

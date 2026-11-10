@@ -78,6 +78,8 @@ brm_f:	mov	dx,offset m_fehlt
 brm9:	ret
 b_remote endp
 
+a_nochm	db	'Keine Antwort, ich versuche es weiter (ESC oder ^C bricht ab) ...',cr,lf,'$'
+
 ; Paket Typ AL (Daten in sdat) an den Server, Antwort zeigen
 kfrage	proc	near
 	mov	bl,al
@@ -96,7 +98,11 @@ kfr2:	call	rpack
 kfr3:	cmp	al,'a'
 	jne	kfr4
 	jmp	abbrechen
-kfr4:	inc	versuch
+kfr4:	cmp	versuch,0		; beim ersten Mal sagen, dass wir warten
+	jne	kfr4a
+	mov	dx,offset a_nochm
+	call	textd
+kfr4a:	inc	versuch
 	cmp	versuch,VERSUCHE
 	jb	kfr1
 	mov	dx,offset a_zeit

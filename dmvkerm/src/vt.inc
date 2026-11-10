@@ -230,7 +230,7 @@ kalles	proc	near
 kalles	endp
 
 ; Statuszeile (Zeile 24, invers; Spalte 79 bleibt frei)
-st_text	db	' DMVKERM   Ctrl-CLR: Befehl (C = zurueck)     Port '
+st_text	db	' DMVKERM   Ctrl-CLR C: zur Befehlszeile       Port '
 st_port	db	'1  '
 st_baud	db	' 9600 '
 st_par	db	'8N1  VT102 '

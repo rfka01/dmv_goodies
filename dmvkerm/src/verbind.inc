@@ -2,12 +2,12 @@
 ;
 ; Empfangene Zeichen gehen an die Konsole, Tasten an die Leitung.
 ; Ctrl-CLR leitet einen Befehl ein (die Auswahl steht dann in der
-; Statuszeile): C zurueck, B Break, H auflegen, Ctrl-CLR sendet Ctrl-].
+; Statuszeile): C zur Befehlszeile, B Break, H auflegen, Ctrl-CLR sendet Ctrl-].
 ; Stufe 1: Steuerzeichen CR LF BS BEL TAB werden durchgereicht, alle
 ; anderen Zeichen ueber die Glyphentabelle. Die VT102-Auswertung folgt.
 
-v_zur	db	'[Zurueck bei DMVKERM.]$'
-v_hilfe	db	' Befehl?  C zurueck  B Break  H auflegen  Ctrl-CLR nochmal: sendet Ctrl-]      '
+v_zur	db	'[Terminal verlassen, die Verbindung bleibt bestehen.]$'
+v_hilfe	db	' C Befehlszeile  B Break senden  H auflegen  Ctrl-CLR nochmal: sendet Ctrl-]   '
 v_hlen	equ	$-v_hilfe
 
 b_connect proc	near

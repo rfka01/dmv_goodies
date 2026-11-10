@@ -36,8 +36,10 @@ Empfangene Zeichen gehen an den Bildschirm, Tasten an die Leitung. Die
 unterste Zeile ist die Statuszeile. Die Fluchttaste ist CTRL-CLR (in
 MAME liegt CLR auf Entf). Danach zeigt die Statuszeile die Auswahl:
 
-  C                    zurueck zu DMVKERM>
-  B                    Break senden
+  C                    Terminal verlassen, zur Befehlszeile DMVKERM>
+                       (die Verbindung bleibt bestehen)
+  B                    Break senden (Leitung 1/4 s auf Pause; weckt
+                       manche Gegenstellen oder Modems auf)
   H                    auflegen (DTR eine Sekunde weg)
   CTRL-CLR             sendet CTRL-] an die Gegenseite
   jede andere Taste    weiter im Terminal
