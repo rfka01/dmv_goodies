@@ -248,7 +248,33 @@ University, zum Beispiel Kermit-MS 2.32 (liegt als KERMIBM.EXE auf der
 Diskette DMVKERM.IMG im Repository) oder MS-Kermit 3.14. Unter Linux oder Windows dienen
 C-Kermit bzw. Kermit 95, fuer XMODEM auch Tera Term oder lrzsz (sx, rx).
 
-Beispiel mit einem PC als Gegenseite (Nullmodemkabel, 9600 Baud):
+Kabel
+-----
+- K211 (und K215): Modemkabel, gerade durchverbunden. Zu einem PC
+  gehoert ein Nullmodemkabel dazwischen.
+- K212 (und K213): das Druckerkabel ist selbst schon ein Nullmodemkabel
+  (TD/RD und RTS/CTS gekreuzt, DSR auf der DMV-Seite an DTR gebrueckt).
+  Zu einem PC also nur ein gerades Verlaengerungskabel oder ein
+  Gender-Changer, KEIN weiteres Nullmodemkabel - zweimal gekreuzt ist
+  wieder gerade, und dann kommt nichts an. Die K212 sitzt ab Werk auf
+  IFSEL 0 (60h), wie die K210.
+- Wer K212 neben K210 betreiben will, muss auf der K212 die
+  Steckbruecke von J2 (PRINTER) auf J1 (MODEM) umstecken. Dann liegt sie
+  auf IFSEL 1 (70h), die K210 bleibt auf IFSEL 0 (60h). Das Kabel
+  bleibt das Druckerkabel (siehe oben); eine K211 kann dann nicht
+  zusaetzlich stecken. SHOW nennt das Modul nach seiner Adresse, also
+  "K211 70h". In MAME: TAB, Machine Configuration, "K212 Jumpers" auf
+  IFSEL 1, dann Reset.
+- K801: der Kabelkonverter im Gehaeuse entscheidet (MODEM wie K211,
+  PRINTER wie K212).
+- Der PC muss RTS setzen: es kommt auf der DMV als CTS an, und ohne
+  CTS sendet der 2651 nicht. Ein normaler COM-Port tut das; bei
+  manchen USB-Adaptern muss die Flusssteuerung dafuer "aus" sein.
+- Ohne K235 und ohne den Umbau nach dem NCR-Handbuch fragt DMVKERM
+  das Modul ab; der Empfang ist dann bis etwa 2400 Baud sicher.
+
+Beispiel mit einem PC als Gegenseite (K211 mit Nullmodemkabel oder
+K212 mit geradem Kabel, 9600 Baud):
 
   PC:   KERMIT
         set port com1

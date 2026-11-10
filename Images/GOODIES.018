@@ -1,7 +1,7 @@
 GOODIES-Diskette fuer die NCR Decision Mate V
-Stand 0.17 vom 10.11.2026
+Stand 0.18 vom 10.11.2026
 
-Die Endung dieser Datei ist der Stand der Diskette (GOODIES.017 = 0.17).
+Die Endung dieser Datei ist der Stand der Diskette (GOODIES.018 = 0.18).
 
 Inhalt:
   DMVDEMO   Grafikdemo (DMVDEMO.TXT)
@@ -10,6 +10,11 @@ Inhalt:
   MAUSTEST  Test der K806-Maus (MAUSTEST.TXT)
   DMVKERM   Kermit und Terminal, Version 1.2 (DMVKERM.TXT)
   KITT.PIC, TUT.PIC  Bilder zu DMVDEMO (KITT.TXT, TUT.TXT)
+
+Neu in 0.18:
+  DMVKERM.TXT: Abschnitt "Kabel" (K212-Druckerkabel ist schon ein
+  Nullmodemkabel; K212 neben K210 mit Steckbruecke J1); K212 in MAME
+  getestet.
 
 Neu in 0.17:
   DMVKERM 1.2: geprueft mit K211, K215 und K801 gegen einen NCR PC4i
