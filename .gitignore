@@ -2,3 +2,4 @@ __pycache__/
 *.so
 dmvdiag/build/
 murphy/build/
+dmvmem/build/

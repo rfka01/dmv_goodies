@@ -1,0 +1,83 @@
+DMVMEM - Belegung des Arbeitsspeichers
+======================================
+
+DMVMEM zeigt, wie der Arbeitsspeicher der DMV belegt ist: wie viel DOS
+braucht, welche Programme resident geblieben sind (TSRs), auf welche
+Interrupts sie sich gesetzt haben und wie viel fuer das naechste
+Programm frei ist.
+
+MS-DOS 3.30 hat noch keinen MEM-Befehl (der kam mit DOS 4.0). DMVMEM
+ist der Ersatz dafuer, abgestimmt auf die Fragen, die sich auf der DMV
+stellen: Reicht der Speicher fuer GEM Paint? Wer hat die letzten 12 KB?
+
+Fuer MS-DOS ab 2.0 (Programmnamen ab 3.0). DMVMEM benutzt nur
+DOS-Aufrufe und laeuft deshalb auch auf anderen MS-DOS-Rechnern.
+
+
+Aufruf
+------
+
+  DMVMEM        Uebersicht
+  DMVMEM /B     dazu jeden Speicherblock einzeln
+  DMVMEM ?      kurze Hilfe
+
+Die Ausgabe laesst sich umlenken, z. B. DMVMEM /B >PRN.
+
+
+Beispiel
+--------
+
+  Programm                         Byte   Hinweis
+  ------------------------------------------------------------------
+  DOS (Kern, Puffer, Treiber)    63.344
+  COMMAND.COM                     3.840   Befehlsprozessor
+  DMVKEY                          4.720   INT 21 2F
+  ------------------------------------------------------------------
+  Frei                          452.384   groesster Block 452.192
+  Gesamt                        524.288   Arbeitsspeicher
+
+- DOS: alles unterhalb der ersten Speicherkette (Interrupttabelle,
+  Daten von BIOS und DOS, IO.SYS, MSDOS.SYS, BUFFERS, FILES, Treiber
+  aus der CONFIG.SYS) und die Bloecke, die DOS selbst gehoeren.
+- Programme: Name aus der Umgebung des Programms. Residente Programme
+  geben ihre Umgebung oft zurueck; dann sucht DMVMEM in den ersten
+  Bytes des Programms nach einer Kennung (DMVKEY steht dort mit
+  Namen). Findet es keine, steht "(Name unbekannt)" da.
+- Hinweis: die Interrupts, deren Vektoren in das Programm zeigen -
+  daran haengt ein residentes Programm im System. Beim
+  Befehlsprozessor steht "Befehlsprozessor".
+- Frei: der ganze freie Speicher; DMVMEM selbst zaehlt als frei, weil
+  es nach dem Ende wieder frei ist. "groesster Block" ist das, was das
+  naechste Programm am Stueck bekommt.
+- Jeder Block wird mit seinem 16 Byte langen Kopf gezaehlt, so ergeben
+  die Zeilen zusammen genau den Arbeitsspeicher.
+
+Unter GEM ("DOS-Kommandos eingeben" im Desktop) zeigt DMVMEM auch die
+Teile von GEM: GEMVDI.EXE und GEM.EXE (AES mit Bildschirmtreiber und
+Puffern), dazu einen zweiten Befehlsprozessor.
+
+
+/B: die Bloecke einzeln
+-----------------------
+
+  MCB    Besitzer   Byte   Programm
+  0CF5   0008     10.272   DOS
+  0F77   0F78      3.664   COMMAND.COM
+  105C   0000         64   frei
+  1060   0F78        176   Umgebung von COMMAND.COM
+  ...
+
+MCB ist das Segment des Speicherkopfes, Besitzer das Segment des
+Programmkopfes (PSP) des Programms, dem der Block gehoert. 0008 ist DOS,
+0000 frei.
+
+
+Rueckgabewert
+-------------
+
+ERRORLEVEL 0 gut, 1 die Speicherkette von DOS ist beschaedigt (dann
+meldet DMVMEM den Block, an dem sie abreisst).
+
+
+DMVMEM 1.0, (C) 2026 rfka01, MIT-Lizenz. Code: Claude (Anthropic).
+https://github.com/rfka01/dmv_goodies

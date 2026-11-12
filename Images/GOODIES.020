@@ -1,0 +1,44 @@
+GOODIES-Diskette fuer die NCR Decision Mate V
+Stand 0.20 vom 12.11.2026
+
+Die Endung dieser Datei ist der Stand der Diskette (GOODIES.020 = 0.20).
+
+Inhalt:
+  DMVDEMO   Grafikdemo (DMVDEMO.TXT)
+  DMVRACE   Beschleunigungsrennen mit der 8741-Rennmaschine (DMVRACE.TXT)
+  ECODRIVE  RAM-Disk im Grafikspeicher der Farb-DMV (ECODRIVE.TXT)
+  MAUSTEST  Test der K806-Maus (MAUSTEST.TXT)
+  DMVKERM   Kermit und Terminal, Version 1.2 (DMVKERM.TXT)
+  MURPHY    Murphys Gesetze fuer die AUTOEXEC.BAT (MURPHY.TXT)
+  DMVMEM    Belegung des Arbeitsspeichers (DMVMEM.TXT)
+  KITT.PIC, TUT.PIC  Bilder zu DMVDEMO (KITT.TXT, TUT.TXT)
+
+Neu in 0.20:
+  DMVMEM 1.0: zeigt die Belegung des Arbeitsspeichers (ein MEM fuer
+  MS-DOS 3.30): DOS, Befehlsprozessor, residente Programme mit ihren
+  Interrupts, freier Speicher und groesster Block; /B listet jeden
+  Speicherblock.
+
+Neu in 0.19:
+  MURPHY 3.0: Neufassung von MURPHY 2.0 (Charles J. C. Lyall, 1986);
+  die Gesetze stehen jetzt in der Textdatei MURPHY.LAW und lassen sich
+  ergaenzen. 296 Gesetze: Lyalls 201, dazu 77 weitere Murphyismen und
+  18 Sprueche ueber "Lucas, Prince of Darkness".
+  Zwei Leerzeilen vor und eine nach dem Spruch; die Quelle erscheint
+  invers (ANSI, auf PCs mit ANSI.SYS), MURPHY /T gibt reinen Text aus.
+
+Neu in 0.18:
+  DMVKERM.TXT: Abschnitt "Kabel" (K212-Druckerkabel ist schon ein
+  Nullmodemkabel; K212 neben K210 mit Steckbruecke J1); K212 in MAME
+  getestet.
+
+Neu in 0.17:
+  DMVKERM 1.2: geprueft mit K211, K215 und K801 gegen einen NCR PC4i
+  mit Kermit-MS 2.32 und gegen Kermit 95; vereinbarte Pruefart in der
+  Antwort auf das S-Paket, IRQ-Suche der K211 mit RTS im Loopback,
+  vorhandene Dateien werden wie bei Kermit-MS umbenannt
+  (BRIEF.TXT -> BRIEF001.TXT), Ctrl-C bricht ab, Hinweis beim Warten
+  auf den Server, Tastatur auch mit der Keyclick- und der
+  Synthesizer-Firmware des 8741 zuverlaessig.
+
+https://github.com/rfka01/dmv_goodies

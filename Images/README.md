@@ -11,7 +11,8 @@
 | `MAUSTEST.COM`, `MAUSTEST.TXT` | test for the K806 mouse adapter, graphical or `/T` as text · Test für den Maus-Adapter K806, grafisch oder mit `/T` als Text |
 | `DMVKERM.COM`, `DMVKERM.TXT` | Kermit and terminal · Kermit und Terminal |
 | `MURPHY.COM`, `MURPHY.LAW`, `MURPHY.TXT` | Murphy's Laws for the AUTOEXEC.BAT; the laws are in `MURPHY.LAW` · Murphys Gesetze für die AUTOEXEC.BAT; die Gesetze stehen in `MURPHY.LAW` |
-| `GOODIES.019` | version of the disk (0.19) and what is new · Stand der Diskette und Neuerungen |
+| `DMVMEM.COM`, `DMVMEM.TXT` | memory usage, a MEM for MS-DOS 3.30 · Speicherbelegung, ein MEM für MS-DOS 3.30 |
+| `GOODIES.020` | version of the disk (0.20) and what is new · Stand der Diskette und Neuerungen |
 
 The `.TXT` files are the German descriptions (DOS text, CRLF). · Die `.TXT`-Dateien sind die deutschen Beschreibungen.
 
