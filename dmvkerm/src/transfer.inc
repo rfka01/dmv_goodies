@@ -11,6 +11,7 @@ fpuf	db	1024 dup (?)
 	.code
 fpos	dw	0
 fend	dw	0
+flesef	db	0		; 1 = DOS meldete beim Lesen einen Fehler
 dta	db	43 dup (0)	; Suchergebnis (Name ab +1Eh, Groesse +1Ah)
 fmuster	db	80 dup (0)	; SEND-Muster mit Pfad
 fpfad	db	80 dup (0)	; voller Name der aktuellen Datei
@@ -42,8 +43,10 @@ fpeek	proc	near
 	int	21h
 	pop	dx
 	pop	cx
-	jc	fpk8
-	or	ax,ax
+	jnc	fpk4
+	mov	flesef,1		; Lesefehler, nicht Dateiende
+	jmp	short fpk8
+fpk4:	or	ax,ax
 	jz	fpk8
 	mov	fend,ax
 	mov	fpos,0
@@ -143,6 +146,7 @@ a_abbr	db	cr,lf,'Abgebrochen.',cr,lf,'$'
 a_gegen	db	cr,lf,'Gegenseite meldet: $'
 a_zeit	db	cr,lf,'Keine Antwort von der Gegenseite.',cr,lf,'$'
 a_nicht	db	'?Datei nicht gefunden.',cr,lf,'$'
+a_lesef	db	'?Lesefehler, Datei verworfen',cr,lf,'$'
 a_dfehl	db	cr,lf,'?Dateifehler (Diskette voll oder schreibgeschuetzt).',cr,lf,'$'
 a_warte	db	'Warte auf SEND der Gegenseite (bei einem Server: GET)',cr,lf,'$'
 a_rich	dw	0		; a_sende oder a_empf
@@ -396,6 +400,7 @@ ksd2:	mov	fhand,ax
 	mov	fpos,0
 	mov	fend,0
 	mov	kstop,0
+	mov	flesef,0
 	mov	ax,word ptr dta+1Ah	; Groesse fuer die Prozente
 	mov	kgross,ax
 	mov	ax,word ptr dta+1Ch
@@ -443,6 +448,7 @@ ksd4:	sub	di,offset sdat
 	ret
 ksd6:	call	ksdaten			; D-Pakete
 	jc	ksd_f
+	call	kslpr			; gelesen, was die Datei hat?
 	mov	sdlen,0			; Z-Paket
 	cmp	kstop,0
 	je	ksd7
@@ -453,7 +459,10 @@ ksd7:	mov	al,'Z'
 	jc	ksd_f
 	call	fzu
 	mov	dx,offset a_ok
-	call	meldung
+	cmp	flesef,0
+	je	ksd7a
+	mov	dx,offset a_lesef
+ksd7a:	call	meldung
 	cmp	kstop,2			; keine weiteren Dateien
 	jne	ksd8
 	mov	sdlen,0
@@ -467,6 +476,29 @@ ksd_f:	call	fzu
 	stc
 	ret
 ksdatei	endp
+
+; Nach den D-Paketen: Meldete DOS einen Lesefehler, oder kamen weniger
+; Bytes, als die Datei laut Verzeichnis hat, wird die Datei mit Z/D
+; verworfen statt verkuerzt (oder leer) beim Empfaenger abgelegt.
+; Abgebrochene Dateien (^X/^Z) prueft es nicht.
+kslpr	proc	near
+	push	ax
+	cmp	kstop,0
+	jne	kslp9
+	cmp	flesef,0
+	jne	kslp5
+	mov	ax,kbytes+2
+	cmp	ax,kgross+2
+	jb	kslp4
+	ja	kslp9
+	mov	ax,kbytes
+	cmp	ax,kgross
+	jae	kslp9
+kslp4:	mov	flesef,1
+kslp5:	mov	kstop,1			; Z mit D: Empfaenger verwirft
+kslp9:	pop	ax
+	ret
+kslpr	endp
 
 ; D-Pakete bis zum Dateiende. Carry bei Fehler.
 ksdaten	proc	near

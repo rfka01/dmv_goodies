@@ -1,17 +1,22 @@
 GOODIES-Diskette fuer die NCR Decision Mate V
-Stand 0.20 vom 12.11.2026
+Stand 0.21 vom 12.11.2026
 
-Die Endung dieser Datei ist der Stand der Diskette (GOODIES.020 = 0.20).
+Die Endung dieser Datei ist der Stand der Diskette (GOODIES.021 = 0.21).
 
 Inhalt:
   DMVDEMO   Grafikdemo (DMVDEMO.TXT)
   DMVRACE   Beschleunigungsrennen mit der 8741-Rennmaschine (DMVRACE.TXT)
   ECODRIVE  RAM-Disk im Grafikspeicher der Farb-DMV (ECODRIVE.TXT)
   MAUSTEST  Test der K806-Maus (MAUSTEST.TXT)
-  DMVKERM   Kermit und Terminal, Version 1.2 (DMVKERM.TXT)
+  DMVKERM   Kermit und Terminal, Version 1.3 (DMVKERM.TXT)
   MURPHY    Murphys Gesetze fuer die AUTOEXEC.BAT (MURPHY.TXT)
   DMVMEM    Belegung des Arbeitsspeichers (DMVMEM.TXT)
   KITT.PIC, TUT.PIC  Bilder zu DMVDEMO (KITT.TXT, TUT.TXT)
+
+Neu in 0.21:
+  DMVKERM 1.3: Lesefehler beim SEND (z.B. schadhafte Diskette) werden
+  gemeldet, die Datei wird bei der Gegenseite verworfen statt leer oder
+  verkuerzt abgelegt.
 
 Neu in 0.20:
   DMVMEM 1.0: zeigt die Belegung des Arbeitsspeichers (ein MEM fuer
