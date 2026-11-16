@@ -65,6 +65,8 @@
 ;
 ; Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT
 ;-----------------------------------------------------------------------
+k_ue = 99h                      ; ue auf der DMV-Konsole
+
 GHI_ROM    EQU   0               ; 1 M.07.00, 2 C.07.00, 3 M.05.00, 4 M.06.00, 5 C.06.00
 GHI_SCHIRM EQU   1               ; 1 Mono, 2 Farbe, 3 widerspruechlich
 GHI_KARTE  EQU   2               ; 1 K235, 2 K230/K231, 0 keine
@@ -1469,7 +1471,7 @@ gh_coblk ENDP
 ; ---- Meldung ----
 gh_tde  db      'Erkannt: $K235 mit $K230/K231 mit $8088$V20$CPU? (PUSH 0 und AAD 16 uneins)$'
         db      ', 8087$, K234 (68008)$, K238 (Z8001)$, keine K234/K238$'
-        db      ', K234/K238 nicht geprueft$'
+        db      ', K234/K238 nicht gepr',k_ue,'ft$'
 gh_ten  db      'Found: $K235 with $K230/K231 with $8088$V20$CPU? (PUSH 0 and AAD 16 disagree)$'
         db      ', 8087$, K234 (68008)$, K238 (Z8001)$, no K234/K238$'
         db      ', K234/K238 not tested$'

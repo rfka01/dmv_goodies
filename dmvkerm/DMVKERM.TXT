@@ -1,18 +1,18 @@
-DMVKERM 1.4 - Kermit und Terminal fuer die NCR Decision Mate V
+DMVKERM 1.5 - Kermit und Terminal für die NCR Decision Mate V
 ===============================================================
 
-DMVKERM ist ein kleines Kermit fuer die seriellen Module K211, K212,
+DMVKERM ist ein kleines Kermit für die seriellen Module K211, K212,
 K213 (Signetics 2651), K801 (2661) und K215 (2651 mit 2 KB Puffer).
 Es bietet ein Terminal mit einer
-VT102-Teilmenge sowie Dateiuebertragung mit Kermit (auch als Server)
-und mit XMODEM, dazu Skripte fuer die Einwahl. DMVKERM.COM ist rund
-22 KB gross und belegt beim Lauf rund 38 KB Speicher.
+VT102-Teilmenge sowie Dateiübertragung mit Kermit (auch als Server)
+und mit XMODEM, dazu Skripte für die Einwahl. DMVKERM.COM ist rund
+22 KB groß und belegt beim Lauf rund 38 KB Speicher.
 
-Es laeuft unter NCR MS-DOS 2.11, dem DMV-Port von MS-DOS 3.30 und dem
+Es läuft unter NCR MS-DOS 2.11, dem DMV-Port von MS-DOS 3.30 und dem
 DMV-Port von DR-DOS 3.41, mit 8088/V20-Karte K230, K231 oder K235.
 
-Befehle werden englisch eingegeben (wie bei jedem Kermit) und duerfen
-abgekuerzt werden. Die Meldungen sind deutsch.
+Befehle werden englisch eingegeben (wie bei jedem Kermit) und dürfen
+abgekürzt werden. Die Meldungen sind deutsch.
 
 
 Aufruf
@@ -21,7 +21,7 @@ Aufruf
 
 Beim Start sucht DMVKERM die seriellen Module (IFSEL 1A, 1B, 0A, 0B,
 2A, 2B, 3A, 3B; das erste gefundene ist PORT 1) und stellt PORT 1 ein.
-Mit K235 ermittelt es den Interrupt des Moduls und empfaengt per
+Mit K235 ermittelt es den Interrupt des Moduls und empfängt per
 Interrupt, sonst fragt es ab. Eine K215 erkennt es wie NCRs Diagnose
 V1K215 am Echo-Befehl ihres 8741; sie wird immer abgefragt, weil sie
 die Zeichen selbst puffert. Danach liest es DMVKERM.INI aus dem
@@ -30,7 +30,7 @@ aktuellen Verzeichnis, wenn es diese Datei gibt.
 
 Terminal
 --------
-  CONNECT              Terminalbetrieb (Abkuerzung C)
+  CONNECT              Terminalbetrieb (Abkürzung C)
 
 Empfangene Zeichen gehen an den Bildschirm, Tasten an die Leitung. Die
 unterste Zeile ist die Statuszeile. Die Fluchttaste ist CTRL-CLR (in
@@ -48,25 +48,25 @@ Cursortasten senden ESC [ A bis D (im Anwendungsmodus ESC O A bis D),
 die Pos1-Taste ESC [ H, F1 bis F4 die VT-Tasten PF1 bis PF4.
 
 Die VT102-Teilmenge versteht: Cursor setzen und bewegen, Zeile und
-Bildschirm loeschen, Zeilen und Zeichen einfuegen und loeschen,
-Rollbereich (DECSTBM), Rollen vorwaerts und rueckwaerts, Cursor sichern
-und wiederherstellen, Attribute (invers, halbhell fuer fett und
+Bildschirm löschen, Zeilen und Zeichen einfügen und löschen,
+Rollbereich (DECSTBM), Rollen vorwärts und rückwärts, Cursor sichern
+und wiederherstellen, Attribute (invers, halbhell für fett und
 unterstrichen, blinkend), den DEC-Grafikzeichensatz (Linien als +, -, |),
-Anwendungsmodus der Cursortasten sowie die Abfragen Geraeteattribute
+Anwendungsmodus der Cursortasten sowie die Abfragen Geräteattribute
 und Cursorposition. Die Gegenseite stellt man auf VT100 oder VT102.
 
 Nach dem Verlassen mit CTRL-CLR C bleibt der Terminalbildschirm im
-Speicher und erscheint beim naechsten CONNECT wieder.
+Speicher und erscheint beim nächsten CONNECT wieder.
 
 
-Einwahl ueber ein Modem
------------------------
+Einwahl über ein Modem
+----------------------
 Hayes-kompatible Modems bedient man im Terminal von Hand, zum Beispiel:
 
   DMVKERM>set speed 2400
   DMVKERM>connect
   AT                    (Modem antwortet OK)
-  ATDT 0123456789       (waehlen; nach CONNECT ist man verbunden)
+  ATDT 0123456789       (wählen; nach CONNECT ist man verbunden)
 
 Aufgelegt wird mit CTRL-CLR H oder dem Befehl HANGUP. Das Modemkabel
 muss DTR durchreichen.
@@ -78,24 +78,28 @@ Einstellungen
   SET SPEED n          Baudrate: 50 75 110 134 150 300 600 1200 1800
                        2000 2400 3600 4800 7200 9600 19200
   SET BAUD n           dasselbe wie SET SPEED (wie bei MS-Kermit)
-  SET PARITY p         NONE, EVEN, ODD, MARK, SPACE (Vorgabe NONE, 8 Bit)
+  SET SERIAL dps       Datenbits, Parität und Stoppbits in einem, z.B.
+                       8N1 (Vorgabe), 7E1, 8N2, 7M2, 8S1; siehe unten
+  SET PARITY p         NONE, EVEN, ODD, MARK, SPACE; stellt wie bei
+                       C-Kermit die Datenbits mit ein: NONE 8, sonst 7
+  SET DATA-BITS 7|8    Datenbits (nach SET PARITY, für z.B. 8E1)
   SET STOP-BITS 1|2    Stoppbits (Vorgabe 1)
   SET FLOW f           NONE oder XON/XOFF (Vorgabe XON/XOFF)
-  SET XMODEM 1K|128    Blockgroesse beim Senden mit XMODEM (Vorgabe 1K)
-  SET TRANSMIT PAUSE n n Millisekunden Luecke nach jedem Zeichen bei
+  SET XMODEM 1K|128    Blockgröße beim Senden mit XMODEM (Vorgabe 1K)
+  SET TRANSMIT PAUSE n n Millisekunden Lücke nach jedem Zeichen bei
                        TRANSMIT (Vorgabe 0)
   SHOW                 Module, Interrupt, Einstellungen, Leitungen DSR
                        und DCD, verlorene Zeichen, Mitschnitt
   HANGUP               auflegen
 
-Ohne Interrupt (K230/K231 oder Modul ohne IRQ-Leitung) haelt der 2651
+Ohne Interrupt (K230/K231 oder Modul ohne IRQ-Leitung) hält der 2651
 nur zwei Zeichen; beim Empfangen geht das bis etwa 2400 Baud sicher.
 Mit Interrupt sind 9600 Baud kein Problem. Die K215 puffert 2 KB auf
 der Karte und kommt deshalb auch ohne Interrupt mit 19200 Baud aus.
 
 
-Dateiuebertragung mit Kermit
-----------------------------
+Dateiübertragung mit Kermit
+---------------------------
   SEND datei           Datei(en) senden; * und ? sind erlaubt, auch mit
                        Laufwerk und Pfad (SEND B:\TEXTE\*.TXT)
                        Meldet DOS beim Lesen einen Fehler oder liest
@@ -106,7 +110,7 @@ Dateiuebertragung mit Kermit
                        weitere Dateien gehen weiter.
   RECEIVE              Dateien empfangen (die Gegenseite schickt mit SEND)
   GET datei            Datei(en) von einem Kermit-Server holen; der Name
-                       geht unveraendert (Gross-/Kleinschreibung) hinaus
+                       geht unverändert (Groß-/Kleinschreibung) hinaus
   SERVER               DMVKERM als Kermit-Server: die Gegenseite schickt
                        mit SEND, holt mit GET und beendet mit FINISH oder
                        BYE, fragt mit REMOTE DIR, CD, DELETE, TYPE,
@@ -114,46 +118,46 @@ Dateiuebertragung mit Kermit
   FINISH               Server der Gegenseite beenden
   BYE                  Server der Gegenseite beenden und abmelden
 
-Waehrend der Uebertragung zeigt DMVKERM eine Maske wie MS-Kermit:
+Während der Übertragung zeigt DMVKERM eine Maske wie MS-Kermit:
 Dateiname (beim Empfang auch der Name, unter dem die Datei gespeichert
-wird), uebertragene Bytes, Prozent (wenn die Gegenseite die Groesse
-mitteilt), Zustand, Pakete, Paketlaenge, Wiederholungen, letzter Fehler
-und letzte Meldung. Tasten waehrend der Uebertragung:
+wird), übertragene Bytes, Prozent (wenn die Gegenseite die Größe
+mitteilt), Zustand, Pakete, Paketlänge, Wiederholungen, letzter Fehler
+und letzte Meldung. Tasten während der Übertragung:
 
-  CTRL-X               diese Datei abbrechen, mit der naechsten weiter
+  CTRL-X               diese Datei abbrechen, mit der nächsten weiter
   CTRL-Z               alle restlichen Dateien abbrechen
-                       (solange noch keine Datei laeuft, beenden beide
-                       die Uebertragung; bei XMODEM ebenso)
-  CTRL-E, CTRL-C, ESC  Uebertragung beenden (die Gegenseite erfaehrt es)
+                       (solange noch keine Datei läuft, beenden beide
+                       die Übertragung; bei XMODEM ebenso)
+  CTRL-E, CTRL-C, ESC  Übertragung beenden (die Gegenseite erfährt es)
   Return               das letzte Paket sofort wiederholen
 
-Eine halb empfangene Datei wird geloescht.
+Eine halb empfangene Datei wird gelöscht.
 
 DMVKERM handelt mit der Gegenseite aus: lange Pakete bis 1000 Byte,
-Pruefart 3 (CRC-16), Wiederholungskompression, Attributpaket mit der
-Dateigroesse. Bei eingestellter Paritaet wird das 8. Bit mit Praefix
-uebertragen. Schiebefenster gibt es nicht.
+Prüfart 3 (CRC-16), Wiederholungskompression, Attributpaket mit der
+Dateigröße. Bei 7 Datenbits wird das 8. Bit mit Präfix
+übertragen. Schiebefenster gibt es nicht.
 
-Dateien werden immer binaer, also unveraendert, uebertragen. Fuer
+Dateien werden immer binär, also unverändert, übertragen. Für
 Textdateien zwischen DOS-Rechnern ist das richtig. Unter Unix (C-Kermit)
-ist bei Textdateien SET FILE TYPE TEXT auf der Unix-Seite noetig, damit
+ist bei Textdateien SET FILE TYPE TEXT auf der Unix-Seite nötig, damit
 die Zeilenenden umgesetzt werden.
 
-Empfangene Namen werden fuer DOS zurechtgeschnitten (8.3, grosse
-Buchstaben, ungueltige Zeichen entfallen). Gibt es die Datei schon,
-fuellt DMVKERM den Namen wie Kermit-MS mit Nullen auf 8 Stellen und
-zaehlt am Ende hoch (BRIEF.TXT -> BRIEF001.TXT, BRIEF002.TXT ...).
+Empfangene Namen werden für DOS zurechtgeschnitten (8.3, große
+Buchstaben, ungültige Zeichen entfallen). Gibt es die Datei schon,
+füllt DMVKERM den Namen wie Kermit-MS mit Nullen auf 8 Stellen und
+zählt am Ende hoch (BRIEF.TXT -> BRIEF001.TXT, BRIEF002.TXT ...).
 
 
 Befehle an einen Kermit-Server
 ------------------------------
   REMOTE DIR [muster]    Verzeichnis des Servers zeigen
   REMOTE CD [pfad]       Verzeichnis des Servers wechseln
-  REMOTE DELETE datei    Datei auf dem Server loeschen
+  REMOTE DELETE datei    Datei auf dem Server löschen
   REMOTE TYPE datei      Datei des Servers auf dem Bildschirm zeigen
   REMOTE SPACE           freien Platz des Servers zeigen
   REMOTE HELP            Hilfe des Servers zeigen
-  REMOTE HOST befehl     Befehl auf dem Server ausfuehren (wenn der
+  REMOTE HOST befehl     Befehl auf dem Server ausführen (wenn der
                          Server das erlaubt)
 
 Die Antwort des Servers erscheint im Befehlsfenster. Als Server bedient
@@ -161,93 +165,138 @@ DMVKERM selbst REMOTE DIR, CD, DELETE, TYPE, SPACE und HELP; REMOTE HOST
 lehnt es ab.
 
 
-Dateiuebertragung mit XMODEM
-----------------------------
+Dateiübertragung mit XMODEM
+---------------------------
   XSEND datei          eine Datei mit XMODEM senden
   XRECEIVE datei       eine Datei mit XMODEM empfangen
 
-Die Empfangsseite waehlt das Verfahren: DMVKERM bietet beim Empfangen
-zuerst CRC an und faellt nach einigen Versuchen auf die Pruefsumme
-zurueck. Es nimmt Bloecke zu 128 und 1024 Byte (XMODEM-1K) an. Beim
-Senden benutzt es 1-KB-Bloecke, wenn die Gegenseite CRC verlangt und
+Die Empfangsseite wählt das Verfahren: DMVKERM bietet beim Empfangen
+zuerst CRC an und fällt nach einigen Versuchen auf die Prüfsumme
+zurück. Es nimmt Blöcke zu 128 und 1024 Byte (XMODEM-1K) an. Beim
+Senden benutzt es 1-KB-Blöcke, wenn die Gegenseite CRC verlangt und
 SET XMODEM 1K gilt; den Rest am Dateiende schickt es in 128-Byte-
-Bloecken. Mit SET XMODEM 128 sendet es nur 128-Byte-Bloecke, das
+Blöcken. Mit SET XMODEM 128 sendet es nur 128-Byte-Blöcke, das
 verstehen auch alte XMODEM-Programme.
 
-XMODEM kennt weder Dateinamen noch Dateilaengen: der Name wird auf
+XMODEM kennt weder Dateinamen noch Dateilängen: der Name wird auf
 beiden Seiten angegeben, und der letzte Block wird mit CTRL-Z (1Ah)
-aufgefuellt. XMODEM braucht SET PARITY NONE; XON/XOFF wird waehrend der
-Uebertragung abgeschaltet.
+aufgefüllt. XMODEM braucht 8 Datenbits; XON/XOFF wird während der
+Übertragung abgeschaltet.
 
 
 Senden ohne Protokoll
 ---------------------
-TRANSMIT /BINARY datei (abgekuerzt TRANSMIT /B datei) schickt jedes
-Byte der Datei unveraendert hinaus, auch 00h, 1Ah und Bytes mit
+TRANSMIT /BINARY datei (abgekürzt TRANSMIT /B datei) schickt jedes
+Byte der Datei unverändert hinaus, auch 00h, 1Ah und Bytes mit
 gesetztem 8. Bit. Es gibt keinen Zeilenumbau und kein Warten auf ein
-Echo; was die Gegenseite schickt, wird verworfen. Die Anzeige zaehlt
+Echo; was die Gegenseite schickt, wird verworfen. Die Anzeige zählt
 die gesendeten Bytes mit.
 
-Gedacht ist das fuer Rechner, die ein Programm als rohen Bytestrom ueber
+Gedacht ist das für Rechner, die ein Programm als rohen Bytestrom über
 die serielle Schnittstelle lesen, etwa Bandabbilder (RIM- oder
-BIN-Format) fuer den Lader einer PDP-8. Der Lader muss auf der
+BIN-Format) für den Lader einer PDP-8. Der Lader muss auf der
 Gegenseite schon laufen, bevor TRANSMIT beginnt.
 
 Kommt die Gegenseite nicht hinterher, hilft SET TRANSMIT PAUSE n: Nach
 jedem Zeichen bleibt die Leitung n Millisekunden ruhig. Alternativ eine
-kleinere Baudrate waehlen. Viele Fernschreib-Schnittstellen erwarten
+kleinere Baudrate wählen. Viele Fernschreib-Schnittstellen erwarten
 2 Stoppbits (SET STOP-BITS 2). SET FLOW NONE ist meist richtig, denn
-XON/XOFF der Gegenseite wuerde das Senden anhalten.
+XON/XOFF der Gegenseite würde das Senden anhalten.
 
-Beispiel fuer 110 Baud, 8 Bit, 2 Stoppbits:
+Beispiel für 110 Baud, 8 Bit, 2 Stoppbits:
 
   SET SPEED 110
-  SET STOP-BITS 2
+  SET SERIAL 8N2
   SET FLOW NONE
   TRANSMIT /BINARY PROGRAMM.BIN
+
+Bei 7 Datenbits wird das oberste Bit jedes Bytes nicht als Daten
+übertragen (DMVKERM warnt davor). Für Bandabbilder deshalb 8 Datenbits
+ohne Parität nehmen, auch wenn die Gegenseite im Terminalbetrieb 7M1
+o.ä. spricht.
+
+Beispiel PDP-8 mit KL8E (nur RX, TX und Masse, keine Flusskontrolle):
+
+  SET SPEED 9600         Baudrate der KL8E
+  SET FLOW NONE
+  SET SERIAL 7M1         für CONNECT, so üblich bei DEC
+  CONNECT
+  ...
+  SET SERIAL 8N1         zum Laden von RIM- und BIN-Bändern
+  TRANSMIT /BINARY PROGRAMM.BIN
+
+7M1 und 8N1 sind auf der Leitung gleich lang (Start, 8 Bit, 1 Stopp),
+die KL8E merkt den Wechsel nicht. Bei 7M1 wäre aber das 8. Bit jedes
+Bytes 1, und gerade dieses Bit (Kanal 8, 200 oktal) kennzeichnet in
+RIM und BIN Vorspann und Nachspann; der Lader würde nichts laden.
+
+Kabel: Der serielle Baustein der DMV sendet nur, wenn CTS anliegt. Bei
+einem Kabel mit nur RX, TX und Masse deshalb im Stecker auf der
+DMV-Seite RTS mit CTS (Pin 4 und 5) und DTR mit DSR und DCD (Pin 20, 6
+und 8) verbinden.
+
+
+Datenbits, Parität, Stoppbits
+-----------------------------
+Ein Zeichen auf der Leitung besteht aus Startbit, 7 oder 8 Datenbits,
+eventuell einem Prüfbit und 1 oder 2 Stoppbits. Das Prüfbit ist bei
+EVEN so gesetzt, dass die Zahl der Einsen gerade wird, bei ODD
+ungerade; bei MARK ist es immer 1, bei SPACE immer 0, bei NONE fehlt
+es. Alle 20 Kombinationen gehen, in CONNECT, mit Kermit und mit
+TRANSMIT; SET SERIAL stellt sie in einem Befehl ein.
+
+Die seriellen Bausteine (2651, 2661) können MARK und SPACE nicht
+selbst. DMVKERM setzt bei 7M und 7S das 8. Bit, bei 8M1 sendet es 8N2
+(auf der Leitung dasselbe), und bei 8M2, 8S1 und 8S2 wählt es vor
+jedem Zeichen gerade oder ungerade Parität so, dass das Prüfbit
+stimmt. Dafür muss es abwarten, bis das vorige Zeichen hinaus ist;
+diese drei sind daher etwas langsamer.
+
+Mit 7 Datenbits überträgt Kermit das 8. Bit mit Präfix, XMODEM geht
+dann nicht.
 
 
 Weitere Befehle
 ---------------
-  TRANSMIT datei       Textdatei so senden, als wuerde sie getippt
+  TRANSMIT datei       Textdatei so senden, als würde sie getippt
                        (CR am Zeilenende, nach jeder Zeile auf das Echo
-                       warten, hoechstens 1 Sekunde); ESC bricht ab
-  TRANSMIT /BINARY datei  Datei Byte fuer Byte ohne Protokoll senden
+                       warten, höchstens 1 Sekunde); ESC bricht ab
+  TRANSMIT /BINARY datei  Datei Byte für Byte ohne Protokoll senden
                        (siehe unten); ESC bricht ab
   LOG SESSION [datei]  alles Empfangene in CONNECT und TRANSMIT
                        mitschreiben (Vorgabe SESSION.LOG; eine
-                       vorhandene Datei wird verlaengert)
-  CLOSE                Mitschnitt schliessen
+                       vorhandene Datei wird verlängert)
+  CLOSE                Mitschnitt schließen
   DIR [muster]         Verzeichnis zeigen
   CD [pfad]            Verzeichnis wechseln bzw. zeigen
-  DEL datei            Datei loeschen
+  DEL datei            Datei löschen
   TYPE datei           Datei auf dem Bildschirm zeigen (ESC bricht ab)
-  STATISTICS           Werte der letzten Uebertragung: Datei, Bytes,
+  STATISTICS           Werte der letzten Übertragung: Datei, Bytes,
                        Pakete, Wiederholungen, Dauer, Bytes je Sekunde
   PUSH                 DOS-Befehlsprozessor starten; EXIT kehrt zu
-                       DMVKERM zurueck, die Verbindung bleibt bestehen
-  RUN befehl           einen DOS-Befehl oder ein Programm ausfuehren
-  TAKE datei           Befehle aus einer Datei ausfuehren
-  HELP oder ?          Befehlsuebersicht (zwei Seiten)
+                       DMVKERM zurück, die Verbindung bleibt bestehen
+  RUN befehl           einen DOS-Befehl oder ein Programm ausführen
+  TAKE datei           Befehle aus einer Datei ausführen
+  HELP oder ?          Befehlsübersicht (zwei Seiten)
   EXIT oder QUIT       beenden
 
 
 Skripte
 -------
-In TAKE-Dateien (und auch von Hand) lassen sich Ablaeufe wie die
+In TAKE-Dateien (und auch von Hand) lassen sich Abläufe wie die
 Einwahl in eine Mailbox beschreiben:
 
   OUTPUT text          Text senden; \13 ist CR, \nnn ein Zeichen mit
                        dem dezimalen Code nnn, \\ ein Backslash
-  INPUT n text         bis n Sekunden auf den Text warten (Gross- und
+  INPUT n text         bis n Sekunden auf den Text warten (Groß- und
                        Kleinschreibung egal); Empfangenes erscheint
                        auf dem Bildschirm, ESC bricht ab
   PAUSE [n]            n Sekunden warten (Vorgabe 1)
   CLEAR                Empfangspuffer leeren
   ECHO text            Text auf den Bildschirm
-  IF SUCCESS befehl    Befehl ausfuehren, wenn der vorige Befehl
+  IF SUCCESS befehl    Befehl ausführen, wenn der vorige Befehl
   IF FAILURE befehl    geklappt bzw. nicht geklappt hat (INPUT gefunden,
-                       Uebertragung fertig, ...)
+                       Übertragung fertig, ...)
   GOTO marke           in der TAKE-Datei bei der Zeile :marke weiter
   STOP                 TAKE-Datei beenden
 
@@ -271,7 +320,7 @@ sind Marken. Beispiel MAILBOX.TXT (Aufruf: TAKE MAILBOX.TXT):
 
 DMVKERM.INI
 -----------
-Beim Start fuehrt DMVKERM die Befehle aus DMVKERM.INI im aktuellen
+Beim Start führt DMVKERM die Befehle aus DMVKERM.INI im aktuellen
 Verzeichnis aus. Zeilen, die mit ; beginnen, sind Kommentare. Beispiel:
 
   ; DMVKERM.INI
@@ -281,33 +330,33 @@ Verzeichnis aus. Zeilen, die mit ; beginnen, sind Kommentare. Beispiel:
 
 Die Gegenseite
 --------------
-Auf einem IBM-kompatiblen PC laeuft MS-DOS Kermit der Columbia
+Auf einem IBM-kompatiblen PC läuft MS-DOS Kermit der Columbia
 University, zum Beispiel Kermit-MS 2.32 (liegt als KERMIBM.EXE auf der
 Diskette DMVKERM.IMG im Repository) oder MS-Kermit 3.14. Unter Linux oder Windows dienen
-C-Kermit bzw. Kermit 95, fuer XMODEM auch Tera Term oder lrzsz (sx, rx).
+C-Kermit bzw. Kermit 95, für XMODEM auch Tera Term oder lrzsz (sx, rx).
 
 Kabel
 -----
 - K211 (und K215): Modemkabel, gerade durchverbunden. Zu einem PC
-  gehoert ein Nullmodemkabel dazwischen.
+  gehört ein Nullmodemkabel dazwischen.
 - K212 (und K213): das Druckerkabel ist selbst schon ein Nullmodemkabel
-  (TD/RD und RTS/CTS gekreuzt, DSR auf der DMV-Seite an DTR gebrueckt).
-  Zu einem PC also nur ein gerades Verlaengerungskabel oder ein
+  (TD/RD und RTS/CTS gekreuzt, DSR auf der DMV-Seite an DTR gebrückt).
+  Zu einem PC also nur ein gerades Verlängerungskabel oder ein
   Gender-Changer, KEIN weiteres Nullmodemkabel - zweimal gekreuzt ist
   wieder gerade, und dann kommt nichts an. Die K212 sitzt ab Werk auf
   IFSEL 0 (60h), wie die K210.
 - Wer K212 neben K210 betreiben will, muss auf der K212 die
-  Steckbruecke von J2 (PRINTER) auf J1 (MODEM) umstecken. Dann liegt sie
+  Steckbrücke von J2 (PRINTER) auf J1 (MODEM) umstecken. Dann liegt sie
   auf IFSEL 1 (70h), die K210 bleibt auf IFSEL 0 (60h). Das Kabel
   bleibt das Druckerkabel (siehe oben); eine K211 kann dann nicht
-  zusaetzlich stecken. SHOW nennt das Modul nach seiner Adresse, also
+  zusätzlich stecken. SHOW nennt das Modul nach seiner Adresse, also
   "K211 70h". In MAME: TAB, Machine Configuration, "K212 Jumpers" auf
   IFSEL 1, dann Reset.
-- K801: der Kabelkonverter im Gehaeuse entscheidet (MODEM wie K211,
+- K801: der Kabelkonverter im Gehäuse entscheidet (MODEM wie K211,
   PRINTER wie K212).
 - Der PC muss RTS setzen: es kommt auf der DMV als CTS an, und ohne
   CTS sendet der 2651 nicht. Ein normaler COM-Port tut das; bei
-  manchen USB-Adaptern muss die Flusssteuerung dafuer "aus" sein.
+  manchen USB-Adaptern muss die Flusssteuerung dafür "aus" sein.
 - Ohne K235 und ohne den Umbau nach dem NCR-Handbuch fragt DMVKERM
   das Modul ab; der Empfang ist dann bis etwa 2400 Baud sicher.
 
@@ -327,7 +376,7 @@ K212 mit geradem Kabel, 9600 Baud):
 
 Technisches
 -----------
-- Die Bildschirmausgabe laeuft ueber die DOS-Konsole (Int 29h) mit
+- Die Bildschirmausgabe läuft über die DOS-Konsole (Int 29h) mit
   dem, was alle drei DOS-Fassungen verstehen. Unter NCR MS-DOS 2.11
   rollen 24 Zeilen, und die 25. dient als Statuszeile; unter 3.30 und
   DR-DOS rollen 25 Zeilen, und DMVKERM zeichnet die Statuszeile nach.
@@ -335,15 +384,15 @@ Technisches
   Funktionstasten ankommen.
 - Der 8259 der K235 ist flankengesteuert, und der 2651 legt RxRDY und
   TxRDY auf dieselbe Leitung. Darum ist der Sender nur eingeschaltet,
-  solange ein Zeichen uebergeben wird. Ab Werk melden K211/K212 und
+  solange ein Zeichen übergeben wird. Ab Werk melden K211/K212 und
   K801 auf der IRQ-Leitung des Steckplatzes (K235: IRQ 3, 4, 5 oder 7);
-  eine nach Abschnitt 3.2 des NCR-RS-232-Handbuchs geaenderte Karte
+  eine nach Abschnitt 3.2 des NCR-RS-232-Handbuchs geänderte Karte
   meldet nur RxRDY auf IRQ 2. DMVKERM findet beides selbst.
 - Bei der K215 spricht DMVKERM nicht mit dem 2651, sondern mit dem
   8741 davor (x0 Daten, x1 Befehl/Status): 00h Befehlsregister, 01h
-  Moderegister, 03h Status, 08h naechstes Zeichen, 09h senden. Den
+  Moderegister, 03h Status, 08h nächstes Zeichen, 09h senden. Den
   Kartenpuffer holt es laufend in seinen eigenen Puffer, denn die
-  Firmware ueberschreibt bei vollem Puffer das aelteste Zeichen.
+  Firmware überschreibt bei vollem Puffer das älteste Zeichen.
   Ein einzelnes Datenbyte ohne Befehl blockiert die Firmware, bis ein
   Befehl kommt (etwa von einem Programm, das nach einem 2651 sucht);
   DMVKERM schreibt seine Befehle darum auch dann, wenn IBF nicht frei
@@ -351,8 +400,8 @@ Technisches
 
 In MAME getestet: DMV mit K211 und K235 unter MS-DOS 3.30, 9600 Baud,
 gegen einen IBM XT mit MS-Kermit 2.32 (SEND und GET). Dazu in einem
-Emulator-Pruefstand gegen C-Kermit und lrzsz, dort auch mit einer
-K215, deren 8741 die Original-Firmware 32905 ausfuehrt.
+Emulator-Prüfstand gegen C-Kermit und lrzsz, dort auch mit einer
+K215, deren 8741 die Original-Firmware 32905 ausführt.
 
 
 Lizenz

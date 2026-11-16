@@ -42,6 +42,15 @@
 
 cr	equ	0Dh
 lf	equ	0Ah
+; Umlaute im Zeichensatz der DMV-Konsole (NCR CRTTBL/GERMANY; die
+; Glyphen liegen auf 10h..1Eh, der Zeichengenerator ignoriert Bit 7)
+k_ae	=	90h
+k_oe	=	96h
+k_ue	=	99h
+g_ae	=	80h
+g_oe	=	86h
+g_ue	=	89h
+k_ss	=	9Eh
 MAXOWN	equ	40		; owners kept in the table
 NAMEW	equ	28		; width of the name column
 MAXINT	equ	12		; interrupts listed per program
@@ -66,13 +75,13 @@ msg_unb	db	'(Name unbekannt)$'
 msg_ohne db	'(Daten ohne Programm)$'
 msg_int	db	'INT$'
 msg_frei db	'Frei$'
-msg_gr	db	'groesster Block $'
+msg_gr	db	'gr',k_oe,k_ss,'ter Block $'
 msg_ges	db	'Gesamt$'
 msg_ram	db	'Arbeitsspeicher$'
-msg_kap	db	'Die Speicherkette von DOS ist beschaedigt (Block $'
+msg_kap	db	'Die Speicherkette von DOS ist besch',k_ae,'digt (Block $'
 msg_kap2 db	').',cr,lf,'$'
 msg_voll db	'(weitere Programme nicht gezeigt)',cr,lf,'$'
-msg_bk	db	cr,lf,'Bloecke:',cr,lf
+msg_bk	db	cr,lf,'Bl',k_oe,'cke:',cr,lf
 	db	'MCB    Besitzer   Byte   Programm',cr,lf,'$'
 msg_bfrei db	'frei$'
 msg_bdos db	'DOS$'
@@ -82,9 +91,9 @@ msg_nl	db	cr,lf,'$'
 msg_hlp	db	'DMVMEM zeigt, wie der Arbeitsspeicher belegt ist: DOS, der',cr,lf
 	db	'Befehlsprozessor, residente Programme (mit den Interrupts, auf',cr,lf
 	db	'die sie sich gesetzt haben) und der freie Speicher.',cr,lf,cr,lf
-	db	'  DMVMEM      Uebersicht',cr,lf
+	db	'  DMVMEM      ',g_ue,'bersicht',cr,lf
 	db	'  DMVMEM /B   dazu jeden Speicherblock einzeln',cr,lf,cr,lf
-	db	'DMVMEM 1.0 fuer die NCR Decision Mate V.',cr,lf
+	db	'DMVMEM 1.0 f',k_ue,'r die NCR Decision Mate V.',cr,lf
 	db	'https://github.com/rfka01/dmv_goodies',cr,lf,'$'
 
 opt_b	db	0

@@ -6,6 +6,7 @@ Aufruf: python3 mkdisk.py <verzeichnis-mit-GOODIES.IMG>
 import os, struct, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from fat12 import Fat12                                   # noqa: E402
+from dmvtext import dostext                                 # noqa: E402
 
 D = os.path.join(os.path.dirname(__file__), '..')
 import datetime                                           # noqa: E402
@@ -18,10 +19,8 @@ ZEIT = (JETZT.hour, JETZT.minute, JETZT.second)
 
 
 def txt(name):
-    """Text (ASCII) -> DOS-Text mit CRLF und Ctrl-Z."""
-    s = open(os.path.join(D, name), encoding='ascii').read()
-    s = s.replace('\r', '')
-    return (s.replace('\n', '\r\n') + '\x1a').encode('ascii')
+    """Text (UTF-8) -> DOS-Text mit CRLF und Ctrl-Z, Umlaute als DMV-Codes."""
+    return dostext(os.path.join(D, name))
 
 
 def com():

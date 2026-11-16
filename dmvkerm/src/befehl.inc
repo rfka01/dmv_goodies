@@ -16,7 +16,7 @@ prompt	db	cr,lf,'DMVKERM>$'
 m_unbek	db	'?Unbekannter Befehl, HELP zeigt die Befehle.',cr,lf,'$'
 m_fehlt	db	'?Es fehlt etwas, HELP zeigt die Befehle.',cr,lf,'$'
 m_zahl	db	'?Zahl erwartet.',cr,lf,'$'
-m_keinp	db	'?Kein serielles Modul gewaehlt.',cr,lf,'$'
+m_keinp	db	'?Kein serielles Modul gew',k_ae,'hlt.',cr,lf,'$'
 
 ; Tabelle: Laenge, Name (gross), Adresse. Ende mit Laenge 0.
 bef_tab	db	7,'CONNECT'
@@ -107,6 +107,10 @@ set_tab	db	4,'PORT'
 	dw	s_xmodem
 	db	9,'STOP-BITS'
 	dw	s_stopb
+	db	9,'DATA-BITS'
+	dw	s_datab
+	db	6,'SERIAL'
+	dw	s_serial
 	db	8,'TRANSMIT'
 	dw	s_trans
 	db	0
@@ -389,7 +393,7 @@ ssp8:	mov	dx,offset m_baud
 	call	textd
 ssp9:	ret
 s_speed	endp
-m_baud	db	'?Moeglich: 50 75 110 134 150 300 600 1200 1800 2000 2400',cr,lf
+m_baud	db	'?M',k_oe,'glich: 50 75 110 134 150 300 600 1200 1800 2000 2400',cr,lf
 	db	'  3600 4800 7200 9600 19200',cr,lf,'$'
 
 s_parity proc	near
@@ -397,9 +401,70 @@ s_parity proc	near
 	call	wortaus
 	jc	spa_9
 	mov	pparit,al
-	call	setparit
+	mov	pdaten,8		; wie C-Kermit: Paritaet heisst 7 Bit
+	or	al,al
+	jz	spa_8
+	mov	pdaten,7
+spa_8:	call	setparit
 spa_9:	ret
 s_parity endp
+
+s_datab	proc	near
+	call	wortzahl
+	jc	sdb9
+	cmp	ax,7
+	je	sdb1
+	cmp	ax,8
+	jne	sdb8
+sdb1:	mov	pdaten,al
+	call	setparit
+	ret
+sdb8:	mov	dx,offset m_datab
+	call	textd
+sdb9:	ret
+s_datab	endp
+m_datab	db	'?M',k_oe,'glich: 7 oder 8',cr,lf,'$'
+
+; SET SERIAL 8N1: Datenbits, Paritaet (N E O M S), Stoppbits in einem
+s_serial proc	near
+	call	naechstes
+	jc	sse8
+	cmp	wlen,3
+	jne	sse8
+	mov	si,wanf
+	mov	al,[si]
+	cmp	al,'7'
+	je	sse1
+	cmp	al,'8'
+	jne	sse8
+sse1:	mov	ah,[si+2]
+	cmp	ah,'1'
+	je	sse2
+	cmp	ah,'2'
+	jne	sse8
+sse2:	mov	cl,[si+1]
+	and	cl,0DFh			; gross
+	xor	bx,bx
+sse3:	cmp	cl,ser_par[bx]
+	je	sse4
+	inc	bx
+	cmp	bx,5
+	jb	sse3
+	jmp	short sse8
+sse4:	sub	al,'0'
+	mov	pdaten,al
+	sub	ah,'1'
+	mov	pstop,ah
+	mov	pparit,bl
+	call	setparit
+	ret
+sse8:	mov	dx,offset m_serial
+	call	textd
+	ret
+s_serial endp
+ser_par	db	'NEOMS'
+m_serial db	'?Beispiele: SET SERIAL 8N1, 7E1, 8N2, 7M2 (Datenbits 7|8,',cr,lf
+	db	'  Parit',k_ae,'t N E O M S, Stoppbits 1|2)',cr,lf,'$'
 
 s_flow	proc	near
 	mov	si,offset flow_tab
@@ -430,7 +495,7 @@ sst8:	mov	dx,offset m_stopb
 	call	textd
 sst9:	ret
 s_stopb	endp
-m_stopb	db	'?Moeglich: 1 oder 2',cr,lf,'$'
+m_stopb	db	'?M',k_oe,'glich: 1 oder 2',cr,lf,'$'
 
 s_trans	proc	near
 	mov	si,offset trs_tab
@@ -466,7 +531,8 @@ sh_irq	db	', IRQ $'
 sh_poll	db	', abgefragt (kein IRQ)$'
 sh_puf	db	', 2 KB Puffer auf der Karte, abgefragt$'
 sh_ein	db	cr,lf,'Einstellungen:   $'
-sh_baud	db	' Baud, Paritaet $'
+sh_baud	db	' Baud, $'
+sh_dbit	db	' Datenbits, Parit',k_ae,'t $'
 sh_fl	db	cr,lf,'Flusssteuerung:  $'
 sh_xon	db	'XON/XOFF$'
 sh_kein	db	'keine$'
@@ -536,6 +602,11 @@ bsh5:	mov	dx,offset sh_ein
 	call	zahl
 	mov	dx,offset sh_baud
 	call	textd
+	mov	al,pdaten
+	add	al,'0'
+	call	zeichen
+	mov	dx,offset sh_dbit
+	call	textd
 	mov	al,pparit
 	mov	ah,9
 	mul	ah
@@ -601,7 +672,7 @@ sh_st1	db	', 1 Stoppbit$'
 sh_st2	db	', 2 Stoppbits$'
 sh_tp	db	cr,lf,'TRANSMIT-Pause:  $'
 sh_ms	db	' ms je Zeichen$'
-sh_xm	db	cr,lf,'XMODEM-Bloecke:  $'
+sh_xm	db	cr,lf,'XMODEM-Bl',k_oe,'cke:   $'
 sh_1k	db	'1K (mit CRC)$'
 sh_128	db	'128$'
 sh_log	db	cr,lf,'Mitschnitt:      $'
@@ -635,14 +706,14 @@ mn1:	call	textd
 	ret
 modname	endp
 
-hilfe	db	'Befehle (abkuerzbar):',cr,lf
+hilfe	db	'Befehle (abk',k_ue,'rzbar):',cr,lf
 	db	'  CONNECT            Terminal (Ctrl-CLR C: zur Befehlszeile)',cr,lf
 	db	'  SET PORT n         serielles Modul n (1, 2, ...)',cr,lf
 	db	'  SET SPEED n        Baudrate (300 ... 19200), auch SET BAUD n',cr,lf
 	db	'  SET PARITY p       NONE, EVEN, ODD, MARK, SPACE',cr,lf
-	db	'  SET STOP-BITS 1|2  Stoppbits (2 z.B. fuer Fernschreib-Schnittstellen)',cr,lf
+	db	'  SET SERIAL 8N1     Datenbits 7|8, Parit',k_ae,'t N E O M S, Stoppbits 1|2',cr,lf
 	db	'  SET FLOW f         NONE, XON/XOFF',cr,lf
-	db	'  SET XMODEM 1K|128  Blockgroesse beim Senden mit XMODEM',cr,lf
+	db	'  SET XMODEM 1K|128  Blockgr',k_oe,k_ss,'e beim Senden mit XMODEM',cr,lf
 	db	'  SHOW, HANGUP       Einstellungen zeigen, auflegen',cr,lf
 	db	'  SEND datei         Datei(en) senden, * und ? erlaubt',cr,lf
 	db	'  RECEIVE            Dateien empfangen',cr,lf
@@ -651,16 +722,17 @@ hilfe	db	'Befehle (abkuerzbar):',cr,lf
 	db	'  FINISH, BYE        Server beenden / beenden und abmelden',cr,lf
 	db	'  REMOTE DIR, CD, DELETE, TYPE, SPACE, HELP, HOST  an den Server',cr,lf
 	db	'  XSEND, XRECEIVE datei  mit XMODEM senden, empfangen',cr,lf
-	db	'  STATISTICS         Werte der letzten Uebertragung',cr,lf
+	db	'  STATISTICS         Werte der letzten ',g_ue,'bertragung',cr,lf
 	db	'  EXIT               beenden',cr,lf
 	db	'-- weiter mit einer Taste --$'
 hilfe2	db	30 dup (' '),cr
+	db	'  SET DATA-BITS 7|8, SET STOP-BITS 1|2  einzeln (SET PARITY: 7 Bit)',cr,lf
 	db	'  TRANSMIT datei     Textdatei wie getippt senden',cr,lf
-	db	'  TRANSMIT /BINARY datei  Bytes unveraendert senden, ohne Protokoll',cr,lf
+	db	'  TRANSMIT /BINARY datei  Bytes unver',k_ae,'ndert senden, ohne Protokoll',cr,lf
 	db	'  SET TRANSMIT PAUSE n  n ms Pause nach jedem Zeichen (Vorgabe 0)',cr,lf
 	db	'  LOG SESSION [datei] Terminal mitschreiben, CLOSE beendet',cr,lf
 	db	'  DIR [muster], CD [pfad], DEL datei, TYPE datei',cr,lf
-	db	'  PUSH, RUN befehl   DOS aufrufen (EXIT kehrt zurueck)',cr,lf
+	db	'  PUSH, RUN befehl   DOS aufrufen (EXIT kehrt zur',k_ue,'ck)',cr,lf
 	db	'  TAKE datei         Befehle aus einer Datei (DMVKERM.INI beim Start)',cr,lf
 	db	'Skripte (vor allem in TAKE-Dateien):',cr,lf
 	db	'  OUTPUT text        senden (\13 = CR, \nnn dezimal)',cr,lf

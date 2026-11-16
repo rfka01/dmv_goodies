@@ -14,8 +14,8 @@ Lizenz / License: CC BY-SA 4.0
 
 Bearbeitungen / Changes:
   freigestellt, auf schwarzen 4:3-Grund gesetzt, auf 640 x 400 skaliert,
-  Unscharfmaske, Licht von oben, Atkinson-Raster schwarz/weiss, Schlitz
-  fuer das Scanner-Lauflicht geschwaerzt, gespeichert als eine
+  Unscharfmaske, Licht von oben, Atkinson-Raster schwarz/weiß, Schlitz
+  für das Scanner-Lauflicht geschwärzt, gespeichert als eine
   DMV-Bildebene (mit LZSS gepackt, DMVGRAF-Format).
   background removed, placed on a black 4:3 canvas, scaled to 640 x 400,
   unsharp mask, light from above, Atkinson dithering in black and white,

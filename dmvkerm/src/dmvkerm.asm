@@ -31,6 +31,15 @@
 
 cr	equ	0Dh
 lf	equ	0Ah
+; Umlaute im Zeichensatz der DMV-Konsole (NCR CRTTBL/GERMANY; die
+; Glyphen liegen auf 10h..1Eh, der Zeichengenerator ignoriert Bit 7)
+k_ae	=	90h
+k_oe	=	96h
+k_ue	=	99h
+g_ae	=	80h
+g_oe	=	86h
+g_ue	=	89h
+k_ss	=	9Eh
 bs	equ	08h
 tab	equ	09h
 bel	equ	07h
@@ -61,7 +70,7 @@ start:	jmp	anfang
 	include	skript.inc
 
 ; ---------------------------------------------------------------------------
-titel	db	'DMVKERM 1.4 - Kermit fuer die NCR Decision Mate V',cr,lf
+titel	db	'DMVKERM 1.5 - Kermit f',k_ue,'r die NCR Decision Mate V',cr,lf
 	db	'HELP zeigt die Befehle, EXIT beendet.',cr,lf,'$'
 
 anfang:	cld

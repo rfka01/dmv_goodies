@@ -3,7 +3,7 @@
 ; Pakete: SOH LEN SEQ TYPE [LENX1 LENX2 HCHECK] DATA CHECK CR
 ; Prueffolgen: Art 1 (6 Bit) und Art 3 (CRC-16 wie Kermit). Lange Pakete
 ; bis MEINLX Byte, Wiederholungskompression (~), Praefix fuer das 8. Bit
-; (&) bei Paritaet, Steuerzeichenpraefix (#). Attributpaket mit der
+; (&) bei 7 Datenbits, Steuerzeichenpraefix (#). Attributpaket mit der
 ; Dateigroesse. Keine Schiebefenster.
 ;
 ; Dateien werden so gespeichert, wie sie ankommen: DOS und Kermit fassen
@@ -490,7 +490,7 @@ rz_t:	stc
 rz_a:	mov	kabbr,1
 	stc
 	jmp	short rz9
-rz8:	cmp	pparit,0		; bei Paritaet nur 7 Bit
+rz8:	cmp	pdaten,8		; bei 7 Datenbits nur 7 Bit
 	je	rz8a
 	and	al,7Fh
 rz8a:	clc
@@ -519,9 +519,9 @@ mparam	proc	near
 	mov	al,'#'			; QCTL
 	stosb
 	mov	al,'Y'			; QBIN: ja, wenn ihr wollt
-	cmp	pparit,0
+	cmp	pdaten,8
 	je	mpa1
-	mov	al,'&'			; Paritaet: wir brauchen es
+	mov	al,'&'			; 7 Datenbits: wir brauchen es
 mpa1:	stosb
 	mov	al,m_chkt		; CHKT
 	stosb
@@ -685,7 +685,7 @@ qbinwahl proc	near
 	mov	qbin,0
 	cmp	al,'Y'
 	jne	qbw1
-	cmp	pparit,0		; sie wuerde, wir wollen nur bei Paritaet
+	cmp	pdaten,8		; sie wuerde, wir wollen nur bei 7 Bit
 	je	qbw9
 	mov	qbin,'&'
 	ret

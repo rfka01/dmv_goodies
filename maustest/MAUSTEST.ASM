@@ -84,6 +84,23 @@
 ;                        EXE2BIN MAUSTEST.EXE MAUSTEST.COM
 ;=====================================================================
 
+; Umlaute im Zeichensatz der DMV-Konsole (NCR CRTTBL/GERMANY; die
+; Glyphen liegen auf 10h..1Eh, der Zeichengenerator ignoriert Bit 7)
+k_ae	=	90h
+k_oe	=	96h
+k_ue	=	99h
+g_ae	=	80h
+g_oe	=	86h
+g_ue	=	89h
+k_ss	=	9Eh
+; Umlaute im Grafikzeichensatz FONT.INC (Plaetze nach DIN 66003)
+d_gae   =       '['
+d_goe   =       '\'
+d_gue   =       ']'
+d_kae   =       '{'
+d_koe   =       '|'
+d_kue   =       '}'
+d_ss    =       '~'
 ST_OBF  EQU     01h             ; a data byte is ready
 ST_IBF  EQU     02h             ; input buffer full, do not write
 ST_INT  EQU     40h             ; interrupt line active
@@ -163,15 +180,15 @@ txtfrei db      'frei '
 sttext  db      'X='
 stx     db      '+00000   Y='
 sty     db      '+00000   Tasten '
-stb     db      '- - -   Zaehler/Punkt 1:'
+stb     db      '- - -   Z',d_kae,'hler/Punkt 1:'
 stscale db      '2   Grenze '
 stbound db      'Bild ',0
-helptext db     'ESC Ende  0 Nullpunkt  C Neu  1/2/4/8 Massstab  B Grenze  K806 '
+helptext db     'ESC Ende  0 Nullpunkt  C Neu  1/2/4/8 Ma',d_ss,'stab  B Grenze  K806 '
 hxport1 db      '30h IFSEL '
 ifs1    db      '2A',0
 
 msgnone db      'K806 nicht gefunden (Adressen 30 38 60 68 70 78 B0 B8 C0 C8',13,10
-        db      'geprueft). Adresse angeben, z.B. MAUSTEST 30',13,10
+        db      'gepr',k_ue,'ft). Adresse angeben, z.B. MAUSTEST 30',13,10
         db      'Aufruf: MAUSTEST [/T] [Anschluss in hex]',13,10,'$'
 msglost db      'Verbindung zum K806 verloren',13,10,'$'
 msgfound db     'K806 gefunden an Adresse '
@@ -1233,8 +1250,8 @@ tsum1   db      13,10,10,'INT 0Ah:$'
 tsum2   db      '   INT 0Dh:$'
 tsum3   db      '   stumm:$'
 tsum4   db      13,10,'abgebrochene Abfragen:$'
-tsum5   db      '   weggeraeumte Restbytes:$'
-tende   db      13,10,'Vektoren zurueckgegeben, Modulinterrupts '
+tsum5   db      '   wegger',k_ae,'umte Restbytes:$'
+tende   db      13,10,'Vektoren zur',k_ue,'ckgegeben, Modulinterrupts '
         db      'abgeschaltet.',13,10,'$'
 
 ;  Die laufende Zeile faengt mit CR an und bleibt unter 80 Zeichen, damit

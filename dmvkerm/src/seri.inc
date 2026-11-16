@@ -48,6 +48,10 @@ pmr1	db	4Eh		; MR1: asynchron 16x, 8 Bit, keine Paritaet, 1 Stopp
 pbaud	db	0Eh		; MR2 unten: Baudcode, 0Eh = 9600
 pparit	db	0		; 0 keine, 1 gerade, 2 ungerade, 3 mark, 4 space
 pstop	db	0		; 0 = 1 Stoppbit, 1 = 2 Stoppbits
+pdaten	db	8		; Datenbits, 7 oder 8
+pmrakt	db	4Eh		; zuletzt in den Baustein geschriebenes MR1
+pumsch	db	0		; 'M'/'S': Pruefbit je Zeichen waehlen (8M2, 8S)
+pzbits	db	10		; Bits je Zeichen auf der Leitung
 pfluss	db	1		; 1 = XON/XOFF
 paltvek	dd	0
 paltmask db	0
@@ -686,14 +690,25 @@ serini	endp
 ; MR1 und MR2 schreiben (pmr1, pbaud)
 setmode	proc	near
 	push	ax
+	mov	al,pmr1
+	call	schreibmr
+	pop	ax
+	ret
+setmode	endp
+
+; MR1 = AL und MR2 (pbaud) schreiben
+schreibmr proc	near
+	push	ax
 	push	dx
+	mov	pmrakt,al
 	cmp	partk,0
 	je	smo0
+	push	ax
 	mov	al,04h			; K215: MR-Zeiger zuruecksetzen
 	call	kfrag
 	mov	al,01h			; MR1
 	call	kcmd
-	mov	al,pmr1
+	pop	ax
 	call	kdat
 	mov	al,01h			; MR2
 	call	kcmd
@@ -703,9 +718,10 @@ setmode	proc	near
 	jmp	short smo9
 smo0:	mov	dx,pbase
 	add	dx,CRR
+	push	ax
 	in	al,dx
+	pop	ax
 	add	dx,MRW-CRR
-	mov	al,pmr1
 	out	dx,al
 	mov	al,pbaud
 	or	al,30h			; interne Takte
@@ -713,24 +729,65 @@ smo0:	mov	dx,pbase
 smo9:	pop	dx
 	pop	ax
 	ret
-setmode	endp
+schreibmr endp
 
-; Paritaet pparit und Stoppbits pstop -> pmr1. MR1 des 2651/2661:
-; Bit 7..6 Stoppbits (01 = 1, 11 = 2), 5 gerade, 4 Paritaet an,
+; Datenbits pdaten, Paritaet pparit und Stoppbits pstop -> pmr1. MR1 des
+; 2651/2661: Bit 7..6 Stoppbits (01 = 1, 11 = 2), 5 gerade, 4 Paritaet an,
 ; 3..2 Zeichenlaenge (10 = 7, 11 = 8 Bit), 1..0 = 10 asynchron 16x.
+; Mark und Space kann der Baustein nicht:
+;   7M, 7S  8-Bit-Rahmen, Bit 7 setzt oder loescht sput
+;   8M1     ist auf der Leitung dasselbe wie 8N2
+;   8M2, 8S 8 Bit mit Paritaet; sputroh waehlt vor jedem Zeichen gerade
+;           oder ungerade, so dass das Pruefbit 1 bzw. 0 wird
 setparit proc	near
 	push	ax
-	mov	al,4Eh			; 8 Bit ohne Paritaet (auch mark/space)
-	cmp	pparit,1
-	jne	spa1
-	mov	al,7Ah			; 7 Bit, Paritaet gerade
-spa1:	cmp	pparit,2
-	jne	spa2
-	mov	al,5Ah			; 7 Bit, Paritaet ungerade
-spa2:	cmp	pstop,0
-	je	spa3
+	push	bx
+	mov	pumsch,0
+	mov	bl,pparit
+	mov	bh,1			; Pruefbit auf der Leitung?
+	mov	al,0Ah			; 7 Bit
+	cmp	pdaten,7
+	je	spa1
+	mov	al,0Eh			; 8 Bit
+spa1:	or	bl,bl
+	jnz	spa2
+	mov	bh,0			; keine Paritaet
+	jmp	short spa6
+spa2:	cmp	bl,2
+	ja	spa3
+	or	al,10h			; Paritaet an, ungerade
+	cmp	bl,1
+	jne	spa6
+	or	al,20h			; gerade
+	jmp	short spa6
+spa3:	cmp	pdaten,7		; 7M, 7S: 8-Bit-Rahmen ohne Paritaet
+	jne	spa4
+	mov	al,0Eh
+	jmp	short spa6
+spa4:	cmp	bl,3			; 8M1 = 8N2
+	jne	spa5
+	cmp	pstop,0
+	jne	spa5
+	mov	al,0CEh
+	jmp	short spa8
+spa5:	mov	al,3Eh			; 8M2, 8S: Paritaet je Zeichen
+	mov	ah,'M'
+	cmp	bl,3
+	je	spa5a
+	mov	ah,'S'
+spa5a:	mov	pumsch,ah
+spa6:	or	al,40h			; 1 Stoppbit
+	cmp	pstop,0
+	je	spa8
 	or	al,0C0h			; 2 Stoppbits
-spa3:	mov	pmr1,al
+spa8:	mov	pmr1,al
+	mov	al,pdaten		; Start + Daten + Pruefbit + Stopp
+	inc	al
+	add	al,bh
+	add	al,pstop
+	inc	al
+	mov	pzbits,al
+	pop	bx
 	cmp	poffen,0
 	je	spa9
 	call	setmode
@@ -926,6 +983,10 @@ sget	proc	near
 	mov	rxraus,bx
 	dec	rxanz
 	sti
+	cmp	pdaten,7		; 7 Datenbits: Pruefbit weg (7M, 7S)
+	jne	sget6
+	and	al,7Fh
+sget6:
 	cmp	xoffges,0		; wieder Platz: XON
 	je	sget7
 	cmp	rxanz,RXTIEF
@@ -950,6 +1011,8 @@ sget	endp
 sput	proc	near
 	push	ax
 	push	cx
+	cmp	pdaten,7		; mark/space nur bei 7 Bit in Software
+	jne	sp2
 	cmp	pparit,3
 	jne	sp1
 	or	al,80h
@@ -978,7 +1041,10 @@ sputroh	proc	near
 	push	ax
 	push	cx
 	push	dx
-	cmp	partk,0
+	cmp	pumsch,0
+	je	spr_a
+	call	wahlpar
+spr_a:	cmp	partk,0
 	je	spr0
 	mov	ah,al			; K215: auf TxRDY warten, dann Befehl 09h
 	mov	cx,20000
@@ -1050,6 +1116,41 @@ spr8:	add	dx,CRW-SR
 	stc
 	ret
 sputroh	endp
+
+; 8M2 und 8S: MR1 so stellen, dass das Pruefbit fuer Zeichen AL 1 (mark)
+; bzw. 0 (space) wird. Gerade Paritaet ergibt Pruefbit 0, wenn das
+; Zeichen eine gerade Zahl Einsen hat. Umgeschaltet wird nur, wenn
+; noetig, und erst wenn das vorige Zeichen ganz hinaus ist.
+wahlpar	proc	near
+	push	ax
+	push	bx
+	push	cx
+	mov	bl,pmr1
+	and	bl,NOT 20h		; ungerade
+	mov	bh,'S'			; gerade Zahl Einsen: space will gerade
+	or	al,al
+	jpe	wpa1
+	mov	bh,'M'			; ungerade Zahl: mark will gerade
+wpa1:	cmp	bh,pumsch
+	jne	wpa2
+	or	bl,20h
+wpa2:	cmp	bl,pmrakt
+	je	wpa9
+	mov	bh,20			; Sender leer (TxEMT), hoechstens ~1 s
+wpa3:	xor	cx,cx
+wpa4:	call	sstatus
+	test	al,04h
+	jnz	wpa5
+	loop	wpa4
+	dec	bh
+	jnz	wpa3
+wpa5:	mov	al,bl
+	call	schreibmr
+wpa9:	pop	cx
+	pop	bx
+	pop	ax
+	ret
+wahlpar	endp
 
 ; Break (Leitung 250 ms auf Space)
 sbreak	proc	near

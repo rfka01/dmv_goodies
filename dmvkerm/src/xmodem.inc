@@ -22,7 +22,7 @@ xrest	dw	0, 0		; noch zu sendende Bytes
 xpuf	db	1024 dup (?)
 	.code
 
-x_par	db	'?XMODEM braucht SET PARITY NONE.',cr,lf,'$'
+x_par	db	'?XMODEM braucht 8 Datenbits (SET DATA-BITS 8).',cr,lf,'$'
 x_warte	db	'Warte auf die Gegenseite (Abbruch mit ESC) ...',cr,lf,'$'
 x_abbr	db	cr,lf,'?Abbruch durch die Gegenseite.',cr,lf,'$'
 x_folge	db	cr,lf,'?Blocknummer passt nicht, Abbruch.',cr,lf,'$'
@@ -106,7 +106,7 @@ summx	endp
 xbereit	proc	near
 	call	kbereit
 	jc	xb9
-	cmp	pparit,0
+	cmp	pdaten,8
 	je	xb1
 	mov	dx,offset x_par
 	call	textd

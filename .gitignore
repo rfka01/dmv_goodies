@@ -3,3 +3,7 @@ __pycache__/
 dmvdiag/build/
 murphy/build/
 dmvmem/build/
+dmvdemo/build/
+dmvrace/build/
+ecodrive/build/
+maustest/build/

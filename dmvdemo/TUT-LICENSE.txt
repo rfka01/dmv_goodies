@@ -9,14 +9,14 @@ TUT.PIC is an edited version of the photo
   Wikimedia Commons:
   https://commons.wikimedia.org/wiki/File:King_Tut_Burial_Mask_%2823785641449%29.jpg
 
-Lizenz / License: CC BY-SA 2.0 (laut Commons-Seite zu pruefen /
+Lizenz / License: CC BY-SA 2.0 (laut Commons-Seite zu prüfen /
   to be confirmed on the Commons page)
   https://creativecommons.org/licenses/by-sa/2.0/
 
 Bearbeitungen / Changes:
   Ausschnitt (Gesicht und Kopftuch), auf 360 x 400 skaliert, Farben und
-  Kontrast verstaerkt, Lapisblau angehoben, Floyd-Steinberg-Raster auf
-  die 8 DMV-Farben und getrennt in Graustufen fuer die Mono-DMV, auf
+  Kontrast verstärkt, Lapisblau angehoben, Floyd-Steinberg-Raster auf
+  die 8 DMV-Farben und getrennt in Graustufen für die Mono-DMV, auf
   schwarzen Grund 640 x 400 gesetzt, gespeichert als vier DMV-Bildebenen
   (mit LZSS gepackt, DMVGRAF-Format).
   cropped (face and headdress), scaled to 360 x 400, colour and contrast

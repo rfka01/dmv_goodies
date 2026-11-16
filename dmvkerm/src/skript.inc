@@ -21,8 +21,8 @@ s_ok	db	'[INPUT: gefunden]',cr,lf,'$'
 s_nein	db	cr,lf,'[INPUT: Zeit abgelaufen]',cr,lf,'$'
 s_keint	db	'?GOTO geht nur in einer TAKE-Datei.',cr,lf,'$'
 s_marke	db	'?Marke nicht gefunden.',cr,lf,'$'
-s_exec	db	'?Programm laesst sich nicht starten.',cr,lf,'$'
-s_zur	db	cr,lf,'[Zurueck bei DMVKERM.]',cr,lf,'$'
+s_exec	db	'?Programm l',k_ae,'sst sich nicht starten.',cr,lf,'$'
+s_zur	db	cr,lf,'[Zur',k_ue,'ck bei DMVKERM.]',cr,lf,'$'
 if_tab	db	7,'SUCCESS'
 	dw	1
 	db	7,'FAILURE'
@@ -456,7 +456,7 @@ b_type	endp
 ; --- STATISTICS -------------------------------------------------------------
 tstart	dw	0, 0
 tdauer	dw	0, 0		; Hundertstel
-st_kopf	db	'Letzte Uebertragung:',cr,lf,'$'
+st_kopf	db	'Letzte ',g_ue,'bertragung:',cr,lf,'$'
 st_dat	db	'  Datei:           $'
 st_by	db	cr,lf,'  Bytes:           $'
 st_pk	db	cr,lf,'  Pakete gesendet: $'

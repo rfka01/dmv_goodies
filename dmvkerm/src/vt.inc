@@ -292,23 +292,12 @@ stf2:	dec	di
 	mov	[di],dl
 	or	ax,ax
 	jnz	stf2
-	mov	al,'8'
-	mov	ah,'N'
-	cmp	pparit,0
-	je	stf3
-	mov	al,'7'
-	mov	ah,'E'
-	cmp	pparit,1
-	je	stf3
-	mov	ah,'O'
-	cmp	pparit,2
-	je	stf3
-	mov	al,'8'
-	mov	ah,'M'
-	cmp	pparit,3
-	je	stf3
-	mov	ah,'S'
-stf3:	mov	st_par,al
+	mov	al,pdaten
+	add	al,'0'
+	mov	bl,pparit
+	xor	bh,bh
+	mov	ah,ser_par[bx]
+	mov	st_par,al
 	mov	st_par+1,ah
 	mov	al,'1'			; Stoppbits
 	add	al,pstop

@@ -55,6 +55,23 @@
 ;*                                                                     *
 ;***********************************************************************
 
+; Umlaute im Zeichensatz der DMV-Konsole (NCR CRTTBL/GERMANY; die
+; Glyphen liegen auf 10h..1Eh, der Zeichengenerator ignoriert Bit 7)
+k_ae	=	90h
+k_oe	=	96h
+k_ue	=	99h
+g_ae	=	80h
+g_oe	=	86h
+g_ue	=	89h
+k_ss	=	9Eh
+; Umlaute im Grafikzeichensatz FONT.INC (Plaetze nach DIN 66003)
+d_gae   =       '['
+d_goe   =       '\'
+d_gue   =       ']'
+d_kae   =       '{'
+d_koe   =       '|'
+d_kue   =       '}'
+d_ss    =       '~'
 P_STAT   EQU     0A0h            ; GDC Status (lesen)
 P_PARM   EQU     0A0h            ; GDC Parameter (schreiben)
 P_CMD    EQU     0A1h            ; GDC Kommando (schreiben)
@@ -188,18 +205,18 @@ M68BXR  db      0,0,0,0
 
 RINGQ   db      BLAU,CYAN,GRUEN,GELB,ROT,MAGENTA
 
-T_BANNER db     'DMVRACE - Prozessor-Rennen fuer die NCR Decision Mate V',0Dh,0Ah,'$'
+T_BANNER db     'DMVRACE - Prozessor-Rennen f',k_ue,'r die NCR Decision Mate V',0Dh,0Ah,'$'
 T_HELP  db      'DMVRACE [/Z] [/K] [/8] [/M] [/C]',0Dh,0Ah
         db      '/Z ohne Z80, /K ohne 68008 (K234), /8 ohne 8087, /M Mono, /C Farbe',0Dh,0Ah,'$'
-T_PITNO db      'PIT-Kanal 0 zaehlt nicht - Zeit ueber die DOS-Uhr, Z80 faehrt nicht mit',0Dh,0Ah,'$'
+T_PITNO db      'PIT-Kanal 0 z',k_ae,'hlt nicht - Zeit ',k_ue,'ber die DOS-Uhr, Z80 f',k_ae,'hrt nicht mit',0Dh,0Ah,'$'
 T_PITHZ db      'Zeitbasis: PIT-Kanal 0 $'
 T_PITB  db      ' Hz, Bildwechsel $'
-T_PITK  db      ' Hz (Kanal 0 stand und wurde ueber Port 14h angestossen)$'
+T_PITK  db      ' Hz (Kanal 0 stand und wurde ',k_ue,'ber Port 14h angesto',k_ss,'en)$'
 T_PITE  db      ' Hz',0Dh,0Ah,'$'
-T_ZOVL  db      'Z80: kein freier Bereich in Bank 0 - Z80 faehrt nicht mit',0Dh,0Ah,'$'
-T_MEM   db      'Kein Speicher fuer den 68008-Block',0Dh,0Ah,'$'
-T_NOK235 db     'K230/K231 (ohne 8259): keine K234-Probe, der 68008 faehrt nicht mit',0Dh,0Ah,'$'
-T_ZOVL68 db     'Programm liegt ueber dem Z80-Warteplatz F10Eh: keine K234-Probe',0Dh,0Ah,'$'
+T_ZOVL  db      'Z80: kein freier Bereich in Bank 0 - Z80 f',k_ae,'hrt nicht mit',0Dh,0Ah,'$'
+T_MEM   db      'Kein Speicher f',k_ue,'r den 68008-Block',0Dh,0Ah,'$'
+T_NOK235 db     'K230/K231 (ohne 8259): keine K234-Probe, der 68008 f',k_ae,'hrt nicht mit',0Dh,0Ah,'$'
+T_ZOVL68 db     'Programm liegt ',k_ue,'ber dem Z80-Warteplatz F10Eh: keine K234-Probe',0Dh,0Ah,'$'
 T_68RUN db      'Achtung: der 68008 rechnet noch - bitte die DMV neu starten!',0Dh,0Ah,'$'
 T_TITLE db      'DMV GRAND PRIX',0
 T_QUAL  db      'QUALIFYING',0
@@ -215,7 +232,7 @@ T_DL1   db      'SCHNECKE: Z80',0
 T_DHAS  db      'WINDHUND: ',0
 T_DOFF  db      ' - NICHT DABEI',0
 T_DSTART db     'TASTE = START, ESC = ENDE',0
-T_DRUN  db      'DER 8741 RECHNET - DIE TASTATUR SCHLAEFT SO LANGE',0
+T_DRUN  db      'DER 8741 RECHNET - DIE TASTATUR SCHL',d_gae,'FT SO LANGE',0
 T_DNOK  db      'DER 8741 ANTWORTET NICHT',0
 T_DLOST db      'DER 8741 MELDET SICH NICHT MEHR - ABGEBROCHEN',0
 T_DAGAIN db     'J = GRAND PRIX, D = DRAG-RACE, ESC = ENDE',0
@@ -245,7 +262,7 @@ v_klast dw      0                       ; Bild der letzten Meldung
 v_kres  dw      0                       ; Ergebnis
 T_RACEN db      'RENNEN',0
 T_QSEC  db      ': ALLE RECHNEN',0
-T_RACE  db      'RENNEN UEBER 3 RUNDEN',0
+T_RACE  db      'RENNEN ',d_gue,'BER 3 RUNDEN',0
 T_ZIEL  db      'ZIEL! SIEGER: ',0
 T_KEY   db      'TASTE = ENDE',0
 T_TOT   db      'GESAMT-',0

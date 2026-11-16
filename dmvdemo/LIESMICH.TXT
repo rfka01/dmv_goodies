@@ -1,15 +1,15 @@
-DMVDEMO - Grafikdemo fuer die NCR Decision Mate V
+DMVDEMO - Grafikdemo für die NCR Decision Mate V
 ==================================================
 
-Fuer MS-DOS ab 2.0 (getestet mit 3.30) auf der DMV mit Farb-Grafikkarte
-(uPD7220, 640 x 400, 8 Farben). Laeuft auch auf der Mono-DMV (dann
+Für MS-DOS ab 2.0 (getestet mit 3.30) auf der DMV mit Farb-Grafikkarte
+(uPD7220, 640 x 400, 8 Farben). Läuft auch auf der Mono-DMV (dann
 Graustufen als Raster).
 In MAME und auf zwei echten DMV getestet (Farbe mit 8088, Mono mit
 V20 und 8087, beide mit K235 und K234); den Z8001 (K238) gibt es nur
 in MAME.
 
 Ein Programm. Den blauen Mandelbrot-Tentakel (Bild 11) rechnet das
-staerkste Rechenwerk, das gefunden wird:
+stärkste Rechenwerk, das gefunden wird:
 
   Koprozessor auf Steckplatz 7: 68008 der K234 (32-Bit-Festkomma 4.28)
   oder Z8001 der K238 (16-Bit-Festkomma 3.13 wie der 8088; die K238 ist
@@ -26,8 +26,8 @@ staerkste Rechenwerk, das gefunden wird:
 
 Erkannt wird nach "NCR Decision Mate V - Hardware erkennen" (2.11.2026,
 auf zwei echten Maschinen gemessen), Quelltext in GHW.INC:
-  - 8088 oder V20: PUSH 0 (6Ah) und AAD 16 (D5h 10h) muessen
-    uebereinstimmen, sonst heisst es "CPU?". Die Beschriftungen nennen den
+  - 8088 oder V20: PUSH 0 (6Ah) und AAD 16 (D5h 10h) müssen
+    übereinstimmen, sonst heißt es "CPU?". Die Beschriftungen nennen den
     gefundenen Prozessor (8088, V20).
   - K235 oder K230/K231: 8259 auf 90h/91h (AAh/55h ins Maskenregister).
   - K234 oder K238: nur auf der K235. Eine zweisprachige Probe (wie die
@@ -42,15 +42,15 @@ Bild 10 (Plasma, dort mit normalverteiltem Zufall).
 Die 8087-Erkennung nutzt nur FNINIT/FNSTSW/FNSTCW (ohne WAIT): Status-
 und Steuerwort werden mit 5A5Ah vorbelegt; ohne Koprozessor bleiben sie
 stehen, ein 8087 liefert Steuerwort 03FFh (MAME 037Fh). Gilt: Steuerwort
-<> 5A5Ah heisst vorhanden.
+<> 5A5Ah heißt vorhanden.
 
-Bei den Bildern 9, 10 und 11 steht oben links schon waehrend der
+Bei den Bildern 9, 10 und 11 steht oben links schon während der
 Rechnung, wer rechnet; am Ende kommt die Rechenzeit dazu (Sekunden mit
 Hundertsteln). Beim 8088 und 8087 kommt die Zeit von der DOS-Uhr
-(Fn 2Ch); laeuft sie nicht, steht dort "?". Waehrend der Koprozessor rechnet,
+(Fn 2Ch); läuft sie nicht, steht dort "?". Während der Koprozessor rechnet,
 steht der 8088 und mit ihm die DOS-Uhr; seine Zeit misst PIT-Kanal 0,
 dessen Takt (der Bildtakt, gemessen 56,1 Hz) beim Start gegen Kanal 2
-geeicht wird (GZEIT.INC). Zaehlt Kanal 0 nicht, rechnet der Koprozessor
+geeicht wird (GZEIT.INC). Zählt Kanal 0 nicht, rechnet der Koprozessor
 nicht mit.
 
 Aufruf
@@ -61,56 +61,56 @@ Aufruf
   DMVDEMO /7         Bild 11 ohne Koprozessor (8087 oder 8088/V20)
   DMVDEMO /8         Bild 9, 10, 11 nur auf dem 8088/V20 (Zeitvergleich)
   DMVDEMO 11 /7      Schalter und Bildnummer lassen sich kombinieren
-  Taste = naechstes Bild, ESC = Ende (zurueck zu DOS, Strg-Z loescht
+  Taste = nächstes Bild, ESC = Ende (zurück zu DOS, Strg-Z löscht
   den Textbildschirm).
 
 Farbe oder Mono wird erkannt, indem ein Wort in die rote Ebene (4000h)
-geschrieben und mit RDAT zurueckgelesen wird. MAME meldet immer "Farbe",
+geschrieben und mit RDAT zurückgelesen wird. MAME meldet immer "Farbe",
 auch in der Mono-Konfiguration - dort bitte /M angeben.
 
 Die 15 Bilder
 -------------
  1  Titel: "NCR" 12fach mit dem Zeichenzoom des GDC, 3D-Schichten,
-    weisser XOR-Glanzstreifen laeuft dreimal nach rechts und zurueck
+    weißer XOR-Glanzstreifen läuft dreimal nach rechts und zurück
  2  Remake des NCR-Planungscharts aus DEMO5/DEMO7 (1983), in Farbe
  3  Linien-Moire: Hunderte GDC-Linien im XOR-Modus
  4  Kreis-Interferenz: konzentrische XOR-Kreise
- 5  Mystify: springende Linienzuege mit Schweif
+ 5  Mystify: springende Linienzüge mit Schweif
  6  Dithering: 36 Mischfarben aus 8, danach ein Sonnenuntergang
- 7  Hardware-Scrolling: Rundlauf ueber zwei Partitionen, Spiegel, Erdbeben
+ 7  Hardware-Scrolling: Rundlauf über zwei Partitionen, Spiegel, Erdbeben
  8  Hardware-Lupe: Anzeige-Zoom 2/4/8fach mit Schwenk
  9  Mandelbrot 160 x 100 (8088 mit 16 Bit Festkomma 4.12, oder 8087)
-10  Plasma wie FRACTINT: grobe Bloecke, dann die feine Fassung mit
-    4x4-Bayer-Raster ueber einen Farbring (einmal gerechnet). Der 8088
-    verschiebt die Mittelpunkte gleichverteilt zufaellig, der 8087
-    normalverteilt (Polarmethode nach Marsaglia: FYL2X fuer ln, FSQRT) -
+10  Plasma wie FRACTINT: grobe Blöcke, dann die feine Fassung mit
+    4x4-Bayer-Raster über einen Farbring (einmal gerechnet). Der 8088
+    verschiebt die Mittelpunkte gleichverteilt zufällig, der 8087
+    normalverteilt (Polarmethode nach Marsaglia: FYL2X für ln, FSQRT) -
     das Plasma wird weicher. Gemessen wird die Unterteilung.
 11  Der blaue Tentakel: Spirale bei -0,7759 + 0,1362i, 160 x 100 Zellen,
-    Tiefe 100, Farbring schwarz-blau-cyan-weiss - 8088, 8087, 68008 oder Z8001
+    Tiefe 100, Farbring schwarz-blau-cyan-weiß - 8088, 8087, 68008 oder Z8001
 12  KITT: freigestelltes Foto (KITT.PIC, 640 x 400) als Low-Key-Bild
-    (Licht von oben, Atkinson-Raster schwarz/weiss; auf der Farbkarte in
-    alle drei Ebenen geschrieben, also weiss, bei dunkler Anzeige - es
-    erscheint auf einmal) mit rotem Scanner-Lauflicht im Kuehlergrill -
-    das Lauflicht laeuft gleichzeitig auf den 8 LEDs vorne an der DMV mit
-13  Verwobene Baender: vier Farbbaender winden sich als Zopf um eine
+    (Licht von oben, Atkinson-Raster schwarz/weiß; auf der Farbkarte in
+    alle drei Ebenen geschrieben, also weiß, bei dunkler Anzeige - es
+    erscheint auf einmal) mit rotem Scanner-Lauflicht im Kühlergrill -
+    das Lauflicht läuft gleichzeitig auf den 8 LEDs vorne an der DMV mit
+13  Verwobene Bänder: vier Farbbänder winden sich als Zopf um eine
     Achse, die langsam hin und her schwenkt, und laufen nach unten aus
-    dem Bild. Hardware-Scrolling ueber einen Ring aus 408 Zeilen und zwei
+    dem Bild. Hardware-Scrolling über einen Ring aus 408 Zeilen und zwei
     Partitionen; je Bildwechsel wird nur die neue oberste Zeile
-    gezeichnet (unsichtbar), dann rueckt die Startadresse eine Zeile
-    weiter. Hinten liegende Baender sind dunkler gerastert, das vordere
-    ueberdeckt sie - so verweben sie sich. Am Ende laufen sie aus.
+    gezeichnet (unsichtbar), dann rückt die Startadresse eine Zeile
+    weiter. Hinten liegende Bänder sind dunkler gerastert, das vordere
+    überdeckt sie - so verweben sie sich. Am Ende laufen sie aus.
 14  Tutanchamun: gerastertes Foto der Totenmaske (TUT.PIC), Ausschnitt
     wie beim bekannten Amiga-Bild; Farbe in 8 Farben, auf der Mono-DMV
     eine eigene Graustufen-Ebene
-15  Finale (immer zuletzt): Anaglyphen-Wuerfel mit Stern ueber einer
+15  Finale (immer zuletzt): Anaglyphen-Würfel mit Stern über einer
     Laufschrift, die echter Textmodus in einer eigenen Partition ist -
     Regenbogenfarben in voller Helligkeit
 
 Die Fotos
 ---------
 KITT.PIC und TUT.PIC sind gepackte Vollbilder im Format von DMVGRAF
-(Kennung DMVP, LZSS, je Ebene gruen/rot/blau/mono fuer sich). Geladen
-werden sie mit GPIC.INC aus DMVGRAF direkt in den Bildspeicher, waehrend
+(Kennung DMVP, LZSS, je Ebene grün/rot/blau/mono für sich). Geladen
+werden sie mit GPIC.INC aus DMVGRAF direkt in den Bildspeicher, während
 die Anzeige dunkel ist. KITT.PIC hat nur die Mono-Ebene (12 KB statt
 128 KB), TUT.PIC alle vier (68 KB). Packen: dmvgraf/tools/dmvpack.py.
 Das Laden dauert auf dem 8088 einige Sekunden (vor allem das Entpacken).
@@ -121,8 +121,8 @@ Nur auf der K235 (auf der K230/K231 ist jedes OUT D8h-DFh eine
 Prozessorumschaltung). Das Programm holt sich beim Start 20 KB von DOS:
 Briefkasten (Parameter im 68000-Format; der Z8001 ist ebenfalls Big
 Endian) und den Code des gefundenen Prozessors (MANDEL68.S als Bytes in
-M68.INC, MANDZ8K.8KN als Bytes in MZ8.INC). Fuer den Z8001 liegt der Block
-in einem 64-KB-Segment. So laeuft ein Start, wie auf der echten DMV
+M68.INC, MANDZ8K.8KN als Bytes in MZ8.INC). Für den Z8001 liegt der Block
+in einem 64-KB-Segment. So läuft ein Start, wie auf der echten DMV
 gemessen (K234) bzw. in MAME (K238):
 
   1. Die 8 Bytes ab Adresse 0 (8088-Vektoren 0/1) werden gesichert und
@@ -130,19 +130,19 @@ gemessen (K234) bzw. in MAME (K238):
      und PC (Segment, Versatz).
   2. Am Warteplatz des Z80 (F10Eh) steht ein kleines Z80-Programm:
      OUT (DFh),A - der Z80 startet den Koprozessor (mit D8h lief die
-     echte K234 nicht an) -, dann eine Marke und zurueck zu OUT (D0h),A.
+     echte K234 nicht an) -, dann eine Marke und zurück zu OUT (D0h),A.
   3. Der 8088 gibt mit OUT D0h an den Z80 ab und steht.
-  4. Der Koprozessor rechnet 20 Zeilen und gibt an den Z80 zurueck (68008:
+  4. Der Koprozessor rechnet 20 Zeilen und gibt an den Z80 zurück (68008:
      Schreiben auf FFFDFh, Z8001: OUTB DFh), der Z80 an den 8088.
-  5. Vektoren und Warteplatz kommen zurueck, der 8088 zeichnet die Zeilen.
+  5. Vektoren und Warteplatz kommen zurück, der 8088 zeichnet die Zeilen.
 
 Weil es nur einen Bus gibt, kann der 8088 nicht zeichnen, solange der
-Koprozessor rechnet; das Bild waechst darum in fuenf Schueben. Die
+Koprozessor rechnet; das Bild wächst darum in fünf Schüben. Die
 angezeigte Zeit ist nur die Rechenzeit. Eine Taste bricht zwischen zwei
 Starts ab.
 
 Der Z8001 rechnet mit 16 Bit Festkomma 3.13 genau wie der 8088 (gleiches
-Bild, direkter Vergleich); 32 Bit mit MULTL waere auf ihm rund viermal
+Bild, direkter Vergleich); 32 Bit mit MULTL wäre auf ihm rund viermal
 langsamer (282 Takte je Multiplikation).
 
 Der 8087
@@ -150,26 +150,26 @@ Der 8087
 Mandelbrot (Bild 9 und 11): gerechnet wird im 8087-Stapel (zr, zi, cr,
 ci), der Vergleich mit 4 per FCOMP und FSTSW in den Speicher (der 8087
 kennt kein FSTSW AX). In MAME
-steckt kein 8087 - dort laeuft automatisch die 8088-Rechnung.
+steckt kein 8087 - dort läuft automatisch die 8088-Rechnung.
 
 Warum DEMO5 nur Mono war
 ------------------------
 DEMO5.EXE ist kompiliertes GW-BASIC mit der NCR-Bibliothek NCRGRAPH.
-GCOLOR waehlt dort nur eine Ebene (gruen, rot, blau), und DEMO5 ruft es
+GCOLOR wählt dort nur eine Ebene (grün, rot, blau), und DEMO5 ruft es
 kein einziges Mal auf. Die Farbfassung ist DEMO7 auf der CP/M-86-
-Diskette (PL/I ueber GSX, W. Felkel, NCR Augsburg, 11.11.1983).
+Diskette (PL/I über GSX, W. Felkel, NCR Augsburg, 11.11.1983).
 
-Auf der echten Maschine bitte besonders pruefen
------------------------------------------------
+Auf der echten Maschine bitte besonders prüfen
+----------------------------------------------
 - Bild 7: zwei Grafikpartitionen, Erdbeben (Startadresse um 1 Wort)
 - Bild 8: Anzeige-Zoom (MAME zoomt nur senkrecht). Der ZOOM-Parameter
-  geht wie im Boot-ROM C.07.00 ueber Port A2h: der GDC sieht ihn als
+  geht wie im Boot-ROM C.07.00 über Port A2h: der GDC sieht ihn als
   Parameter, Grafikkarten ab Change Level 36 zoomen damit auch waagrecht.
 - Bild 12: Front-LEDs (Port 00h, LED 1 = Bit 7, aktiv low)
-- Bild 13: Ring-Scrolling Zeile fuer Zeile (schafft der 8088 eine Zeile
+- Bild 13: Ring-Scrolling Zeile für Zeile (schafft der 8088 eine Zeile
   je Bildwechsel?)
 - Bild 15: Textpartition im Mischmodus
-- Farb/Mono-Erkennung auf der Mono-DMV, Rueckkehr zu DOS
+- Farb/Mono-Erkennung auf der Mono-DMV, Rückkehr zu DOS
 - Rechenzeiten in Bild 9, 10, 11: 8088/V20 (/8), 8087 (/7), 68008/Z8001 (nur 11)
 
 Bauen
@@ -178,13 +178,13 @@ Bauen
   segment" ist normal).
   Dateien: DMVDEMO.ASM, GDCTAB.INC, GDCVAR.INC, GDCLIB.INC (GDC-Routinen,
   gemeinsam mit DMVRACE), FONT.INC, SINTAB.INC, MONOPAT.INC, M68.INC,
-  MZ8.INC (Z8001-Kern als Bytes, Quelle MANDZ8K.8KN fuer libasm),
+  MZ8.INC (Z8001-Kern als Bytes, Quelle MANDZ8K.8KN für libasm),
   GZEIT.INC (Zeitbasis) und GHW.INC (Hardwareerkennung; beide aus
   DMVGRAF, dmvgraf/src, gemeinsam mit DMVRACE), BAENDER.INC (Bild 13) und GPIC.INC (Lader
-  fuer gepackte Bilder, aus dmvgraf/src).
+  für gepackte Bilder, aus dmvgraf/src).
   Zum Bauen braucht man keinen 68000-Assembler (MANDEL68.S liegt nur als
-  Quelle bei, M68.INC enthaelt den Code als Bytes). KITT.PIC und TUT.PIC
-  muessen beim Start im aktuellen Verzeichnis liegen.
+  Quelle bei, M68.INC enthält den Code als Bytes). KITT.PIC und TUT.PIC
+  müssen beim Start im aktuellen Verzeichnis liegen.
   8x8-Zeichensatz: font8x8 von Daniel Hepper, Public Domain.
 
 Bildnachweis

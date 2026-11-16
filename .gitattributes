@@ -1,4 +1,5 @@
-# DOS files are kept byte for byte (CRLF, Ctrl-Z, DMV character codes)
+# DOS files are kept byte for byte (CRLF, Ctrl-Z). Texts (*.TXT) are UTF-8;
+# tools/mkgoodies.py converts their umlauts to the DMV character set.
 *.ASM -text
 *.INC -text
 *.H -text

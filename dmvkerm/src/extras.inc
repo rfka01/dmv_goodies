@@ -10,7 +10,7 @@ lstd	db	'SESSION.LOG',0
 l_an	db	'Mitschnitt in $'
 l_aus	db	'Mitschnitt geschlossen.',cr,lf,'$'
 l_kein	db	'?Kein Mitschnitt offen.',cr,lf,'$'
-l_fehl	db	'?Datei laesst sich nicht anlegen.',cr,lf,'$'
+l_fehl	db	'?Datei l',k_ae,'sst sich nicht anlegen.',cr,lf,'$'
 
 ; LOG SESSION [datei] - haengt an eine vorhandene Datei an
 lg_tab	db	7,'SESSION'
@@ -201,9 +201,11 @@ trsw_tab db	7,'/BINARY'
 	dw	1
 	db	0
 trbin	db	0
-tr_schal db	'?Unbekannter Schalter, moeglich ist /BINARY',cr,lf,'$'
+tr_schal db	'?Unbekannter Schalter, m',k_oe,'glich ist /BINARY',cr,lf,'$'
 trpause	dw	0		; SET TRANSMIT PAUSE: ms nach jedem Zeichen
-tr_bin	db	'Sende die Datei Byte fuer Byte ohne Protokoll, ESC bricht ab.',cr,lf,'$'
+tr_bin	db	'Sende die Datei Byte f',k_ue,'r Byte ohne Protokoll, ESC bricht ab.',cr,lf,'$'
+tr_7bit	db	'Achtung: 7 Datenbits, das oberste Bit wird nicht ',k_ue,'bertragen',cr,lf
+	db	'(f',k_ue,'r RIM/BIN: SET SERIAL 8N1).',cr,lf,'$'
 tr_byt	db	cr,'Gesendet: $'
 tr_byte	db	' Bytes$'
 tr_abbr	db	cr,lf,'[TRANSMIT abgebrochen]',cr,lf,'$'
@@ -213,7 +215,7 @@ trzahl	dw	0,0
 ; Pause nach einem Zeichen (SET TRANSMIT PAUSE). Der Baustein nimmt das
 ; naechste Zeichen schon an, waehrend das vorige noch hinausgeht; damit
 ; auf der Leitung wirklich eine Luecke entsteht, kommt die Dauer eines
-; Zeichens (Start, 8 Bit, 1 oder 2 Stopp) dazu.
+; Zeichens (Start, Daten, Pruefbit, Stopp: pzbits) dazu.
 trwarte	proc	near
 	cmp	trpause,0
 	je	trw9
@@ -224,9 +226,8 @@ trwarte	proc	near
 	xor	bh,bh
 	shl	bx,1
 	mov	bx,baudtab[bx]
-	mov	al,pstop
-	cbw
-	add	ax,10			; Bits je Zeichen
+	mov	al,pzbits		; Bits je Zeichen
+	xor	ah,ah
 	mov	dx,1000
 	mul	dx			; DX:AX = Bits * 1000
 	div	bx			; ms, aufgerundet
@@ -248,6 +249,11 @@ trwarte	endp
 trbinaer proc	near
 	mov	dx,offset tr_bin
 	call	textd
+	cmp	pdaten,8
+	je	trb0
+	mov	dx,offset tr_7bit
+	call	textd
+trb0:
 	mov	flesef,0
 	mov	trzahl,0
 	mov	trzahl+2,0
@@ -343,8 +349,8 @@ d_alle	db	'*.*',0
 d_frei	db	' Byte frei',cr,lf,'$'
 d_dir	db	'  <DIR>$'
 c_fehl	db	'?Verzeichnis nicht gefunden.',cr,lf,'$'
-e_ok	db	' geloescht.',cr,lf,'$'
-e_fehl	db	'?Nicht geloescht (fehlt oder schreibgeschuetzt).',cr,lf,'$'
+e_ok	db	' gel',k_oe,'scht.',cr,lf,'$'
+e_fehl	db	'?Nicht gel',k_oe,'scht (fehlt oder schreibgesch',k_ue,'tzt).',cr,lf,'$'
 
 b_dir	proc	near
 	call	restmuster

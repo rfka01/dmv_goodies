@@ -32,6 +32,23 @@
 ;*                                                                     *
 ;***********************************************************************
 
+; Umlaute im Zeichensatz der DMV-Konsole (NCR CRTTBL/GERMANY; die
+; Glyphen liegen auf 10h..1Eh, der Zeichengenerator ignoriert Bit 7)
+k_ae	=	90h
+k_oe	=	96h
+k_ue	=	99h
+g_ae	=	80h
+g_oe	=	86h
+g_ue	=	89h
+k_ss	=	9Eh
+; Umlaute im Grafikzeichensatz FONT.INC (Plaetze nach DIN 66003)
+d_gae   =       '['
+d_goe   =       '\'
+d_gue   =       ']'
+d_kae   =       '{'
+d_koe   =       '|'
+d_kue   =       '}'
+d_ss    =       '~'
 P_STAT   EQU     0A0h            ; GDC Status (lesen)
 P_PARM   EQU     0A0h            ; GDC Parameter (schreiben)
 P_CMD    EQU     0A1h            ; GDC Kommando (schreiben)
@@ -212,7 +229,7 @@ MPAL    db      BLAU,BLAU, BLAU,CYAN, CYAN,CYAN, CYAN,GRUEN
         db      ROT,ROT, ROT,MAGENTA, MAGENTA,MAGENTA, MAGENTA,BLAU
 MLUM    db      0,0,1,1,0,0,1,1
 T10_A   db      'ANAGLYPHEN-3D',0
-T10_B   db      'ROT/CYAN-BRILLE AUFSETZEN - DANN SCHWEBT DER WUERFEL',0
+T10_B   db      'ROT/CYAN-BRILLE AUFSETZEN - DANN SCHWEBT DER W',d_gue,'RFEL',0
 ; Attribut (oberes Byte): Bit 0 halbe Helligkeit, Bit 2-4 Vordergrund RGB,
 ; Bit 5-7 Hintergrund RGB invertiert (E0h = schwarz). 6 Farben, volle
 ; Helligkeit (halbe Helligkeit wieder entfernt).
@@ -220,9 +237,9 @@ TATTR   db      0E0h+0Ch,0E0h+08h,0E0h+18h,0E0h+14h,0E0h+1Ch,0E0h+04h
 NTATTR  EQU     6
 TICK    db      '+++ NCR DECISION MATE V - GRAFIKDEMO 2026 +++ '
         db      'uPD7220: 640 X 400 PUNKTE, 8 FARBEN, LINIEN, KREISE, '
-        db      'ZEICHEN UND FLAECHEN IN HARDWARE +++ DIESE LAUFSCHRIFT '
+        db      'ZEICHEN UND FL',g_ae,'CHEN IN HARDWARE +++ DIESE LAUFSCHRIFT '
         db      'IST ECHTER TEXTMODUS IN EINER EIGENEN PARTITION, DER '
-        db      'WUERFEL DARUEBER IST GRAFIK +++ ESC = ENDE, TASTE = '
+        db      'W',g_ue,'RFEL DAR',g_ue,'BER IST GRAFIK +++ ESC = ENDE, TASTE = '
         db      'NOCHMAL VON VORN +++ ',0
 P3X     dw      -64, 64, 64,-64,-64, 64, 64,-64,  110,-110,   0,   0,   0,   0
 P3Y     dw      -64,-64, 64, 64,-64,-64, 64, 64,    0,   0, 110,-110,   0,   0
@@ -271,10 +288,10 @@ T_NO87  db      'Kein 8087 - Bild 9, 10 und 11 rechnet der 8088/V20',0Dh,0Ah,'$'
 T_OFF87 db      '/8: Bild 9, 10 und 11 rechnet der 8088/V20',0Dh,0Ah,'$'
 T_VAR68 db      'K234 (68008) gefunden - er rechnet Bild 11',0Dh,0Ah,'$'
 T_VARZ8 db      'K238 (Z8001) gefunden - er rechnet Bild 11',0Dh,0Ah,'$'
-T68_MEM db      'Kein Speicher fuer den 68008-Block - Bild 11 ohne 68008',0Dh,0Ah,'$'
+T68_MEM db      'Kein Speicher f',k_ue,'r den 68008-Block - Bild 11 ohne 68008',0Dh,0Ah,'$'
 T68_235 db      'K230/K231 (ohne 8259): keine K234-Probe',0Dh,0Ah,'$'
-T68_PIT db      'PIT-Kanal 0 zaehlt nicht - Bild 11 ohne 68008 (keine Zeitmessung)',0Dh,0Ah,'$'
-T68_OVL db      'Programm liegt ueber dem Z80-Warteplatz F10Eh - Bild 11 ohne 68008',0Dh,0Ah,'$'
+T68_PIT db      'PIT-Kanal 0 z',k_ae,'hlt nicht - Bild 11 ohne 68008 (keine Zeitmessung)',0Dh,0Ah,'$'
+T68_OVL db      'Programm liegt ',k_ue,'ber dem Z80-Warteplatz F10Eh - Bild 11 ohne 68008',0Dh,0Ah,'$'
 T68_RUN db      'Achtung: der 68008 rechnet noch - bitte die DMV neu starten!',0Dh,0Ah,'$'
         IFDEF   CALC87
 FOUR87  dq      4.0
@@ -328,11 +345,11 @@ KSTUF   db      SCHWARZ,SCHWARZ
         dw      offset P25
 KLEV    db      8 dup (0)
 
-T_BANNER db     'DMVDEMO - Grafikdemo fuer die NCR Decision Mate V',0Dh,0Ah,'$'
+T_BANNER db     'DMVDEMO - Grafikdemo f',k_ue,'r die NCR Decision Mate V',0Dh,0Ah,'$'
 T_FARBE db      'Farbbildschirm (8 Farben)',0Dh,0Ah,'$'
 T_MONO  db      'Monochrom-Bildschirm',0Dh,0Ah,'$'
 T_HELP  db      'DMVDEMO [n] [/M] [/C] [/7|/8]   n = nur Bild 1..15, /M Mono, /C Farbe',0Dh,0Ah
-        db      'Rechner fuer Bild 11: 68008 (K234) > 8087 > 8088/V20 (Vorgabe),',0Dh,0Ah
+        db      'Rechner f',k_ue,'r Bild 11: 68008 (K234) > 8087 > 8088/V20 (Vorgabe),',0Dh,0Ah
         db      '/7 ohne 68008, /8 nur 8088/V20 (auch Bild 9 und 10)',0Dh,0Ah
         db      'Taste = weiter, ESC = Ende',0Dh,0Ah,'$'
 

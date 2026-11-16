@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.insert(0, os.path.join(D, '..', 'dmvkerm', 'tools'))
 from fat12 import Fat12                                   # noqa: E402
+from dmvtext import dostext                                 # noqa: E402
 
 # Datum und Uhrzeit des Baus (deutsche Zeit) als Stempel der Dateien
 JETZT = datetime.datetime.now(ZoneInfo('Europe/Berlin'))
@@ -19,10 +20,8 @@ ZEIT = (JETZT.hour, JETZT.minute, JETZT.second)
 
 
 def txt(name):
-    """Text (ASCII) -> DOS-Text mit CRLF und Ctrl-Z."""
-    s = open(os.path.join(D, name), encoding='ascii').read()
-    s = s.replace('\r', '')
-    return (s.replace('\n', '\r\n') + '\x1a').encode('ascii')
+    """Text (UTF-8) -> DOS-Text mit CRLF und Ctrl-Z, Umlaute als DMV-Codes."""
+    return dostext(os.path.join(D, name))
 
 
 def main(images):

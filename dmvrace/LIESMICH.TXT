@@ -1,7 +1,7 @@
-DMVRACE - Prozessor-Rennen fuer die NCR Decision Mate V
-=======================================================
+DMVRACE - Prozessor-Rennen für die NCR Decision Mate V
+======================================================
 
-Fuer MS-DOS ab 2.0 (getestet mit 3.30) auf der DMV mit Grafikkarte
+Für MS-DOS ab 2.0 (getestet mit 3.30) auf der DMV mit Grafikkarte
 (uPD7220, 640 x 400).
 In MAME und auf zwei echten DMV getestet (Farbe mit 8088, Mono mit
 V20 und 8087, beide mit K235 und K234); den Z8001 (K238) gibt es nur
@@ -10,21 +10,21 @@ in MAME.
 Vier Wagen, vier Rechenwerke der DMV:
 
   rot    Z80 auf der Hauptplatine (4 MHz)
-  gruen  8088 bzw. V20 (K230/K231/K235) - wird erkannt und beschriftet
+  grün   8088 bzw. V20 (K230/K231/K235) - wird erkannt und beschriftet
   gelb   derselbe mit 8087
   cyan   Koprozessor auf Steckplatz 7: 68008 der K234 oder Z8001 der K238
          (die K238 ist ein Eigenbau, den es nur im MAME-Fork gibt)
 
-Fehlt ein Rechenwerk, bleibt sein Wagen in der Box; ueber seinem Bild
+Fehlt ein Rechenwerk, bleibt sein Wagen in der Box; über seinem Bild
 steht der Grund (AUS, KEIN 8087, KEIN K234/K238, OHNE K235, KEIN RAUM,
 OHNE ZEIT).
 
 Erkannt wird nach "NCR Decision Mate V - Hardware erkennen" (2.11.2026,
 auf zwei echten Maschinen gemessen), Quelltext in GHW.INC:
-  - 8088 oder V20: PUSH 0 (6Ah) und AAD 16 (D5h 10h) muessen
-    uebereinstimmen, sonst heisst der Wagen "CPU?".
+  - 8088 oder V20: PUSH 0 (6Ah) und AAD 16 (D5h 10h) müssen
+    übereinstimmen, sonst heißt der Wagen "CPU?".
   - 8087: Status- und Steuerwort mit 5A5Ah vorbelegt, FNINIT/FNSTSW/
-    FNSTCW; Steuerwort <> 5A5Ah heisst vorhanden (8087: 03FFh).
+    FNSTCW; Steuerwort <> 5A5Ah heißt vorhanden (8087: 03FFh).
   - K235 oder K230/K231: 8259 auf 90h/91h. K234 und K238 gibt es nur
     mit K235.
   - K234 oder K238: zweisprachige Probe wie DMVDIAG (der 68008 schreibt
@@ -32,13 +32,13 @@ auf zwei echten Maschinen gemessen), Quelltext in GHW.INC:
     siehe "Der Koprozessor".
 Vor dem Grafikstart steht eine Zeile "Erkannt: ..." und die Zeitbasis.
 
-Die Wagen sind 8 x 8 Punkte gross (CARS.INC): Karosserie in der Wagenfarbe,
-vier weisse Reifen, vorne eine Scheibe. Sie drehen sich in 45-Grad-
-Schritten (8 Lagen) mit der Fahrtrichtung: ANG.INC haelt fuer jeden der 512
+Die Wagen sind 8 x 8 Punkte groß (CARS.INC): Karosserie in der Wagenfarbe,
+vier weiße Reifen, vorne eine Scheibe. Sie drehen sich in 45-Grad-
+Schritten (8 Lagen) mit der Fahrtrichtung: ANG.INC hält für jeden der 512
 Streckenpunkte die Richtung der Mittellinie (die vier Spuren sind
 Parallelkurven, ihre Tangente ist am selben Punkt gleich). Gedreht wird,
 sobald die Richtung die Mitte zwischen zwei Lagen (22,5 Grad) um etwa
-3 Grad ueberschreitet - auf Innen- und Aussenspur am selben Punkt.
+3 Grad überschreitet - auf Innen- und Außenspur am selben Punkt.
 Gezeichnet wird je Ebene ein GDC-Grafikzeichen im XOR-Modus - zweimal
 gezeichnet ist der Wagen wieder weg, Strecke und Ziellinie bleiben heil.
 
@@ -51,22 +51,22 @@ Aufruf
 Ablauf
 ------
   1. Startaufstellung: die Wagen stehen hintereinander an der Ziellinie,
-     darueber weht die karierte Start/Ziel-Flagge (auch nach dem Ziel).
+     darüber weht die karierte Start/Ziel-Flagge (auch nach dem Ziel).
      Eine Taste startet das Rennen, ESC beendet.
-  2. Runde 1, Abschnitt fuer Abschnitt: erst rechnen alle Prozessoren den
+  2. Runde 1, Abschnitt für Abschnitt: erst rechnen alle Prozessoren den
      Test des Abschnitts (Statuszeile "...: ALLE RECHNEN", die Zeiten
      erscheinen in der Tabelle). Unten zeigt jeder Prozessor sein eigenes
      Ergebnis als Bild. Dann fahren die Wagen, bis der Schnellste das Ende
      des Abschnitts erreicht - die anderen stehen dort, wo sie nach dieser
-     Zeit waeren. Dann der naechste Abschnitt.
-  3. Nach Runde 1 zeigt die Leiste unten alle fuenf Ergebnisbilder
+     Zeit wären. Dann der nächste Abschnitt.
+  3. Nach Runde 1 zeigt die Leiste unten alle fünf Ergebnisbilder
      nebeneinander (Daten des Schnellsten): Viertelkreis gelb, Sierpinski
-     gruen, Division magenta, Ulam-Spirale cyan, Mandelbrot bunt. Dann
+     grün, Division magenta, Ulam-Spirale cyan, Mandelbrot bunt. Dann
      Runden 2 und 3 mit den gemessenen Zeiten, ohne Pause.
   4. Ziel: Sieger in der Statuszeile. J = nochmal (alles neu gemessen),
      D = Drag-Race (nur mit Rennwerk-Firmware, siehe unten), ESC = Ende.
 
-Alles laeuft in Echtzeit: die Wagen ruecken je Bildwechsel um dessen
+Alles läuft in Echtzeit: die Wagen rücken je Bildwechsel um dessen
 Dauer vor (beim Start gemessen, siehe Zeitmessung).
 
 Drag-Race (zweite Seite)
@@ -80,7 +80,7 @@ bricht diesen Probelauf sofort wieder ab. Ohne diese Firmware wird nichts
 gesendet bzw. nur der Synthesizer kurz ein- und ausgeschaltet.
 
 Nach dem Grand Prix: D = Drag-Race. Der 8741 rechnet dann wirklich selbst
-(gut 23 s) und meldet seinen Fortschritt; seine Schnecke faehrt live mit.
+(gut 23 s) und meldet seinen Fortschritt; seine Schnecke fährt live mit.
 Z80 und Windhund fahren mit ihren Zeiten aus Runde 1. Solange der 8741
 rechnet, fragt er die Tastatur nicht ab - Tasten gehen erst danach wieder.
 Am Ende: Rechenergebnis des 8741 (1388 = richtig), Rangfolge und wie viel
@@ -89,72 +89,72 @@ nochmal, ESC = Ende.
 
 Die Strecke
 -----------
-Fuenf Abschnitte, jeder ist ein Test. Jeder Wagen faehrt in jedem Abschnitt
+Fünf Abschnitte, jeder ist ein Test. Jeder Wagen fährt in jedem Abschnitt
 so schnell, wie er diesen Test gerechnet hat - deshalb wechselt die
-Fuehrung.
+Führung.
 
   Wurzel-Kurve        Gitterpunkte im Viertelkreis: Summe isqrt(R^2 - x^2),
                       R = 6000 (32 Bit). Der 8087 nimmt FSQRT, die anderen
-                      ziehen die Wurzel Bit fuer Bit. Ergebnis 28274296
+                      ziehen die Wurzel Bit für Bit. Ergebnis 28274296
                       (das ist pi*R^2/4). Bild: der Viertelkreis.
   Sierpinski-Gerade   Pascal-Dreieck modulo 2: Zeile = Zeile XOR (Zeile<<1),
-                      256 Bit breit, 200 Zeilen, 40 Durchgaenge. Schieben
-                      und XOR - der 68008 schiebt 32 Bit am Stueck, der
-                      Z8001 16 Bit mit RLC durch das Uebertragsbit.
+                      256 Bit breit, 200 Zeilen, 40 Durchgänge. Schieben
+                      und XOR - der 68008 schiebt 32 Bit am Stück, der
+                      Z8001 16 Bit mit RLC durch das Übertragsbit.
                       Bild: die ersten 100 Zeilen (Sierpinski-Dreieck).
-  Divisions-Kehre     Primfaktoren durch Probedivision fuer n = 50000..50399
+  Divisions-Kehre     Primfaktoren durch Probedivision für n = 50000..50399
                       (30070 Divisionen). DIV beim 8088, DIVU beim V20 (viel
                       schneller), DIVU.W beim 68008, DIV beim Z8001,
                       Software beim Z80.
                       Bild: Anzahl der Primfaktoren je Zahl als Balken.
   Eratosthenes-Kurve  Sieb des Eratosthenes wie im BYTE-Benchmark 1981:
-                      8190 Flags, 8 Durchgaenge, 1899 Primzahlen.
+                      8190 Flags, 8 Durchgänge, 1899 Primzahlen.
                       Bild: Ulam-Spirale 100 x 100 aus den eigenen Flags -
-                      die Zahlen 1..10000 spiralfoermig von der Mitte aus,
+                      die Zahlen 1..10000 spiralförmig von der Mitte aus,
                       jede Primzahl ein Punkt. Man sieht die Diagonalen.
   Mandelbrot-Schikane Mandelbrot 40 x 25, Tiefe 50: 8088 und Z80 mit 16 Bit
                       Festkomma, 8087 mit 80 Bit Gleitkomma, 68008 und Z8001
                       (MULTL) mit 32 Bit Festkomma.
 
-Jeder Test (ausser Mandelbrot, dort rechnen die Prozessoren verschieden
-genau) liefert eine Pruefsumme. Stimmt sie nicht, wird der Wagen
+Jeder Test (außer Mandelbrot, dort rechnen die Prozessoren verschieden
+genau) liefert eine Prüfsumme. Stimmt sie nicht, wird der Wagen
 disqualifiziert (FALSCH).
 
 Zeitmessung
 -----------
 PIT-Kanal 0. Das Boot-ROM programmiert ihn als Motor-Auszeit (Modus 5,
-838 Takte); nach dem Anstoss ueber sein Gate (Port 14h, Motor ein) zaehlt
-er frei weiter, auch waehrend der 8088 steht. Sein Takt ist der Bildtakt
+838 Takte); nach dem Anstoß über sein Gate (Port 14h, Motor ein) zählt
+er frei weiter, auch während der 8088 steht. Sein Takt ist der Bildtakt
 (auf echter Hardware gemessen: 56,09 Hz Farbe, 56,19 Hz Mono; MAME 50 Hz).
 Beim Start misst DMVRACE ihn und die Bildfrequenz gegen PIT-Kanal 2
 (500 kHz, von DOS in Modus 3 betrieben, GZEIT.INC) und meldet beides vor
 dem Grafikstart ("Zeitbasis: PIT-Kanal 0 ... Hz, Bildwechsel ... Hz").
-Steht Kanal 0, stoesst DMVRACE ihn selbst ueber Port 14h an (der
-Diskettenmotor laeuft dann kurz an). Zaehlt er trotzdem nicht, nimmt
+Steht Kanal 0, stößt DMVRACE ihn selbst über Port 14h an (der
+Diskettenmotor läuft dann kurz an). Zählt er trotzdem nicht, nimmt
 DMVRACE die DOS-Uhr, und Z80 und Koprozessor bleiben in der Box ("OHNE ZEIT").
 
 Der Z80
 -------
 Das Boot-ROM (C.07.00, 0580h) legt beim Start eines 16-Bit-Systems bei F10Ch
 OUT (10h),A / OUT (D0h),A / NOP / JP F111h ab und schaltet damit auf den
-8088. Der Z80 steht hinter dem OUT (D0h); schaltet der 8088 zurueck (OUT D0h),
+8088. Der Z80 steht hinter dem OUT (D0h); schaltet der 8088 zurück (OUT D0h),
 macht er bei F110h weiter.
 
 DMVRACE sucht in Bank 0 (die ersten 64 KB) einen freien Bereich von 12 KB,
-der das Programm selbst nicht beruehrt, sichert dessen Inhalt, legt den
+der das Programm selbst nicht berührt, sichert dessen Inhalt, legt den
 Z80-Kern dorthin und passt ihn an (Verschiebetabelle). Bei F10Eh steht dann
-OUT (D0h),A / NOP / JP Kern. Liegt DMVRACE selbst ueber F10Eh, zieht es
-vorher in einen hoeheren DOS-Block um. Waehrend der Z80 rechnet, steht der
+OUT (D0h),A / NOP / JP Kern. Liegt DMVRACE selbst über F10Eh, zieht es
+vorher in einen höheren DOS-Block um. Während der Z80 rechnet, steht der
 8088 und die Interrupts sind aus (die DOS-Uhr geht danach um die Z80-Zeit
-nach). Danach wird alles zurueckgelegt.
+nach). Danach wird alles zurückgelegt.
 
-Kommt der Z80 nicht zurueck, steht der Rechner - dann hilft nur ein
-Neustart, und /Z laesst ihn beim naechsten Mal weg.
+Kommt der Z80 nicht zurück, steht der Rechner - dann hilft nur ein
+Neustart, und /Z lässt ihn beim nächsten Mal weg.
 
 Der Koprozessor: 68008 (K234) oder Z8001 (K238)
 ------------------------------------------------
-Nur auf der K235. 16 KB DOS-Block (fuer den Z8001 innerhalb eines
-64-KB-Segments), Briefkasten (Big Endian, fuer beide gleich), Code ab
+Nur auf der K235. 16 KB DOS-Block (für den Z8001 innerhalb eines
+64-KB-Segments), Briefkasten (Big Endian, für beide gleich), Code ab
 P+100h: RACE68.S bzw. RACEZ8K.8KN. Je Test ein Start, wie auf der echten
 DMV gemessen (K234) bzw. in MAME (K238):
   - die 8088-Vektoren 0/1 werden kurz durch den Startzustand ersetzt
@@ -162,11 +162,11 @@ DMV gemessen (K234) bzw. in MAME (K238):
   - am Warteplatz des Z80 (F10Eh) steht OUT (DFh),A / Marke / JP F10Eh;
     der 8088 gibt mit OUT D0h an den Z80, der Z80 startet den Koprozessor
     mit OUT DFh (mit D8h lief die echte K234 nicht an);
-  - der Koprozessor rechnet den Test und gibt an den Z80 zurueck (68008:
+  - der Koprozessor rechnet den Test und gibt an den Z80 zurück (68008:
     Schreiben auf FFFDFh, Z8001: OUTB DFh), der Z80 mit OUT D0h an den
     8088.
 Der 8088 steht, solange der Koprozessor rechnet; die Zeit misst
-PIT-Kanal 0. Der vierte Wagen heisst nach der gefundenen Karte "68008"
+PIT-Kanal 0. Der vierte Wagen heißt nach der gefundenen Karte "68008"
 oder "Z8001". Antwortet keiner, steht er mit "KEIN K234/K238" in der Box.
 
 Bauen
@@ -178,7 +178,7 @@ Bauen
   ANG.INC (Fahrtrichtung), GZEIT.INC (Zeitbasis), GHW.INC
   (Hardwareerkennung; beide aus DMVGRAF, dmvgraf/src, gemeinsam mit
   DMVDEMO und PITTEST),
-  Z80.INC, R68.INC und RZ8.INC (fertig uebersetzte Kerne).
+  Z80.INC, R68.INC und RZ8.INC (fertig übersetzte Kerne).
   Die Kerne selbst: RACEZ80.ASM (z80asm), RACE68.S (GNU as m68k) und
   RACEZ8K.8KN (libasm, asm -C Z8001);
   zum Bauen von DMVRACE braucht man diese Assembler nicht.
