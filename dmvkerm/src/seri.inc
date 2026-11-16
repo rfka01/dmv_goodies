@@ -47,6 +47,7 @@ palt	db	0		; Befehlsregister vor uns (DOS-AUX)
 pmr1	db	4Eh		; MR1: asynchron 16x, 8 Bit, keine Paritaet, 1 Stopp
 pbaud	db	0Eh		; MR2 unten: Baudcode, 0Eh = 9600
 pparit	db	0		; 0 keine, 1 gerade, 2 ungerade, 3 mark, 4 space
+pstop	db	0		; 0 = 1 Stoppbit, 1 = 2 Stoppbits
 pfluss	db	1		; 1 = XON/XOFF
 paltvek	dd	0
 paltmask db	0
@@ -714,17 +715,22 @@ smo9:	pop	dx
 	ret
 setmode	endp
 
-; Paritaet pparit -> pmr1
+; Paritaet pparit und Stoppbits pstop -> pmr1. MR1 des 2651/2661:
+; Bit 7..6 Stoppbits (01 = 1, 11 = 2), 5 gerade, 4 Paritaet an,
+; 3..2 Zeichenlaenge (10 = 7, 11 = 8 Bit), 1..0 = 10 asynchron 16x.
 setparit proc	near
 	push	ax
 	mov	al,4Eh			; 8 Bit ohne Paritaet (auch mark/space)
 	cmp	pparit,1
 	jne	spa1
-	mov	al,3Ah			; 7 Bit, Paritaet gerade
+	mov	al,7Ah			; 7 Bit, Paritaet gerade
 spa1:	cmp	pparit,2
 	jne	spa2
-	mov	al,1Ah			; 7 Bit, Paritaet ungerade
-spa2:	mov	pmr1,al
+	mov	al,5Ah			; 7 Bit, Paritaet ungerade
+spa2:	cmp	pstop,0
+	je	spa3
+	or	al,0C0h			; 2 Stoppbits
+spa3:	mov	pmr1,al
 	cmp	poffen,0
 	je	spa9
 	call	setmode

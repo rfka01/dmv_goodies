@@ -310,6 +310,9 @@ stf2:	dec	di
 	mov	ah,'S'
 stf3:	mov	st_par,al
 	mov	st_par+1,ah
+	mov	al,'1'			; Stoppbits
+	add	al,pstop
+	mov	st_par+2,al
 	pop	di
 	pop	dx
 	pop	cx

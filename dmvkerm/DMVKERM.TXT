@@ -1,4 +1,4 @@
-DMVKERM 1.3 - Kermit und Terminal fuer die NCR Decision Mate V
+DMVKERM 1.4 - Kermit und Terminal fuer die NCR Decision Mate V
 ===============================================================
 
 DMVKERM ist ein kleines Kermit fuer die seriellen Module K211, K212,
@@ -79,8 +79,11 @@ Einstellungen
                        2000 2400 3600 4800 7200 9600 19200
   SET BAUD n           dasselbe wie SET SPEED (wie bei MS-Kermit)
   SET PARITY p         NONE, EVEN, ODD, MARK, SPACE (Vorgabe NONE, 8 Bit)
+  SET STOP-BITS 1|2    Stoppbits (Vorgabe 1)
   SET FLOW f           NONE oder XON/XOFF (Vorgabe XON/XOFF)
   SET XMODEM 1K|128    Blockgroesse beim Senden mit XMODEM (Vorgabe 1K)
+  SET TRANSMIT PAUSE n n Millisekunden Luecke nach jedem Zeichen bei
+                       TRANSMIT (Vorgabe 0)
   SHOW                 Module, Interrupt, Einstellungen, Leitungen DSR
                        und DCD, verlorene Zeichen, Mitschnitt
   HANGUP               auflegen
@@ -177,11 +180,40 @@ aufgefuellt. XMODEM braucht SET PARITY NONE; XON/XOFF wird waehrend der
 Uebertragung abgeschaltet.
 
 
+Senden ohne Protokoll
+---------------------
+TRANSMIT /BINARY datei (abgekuerzt TRANSMIT /B datei) schickt jedes
+Byte der Datei unveraendert hinaus, auch 00h, 1Ah und Bytes mit
+gesetztem 8. Bit. Es gibt keinen Zeilenumbau und kein Warten auf ein
+Echo; was die Gegenseite schickt, wird verworfen. Die Anzeige zaehlt
+die gesendeten Bytes mit.
+
+Gedacht ist das fuer Rechner, die ein Programm als rohen Bytestrom ueber
+die serielle Schnittstelle lesen, etwa Bandabbilder (RIM- oder
+BIN-Format) fuer den Lader einer PDP-8. Der Lader muss auf der
+Gegenseite schon laufen, bevor TRANSMIT beginnt.
+
+Kommt die Gegenseite nicht hinterher, hilft SET TRANSMIT PAUSE n: Nach
+jedem Zeichen bleibt die Leitung n Millisekunden ruhig. Alternativ eine
+kleinere Baudrate waehlen. Viele Fernschreib-Schnittstellen erwarten
+2 Stoppbits (SET STOP-BITS 2). SET FLOW NONE ist meist richtig, denn
+XON/XOFF der Gegenseite wuerde das Senden anhalten.
+
+Beispiel fuer 110 Baud, 8 Bit, 2 Stoppbits:
+
+  SET SPEED 110
+  SET STOP-BITS 2
+  SET FLOW NONE
+  TRANSMIT /BINARY PROGRAMM.BIN
+
+
 Weitere Befehle
 ---------------
   TRANSMIT datei       Textdatei so senden, als wuerde sie getippt
                        (CR am Zeilenende, nach jeder Zeile auf das Echo
                        warten, hoechstens 1 Sekunde); ESC bricht ab
+  TRANSMIT /BINARY datei  Datei Byte fuer Byte ohne Protokoll senden
+                       (siehe unten); ESC bricht ab
   LOG SESSION [datei]  alles Empfangene in CONNECT und TRANSMIT
                        mitschreiben (Vorgabe SESSION.LOG; eine
                        vorhandene Datei wird verlaengert)

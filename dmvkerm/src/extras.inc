@@ -124,9 +124,20 @@ tr_text	db	'Sende die Datei als Text, ESC bricht ab.',cr,lf,'$'
 tr_ok	db	cr,lf,'[TRANSMIT fertig]',cr,lf,'$'
 
 b_transmit proc	near
+	mov	trbin,0
+	call	restmuster
+	jc	btr0
+	cmp	roh,'/'			; Schalter?
+	jne	btr1
+	mov	si,offset trsw_tab
+	call	suche			; wanf/wlen zeigen noch auf das Wort
+	jnc	btr0a
+	mov	dx,offset tr_schal
+	jmp	textd
+btr0a:	mov	trbin,al
 	call	restmuster
 	jnc	btr1
-	mov	dx,offset m_fehlt
+btr0:	mov	dx,offset m_fehlt
 	jmp	textd
 btr1:	cmp	poffen,0
 	jne	btr2
@@ -142,7 +153,10 @@ btr3:	mov	fhand,ax
 	mov	fpos,0
 	mov	fend,0
 	mov	kabbr,0
-	mov	dx,offset tr_text
+	cmp	trbin,0
+	je	btr3a
+	jmp	trbinaer
+btr3a:	mov	dx,offset tr_text
 	call	textd
 btr4:	call	tzeigen			; Empfangenes zeigen, Abbruch?
 	jc	btr8
@@ -153,6 +167,7 @@ btr4:	call	tzeigen			; Empfangenes zeigen, Abbruch?
 	cmp	al,1Ah			; Ctrl-Z: Dateiende
 	je	btr8
 	call	sput
+	call	trwarte
 	cmp	al,cr
 	jne	btr4
 	mov	al,1			; auf das Echo der Zeile warten
@@ -181,6 +196,111 @@ btr8:	call	fzu
 	mov	dx,offset tr_ok
 	jmp	textd
 b_transmit endp
+
+trsw_tab db	7,'/BINARY'
+	dw	1
+	db	0
+trbin	db	0
+tr_schal db	'?Unbekannter Schalter, moeglich ist /BINARY',cr,lf,'$'
+trpause	dw	0		; SET TRANSMIT PAUSE: ms nach jedem Zeichen
+tr_bin	db	'Sende die Datei Byte fuer Byte ohne Protokoll, ESC bricht ab.',cr,lf,'$'
+tr_byt	db	cr,'Gesendet: $'
+tr_byte	db	' Bytes$'
+tr_abbr	db	cr,lf,'[TRANSMIT abgebrochen]',cr,lf,'$'
+tr_lese	db	cr,lf,'?Lesefehler, TRANSMIT abgebrochen',cr,lf,'$'
+trzahl	dw	0,0
+
+; Pause nach einem Zeichen (SET TRANSMIT PAUSE). Der Baustein nimmt das
+; naechste Zeichen schon an, waehrend das vorige noch hinausgeht; damit
+; auf der Leitung wirklich eine Luecke entsteht, kommt die Dauer eines
+; Zeichens (Start, 8 Bit, 1 oder 2 Stopp) dazu.
+trwarte	proc	near
+	cmp	trpause,0
+	je	trw9
+	push	ax
+	push	bx
+	push	dx
+	mov	bl,pbaud
+	xor	bh,bh
+	shl	bx,1
+	mov	bx,baudtab[bx]
+	mov	al,pstop
+	cbw
+	add	ax,10			; Bits je Zeichen
+	mov	dx,1000
+	mul	dx			; DX:AX = Bits * 1000
+	div	bx			; ms, aufgerundet
+	or	dx,dx
+	jz	trw1
+	inc	ax
+trw1:	add	ax,trpause
+	call	wartems
+	pop	dx
+	pop	bx
+	pop	ax
+trw9:	ret
+trwarte	endp
+
+; TRANSMIT /BINARY: jedes Byte der Datei unveraendert senden (auch 1Ah,
+; 00h, 80h), ohne Zeilenumbau und ohne auf ein Echo zu warten. Was
+; ankommt, wird verworfen (etwa ein Echo der Gegenseite). Fuer
+; Bandabbilder (RIM/BIN) von Rechnern wie der PDP-8.
+trbinaer proc	near
+	mov	dx,offset tr_bin
+	call	textd
+	mov	flesef,0
+	mov	trzahl,0
+	mov	trzahl+2,0
+	call	trzeig
+trb1:	call	sget			; Empfangenes verwerfen
+	jnz	trb1
+	call	kbhol
+	jz	trb2
+	or	ah,ah
+	jnz	trb2
+	cmp	al,esc_
+	je	trb7
+	cmp	al,3			; Ctrl-C
+	je	trb7
+trb2:	call	fget
+	jc	trb6
+	call	sput
+	call	trwarte
+	add	trzahl,1
+	adc	trzahl+2,0
+	test	trzahl,0FFh		; alle 256 Bytes anzeigen
+	jnz	trb1
+	call	trzeig
+	jmp	short trb1
+trb6:	call	trzeig
+	call	fzu
+	mov	dx,offset tr_ok
+	cmp	flesef,0
+	je	trb8
+	mov	dx,offset tr_lese
+	jmp	short trb8
+trb7:	call	trzeig
+	call	fzu
+	mov	dx,offset tr_abbr
+trb8:	call	textd
+	call	kbleer
+	ret
+trbinaer endp
+
+trzeig	proc	near
+	push	ax
+	push	dx
+	mov	dx,offset tr_byt
+	call	textd
+	mov	ax,trzahl
+	mov	dx,trzahl+2
+	call	zahl32
+	mov	dx,offset tr_byte
+	call	textd
+	pop	dx
+	pop	ax
+	ret
+trzeig	endp
 
 ; Alles Empfangene zeigen; Carry bei ESC
 tzeigen	proc	near

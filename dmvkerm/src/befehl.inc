@@ -105,6 +105,14 @@ set_tab	db	4,'PORT'
 	dw	s_flow
 	db	6,'XMODEM'
 	dw	s_xmodem
+	db	9,'STOP-BITS'
+	dw	s_stopb
+	db	8,'TRANSMIT'
+	dw	s_trans
+	db	0
+
+trs_tab	db	5,'PAUSE'
+	dw	0
 	db	0
 
 xm_tab	db	2,'1K'
@@ -409,6 +417,31 @@ s_xmodem proc	near
 sxm9:	ret
 s_xmodem endp
 
+s_stopb	proc	near
+	call	wortzahl
+	jc	sst9
+	dec	ax
+	cmp	ax,1
+	ja	sst8
+	mov	pstop,al
+	call	setparit
+	ret
+sst8:	mov	dx,offset m_stopb
+	call	textd
+sst9:	ret
+s_stopb	endp
+m_stopb	db	'?Moeglich: 1 oder 2',cr,lf,'$'
+
+s_trans	proc	near
+	mov	si,offset trs_tab
+	call	wortaus
+	jc	stt9
+	call	wortzahl
+	jc	stt9
+	mov	trpause,ax
+stt9:	ret
+s_trans	endp
+
 b_hangup proc	near
 	cmp	poffen,0
 	je	bhu8
@@ -442,7 +475,7 @@ sh_dcd	db	', DCD $'
 sh_an	db	'an$'
 sh_aus	db	'aus$'
 sh_verl	db	cr,lf,'Verlorene Zeichen: $'
-partxt	db	'keine   $gerade  $ungerade$mark    $space   $'
+partxt	db	'keine$   gerade$  ungerade$mark$    space$   '
 
 b_show	proc	near
 	mov	dx,offset sh_mod
@@ -509,6 +542,11 @@ bsh5:	mov	dx,offset sh_ein
 	add	ax,offset partxt
 	mov	dx,ax
 	call	textd
+	mov	dx,offset sh_st1
+	cmp	pstop,0
+	je	bsh5a
+	mov	dx,offset sh_st2
+bsh5a:	call	textd
 	mov	dx,offset sh_fl
 	call	textd
 	mov	dx,offset sh_xon
@@ -550,9 +588,19 @@ bsh10:	call	textd
 	je	bsh11
 	mov	dx,offset sh_an
 bsh11:	call	textd
+	mov	dx,offset sh_tp
+	call	textd
+	mov	ax,trpause
+	call	zahl
+	mov	dx,offset sh_ms
+	call	textd
 	call	crlf
 	ret
 b_show	endp
+sh_st1	db	', 1 Stoppbit$'
+sh_st2	db	', 2 Stoppbits$'
+sh_tp	db	cr,lf,'TRANSMIT-Pause:  $'
+sh_ms	db	' ms je Zeichen$'
 sh_xm	db	cr,lf,'XMODEM-Bloecke:  $'
 sh_1k	db	'1K (mit CRC)$'
 sh_128	db	'128$'
@@ -592,6 +640,7 @@ hilfe	db	'Befehle (abkuerzbar):',cr,lf
 	db	'  SET PORT n         serielles Modul n (1, 2, ...)',cr,lf
 	db	'  SET SPEED n        Baudrate (300 ... 19200), auch SET BAUD n',cr,lf
 	db	'  SET PARITY p       NONE, EVEN, ODD, MARK, SPACE',cr,lf
+	db	'  SET STOP-BITS 1|2  Stoppbits (2 z.B. fuer Fernschreib-Schnittstellen)',cr,lf
 	db	'  SET FLOW f         NONE, XON/XOFF',cr,lf
 	db	'  SET XMODEM 1K|128  Blockgroesse beim Senden mit XMODEM',cr,lf
 	db	'  SHOW, HANGUP       Einstellungen zeigen, auflegen',cr,lf
@@ -607,6 +656,8 @@ hilfe	db	'Befehle (abkuerzbar):',cr,lf
 	db	'-- weiter mit einer Taste --$'
 hilfe2	db	30 dup (' '),cr
 	db	'  TRANSMIT datei     Textdatei wie getippt senden',cr,lf
+	db	'  TRANSMIT /BINARY datei  Bytes unveraendert senden, ohne Protokoll',cr,lf
+	db	'  SET TRANSMIT PAUSE n  n ms Pause nach jedem Zeichen (Vorgabe 0)',cr,lf
 	db	'  LOG SESSION [datei] Terminal mitschreiben, CLOSE beendet',cr,lf
 	db	'  DIR [muster], CD [pfad], DEL datei, TYPE datei',cr,lf
 	db	'  PUSH, RUN befehl   DOS aufrufen (EXIT kehrt zurueck)',cr,lf
